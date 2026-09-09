@@ -1,21 +1,13 @@
 import { motion } from 'framer-motion';
-import { useTransform } from 'framer-motion';
 import { useGameStore } from '../store/gameStore';
 import { useEffect, useState } from 'react';
-import { calculateLevel, calculateRank } from '../utils/xp';
 import HunterCard from '../components/HunterCard';
 import QuestBoard from '../components/QuestBoard';
 import AchievementPanel from '../components/AchievementPanel';
 
 export default function StatusWindow() {
-  const { profile, addXP, loadFromStorage, saveToStorage } = useGameStore();
+  const { profile } = useGameStore();
   const { level, xp, rank, stats } = profile;
-
-  // Load data from localStorage on mount
-  useEffect(() => {
-    loadFromStorage();
-    // Save periodically or on unload in a real app
-  }, [loadFromStorage, saveToStorage]);
 
   // Calculate progress to next level
   const currentLevelXP = (level - 1) * 1000;

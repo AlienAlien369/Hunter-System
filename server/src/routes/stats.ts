@@ -1,17 +1,22 @@
 import { Router, Request, Response } from 'express';
 import { pool } from '../db.js';
+import { authenticateToken } from '../middleware/auth.js';
 
 const router = Router();
 
 // GET /api/stats - Get all stats
-router.get('/', async (req: Request, res: Response) => {
+router.get('/', authenticateToken, async (req: Request, res: Response) => {
   try {
-    const userResult = await pool.query('SELECT * FROM users WHERE id = 1');
-    const user = userResult.rows[0] || null;
+    const userId = req.user?.id;
+    const userResult = await pool.query('SELECT * FROM users WHERE id = $1', [userId]);
+    const userRow = userResult.rows[0] || null;
 
-    if (!user) {
+    if (!userRow) {
       return res.status(404).json({ error: 'No user found' });
     }
+
+    // Never expose the password hash
+    const { password_hash, ...user } = userRow;
 
     // Get today's stats
     const today = new Date().toISOString().split('T')[0];
@@ -41,7 +46,7 @@ router.get('/', async (req: Request, res: Response) => {
     const streakResult = await pool.query(`
       WITH date_series AS (
         SELECT generate_series(
-          (SELECT MAX(completion_date) FROM quest_completions),
+          COALESCE((SELECT MAX(completion_date) FROM quest_completions), CURRENT_DATE),
           CURRENT_DATE,
           INTERVAL '1 day'
         )::date AS date
@@ -52,9 +57,6 @@ router.get('/', async (req: Request, res: Response) => {
       SELECT COUNT(*) as streak
       FROM date_series ds
       JOIN completed_dates cd ON ds.date = cd.completion_date
-      WHERE ds.date <= CURRENT_DATE
-      ORDER BY ds.date DESC
-      LIMIT 7
     `);
 
     const streak = streakResult.rows.length > 0 ? streakResult.rows.length : 0;
@@ -73,23 +75,27 @@ router.get('/', async (req: Request, res: Response) => {
 });
 
 // PATCH /api/stats - Update user stats
-router.patch('/', async (req: Request, res: Response) => {
+router.patch('/', authenticateToken, async (req: Request, res: Response) => {
   try {
+    const userId = req.user?.id;
     const updates = req.body;
     const allowedFields = ['hp', 'mp', 'str', 'agi', 'vit', 'int', 'sen'];
     const setClauses = allowedFields
       .filter(f => updates[f] !== undefined)
-      .map((f, i) => `${f} = $${i + 1}`)
-      .join(', ');
+      .map((f, i) => `${f} = $${i + 1}`);
     const values = allowedFields.filter(f => updates[f] !== undefined).map(f => updates[f]);
 
-    if (setClauses) {
-      values.push(...[1, ...Array.from({ length: setClauses.split(',').length }, (_, i) => i + 1)].slice(0, values.length + 1));
-      await pool.query(`UPDATE users SET ${setClauses}, updated_at = NOW() WHERE id = 1`, values.slice(0, setClauses.split(',').length));
+    if (setClauses.length > 0) {
+      values.push(userId);
+      await pool.query(
+        `UPDATE users SET ${setClauses.join(', ')}, updated_at = NOW() WHERE id = $${setClauses.length + 1}`,
+        values
+      );
     }
 
-    const result = await pool.query('SELECT * FROM users WHERE id = 1');
-    res.json(result.rows[0]);
+    const result = await pool.query('SELECT * FROM users WHERE id = $1', [userId]);
+    const { password_hash, ...user } = result.rows[0];
+    res.json(user);
   } catch (error) {
     console.error('Error updating stats:', error);
     res.status(500).json({ error: 'Failed to update stats' });

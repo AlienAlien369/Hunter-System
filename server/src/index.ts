@@ -8,7 +8,8 @@ import rankRoutes from './routes/rank.js';
 import authRoutes from './routes/auth.js';
 import { initDatabase } from './db.js';
 
-dotenv.config();
+// Load the project root .env (works regardless of CWD)
+dotenv.config({ path: new URL('../../.env', import.meta.url).pathname });
 
 const app = express();
 const PORT = process.env.BACKEND_PORT || 3000;

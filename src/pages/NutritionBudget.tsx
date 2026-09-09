@@ -3,6 +3,7 @@ import { motion } from 'framer-motion';
 import { useEffect, useState } from 'react';
 import { BarChart, Bar, XAxis, YAxis, Tooltip, Legend, ResponsiveContainer } from 'recharts';
 import { PieChart, Pie, Cell, Tooltip as PieTooltip, Legend as PieLegend } from 'recharts';
+import { calculateTargetCalories, calculateTDEE, calculateProteinTotal } from '../utils/calorie';
 
 const FOODS = [
   { name: 'Fit Feast Pouch', protein: 20, cost: 20, unit: 'daily' },
@@ -29,31 +30,40 @@ const BUDGET_ITEMS = [
   { category: 'Buffer', target: 1000 },
 ];
 
+const PROTEIN_GOAL_G = 150;
+
+type CalorieGoal = 'lose' | 'maintain' | 'gain';
+
 export default function NutritionBudget() {
   const {
     logNutrition,
-    budgetItems,
-    updateProfile
+    profile,
   } = useGameStore();
   const [foods, setFoods] = useState(() =>
     FOODS.map(food => ({ ...food, consumed: false }))
   );
-  const [budget, setBudget] = useState(() =>
+  const [budget] = useState(() =>
     BUDGET_ITEMS.map(item => ({ ...item, actual: 0 }))
   );
   const [proteinData, setProteinData] = useState([]);
-  const [selectedDate, setSelectedDate] = useState(new Date().toISOString().split('T')[0]);
+  const selectedDate = new Date().toISOString().split('T')[0];
+  const goal: CalorieGoal = 'maintain';
 
   // Load nutrition data from storage on mount
   useEffect(() => {
-    // In a full implementation, we'd load from nutritionLogs in gameStore
-    // For now, we'll initialize with empty data
     setProteinData([]);
   }, []);
 
-  // Calculate total protein for selected date
-  const totalProtein = foods.reduce((total, food) =>
-    total + (food.consumed ? food.protein : 0), 0);
+  // Derive simple profile defaults if missing
+  const weightKg = Number.isFinite(profile?.weightKg) ? (profile as any).weightKg : 70;
+  const heightCm = Number.isFinite(profile?.heightCm) ? (profile as any).heightCm : 170;
+  const age = Number.isFinite(profile?.age) ? (profile as any).age : 25;
+  const sex = (profile?.sex as 'male' | 'female' | 'other') || 'male';
+  const activityLevel = ((profile?.activityLevel as any) || 'moderate') as 'moderate';
+
+  const tdee = calculateTDEE({ weightKg, heightCm, age, sex, activityLevel, goal: 'maintain' });
+  const targetCalories = calculateTargetCalories({ weightKg, heightCm, age, sex, activityLevel, goal });
+  const totalProtein = calculateProteinTotal(foods);
 
   // Calculate budget progress
   const budgetProgress = budget.map(item => ({
@@ -74,18 +84,6 @@ export default function NutritionBudget() {
       cost: f.cost,
       consumed: true
     })));
-  };
-
-  const handleBudgetChange = (e: React.ChangeEvent<HTMLInputElement>, index: number) => {
-    const value = parseFloat(e.target.value) || 0;
-    setBudget(prev => {
-      const newBudget = [...prev];
-      newBudget[index] = { ...newBudget[index], actual: value };
-      return newBudget;
-    });
-
-    // Update budget items in gameStore
-    updateProfile({ budgetItems: budget });
   };
 
   return (
@@ -149,14 +147,22 @@ export default function NutritionBudget() {
           </div>
 
           <div className="mt-5 pt-4 border-t border-purple-monarch/10">
-            <div className="flex justify-between text-sm text-muted">
-              <span>Daily Protein Goal: 150g</span>
-              <span>{totalProtein}g</span>
+            <div className="flex justify-between text-sm text-muted mb-1">
+              <span>TDEE</span>
+              <span>{tdee} kcal</span>
+            </div>
+            <div className="flex justify-between text-sm text-muted mb-3">
+              <span>Target ({goal})</span>
+              <span>{targetCalories} kcal</span>
+            </div>
+            <div className="flex justify-between text-sm text-muted mb-1">
+              <span>Daily Protein Goal</span>
+              <span>{totalProtein}g / {PROTEIN_GOAL_G}g</span>
             </div>
             <div className="w-full bg-dungeon/50 rounded-full h-3 mt-2 overflow-hidden">
               <div
                 className="h-full bg-gradient-to-r from-green-success to-green-success/50 transition-all duration-500"
-                style={{ width: `${Math.min((totalProtein / 150) * 100, 100)}%` }}
+                style={{ width: `${Math.min((totalProtein / PROTEIN_GOAL_G) * 100, 100)}%` }}
               ></div>
             </div>
           </div>
@@ -274,16 +280,8 @@ export default function NutritionBudget() {
                   cy="50%"
                   innerRadius="60"
                   outerRadius="80"
-                  labelLine={{
-                    length: 8,
-                    stroke: '#8E2DE2',
-                    strokeWidth: 1
-                  }}
-                  label={{
-                    position: 'outside',
-                    filler: '',
-                    fontSize: 10
-                  }}
+                  labelLine={{ stroke: '#8E2DE2', strokeWidth: 1 }}
+                  label={{ position: 'outside', fontSize: 10 }}
                 >
                   {budgetProgress.map((item, index) => (
                     <Cell

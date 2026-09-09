@@ -1,6 +1,6 @@
 import { useGameStore } from '../store/gameStore';
 import { motion } from 'framer-motion';
-import { useEffect } from 'react';
+import { useEffect, useState } from 'react';
 
 export default function QuestBoard() {
   const { dailyQuests, completeQuest } = useGameStore();

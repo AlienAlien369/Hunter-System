@@ -1,29 +1,35 @@
 import { Router, Request, Response } from 'express';
 import { pool } from '../db.js';
+import { authenticateToken } from '../middleware/auth.js';
 
 const router = Router();
 
-// GET /api/quests - List all quests
+// GET /api/quests - List all quests (with completion history)
 router.get('/', async (req: Request, res: Response) => {
   try {
     const { category, completed } = req.query;
-    let query = 'SELECT * FROM quests';
+    let query = `
+      SELECT q.*, COALESCE(
+        json_agg(json_build_object('completion_date', qc.completion_date) ORDER BY qc.completion_date)
+          FILTER (WHERE qc.id IS NOT NULL), '[]'
+      ) AS completions
+      FROM quests q
+      LEFT JOIN quest_completions qc ON qc.quest_id = q.id
+    `;
     const params: any[] = [];
-    let where = '';
+    const conditions: string[] = [];
 
     if (category) {
-      where += where ? ' AND' : ' WHERE';
-      where += ` category = $${params.length + 1}`;
       params.push(category);
+      conditions.push(`q.category = $${params.length}`);
     }
     if (completed !== undefined) {
-      where += where ? ' AND' : ' WHERE';
-      where += ` is_daily = $${params.length + 1}`;
       params.push(completed === 'true');
+      conditions.push(`q.is_daily = $${params.length}`);
     }
 
-    if (where) query += where;
-    query += ' ORDER BY difficulty ASC, title ASC';
+    if (conditions.length) query += ' WHERE ' + conditions.join(' AND ');
+    query += ' GROUP BY q.id ORDER BY q.difficulty ASC, q.title ASC';
 
     const result = await pool.query(query, params);
     res.json(result.rows);
@@ -78,9 +84,10 @@ router.post('/', async (req: Request, res: Response) => {
 });
 
 // PATCH /api/quests/:id/complete - Toggle quest completion for today
-router.patch('/:id/complete', async (req: Request, res: Response) => {
+router.patch('/:id/complete', authenticateToken, async (req: Request, res: Response) => {
   try {
     const { id } = req.params;
+    const userId = req.user?.id;
     const today = new Date().toISOString().split('T')[0];
 
     // Check if already completed
@@ -95,10 +102,10 @@ router.patch('/:id/complete', async (req: Request, res: Response) => {
 
       // Reduce XP from user
       await pool.query(
-        'UPDATE users SET xp = GREATEST(0, xp - (SELECT xp_reward FROM quests WHERE quest_id = $1)) WHERE id = 1',
-        [id]
+        'UPDATE users SET xp = GREATEST(0, xp - (SELECT xp_reward FROM quests WHERE quest_id = $1)) WHERE id = $2',
+        [id, userId]
       );
-      await pool.query('UPDATE users SET updated_at = NOW() WHERE id = 1');
+      await pool.query('UPDATE users SET updated_at = NOW() WHERE id = $1', [userId]);
 
       res.json({ action: 'completed', message: 'Quest uncompleted' });
     } else {
@@ -115,8 +122,8 @@ router.patch('/:id/complete', async (req: Request, res: Response) => {
 
       // Add XP to user
       await pool.query(
-        'UPDATE users SET xp = xp + $1, updated_at = NOW() WHERE id = 1',
-        [quest.rows[0].xp_reward]
+        'UPDATE users SET xp = xp + $1, updated_at = NOW() WHERE id = $2',
+        [quest.rows[0].xp_reward, userId]
       );
 
       res.json({ action: 'completed', xpGained: quest.rows[0].xp_reward });

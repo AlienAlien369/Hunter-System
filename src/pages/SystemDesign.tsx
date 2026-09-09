@@ -53,7 +53,7 @@ export default function SystemDesign() {
           const isExpanded = expandedChallenge === index;
           return (
             <motion.div
-              key={challenge.week}
+              key={challenge.scenario}
               initial={{ opacity: 0, y: 10 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ duration: 0.4, delay: 0.05 * index }}

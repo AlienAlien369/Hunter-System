@@ -30,7 +30,8 @@ export function authenticateToken(req: Request, res: Response, next: NextFunctio
   }
 
   try {
-    const secret = process.env.JWT_SECRET || 'your-secret-key';
+    // Must match the secret used when signing tokens in routes/auth.ts
+    const secret = process.env.JWT_SECRET || 'hunter-system-secret-key-2024';
     const verified = jwt.verify(token, secret) as JwtPayload;
 
     req.user = verified;
@@ -51,7 +52,7 @@ export function optionalAuth(req: Request, res: Response, next: NextFunction) {
   }
 
   try {
-    const secret = process.env.JWT_SECRET || 'your-secret-key';
+    const secret = process.env.JWT_SECRET || 'hunter-system-secret-key-2024';
     const verified = jwt.verify(token, secret) as JwtPayload;
     req.user = verified;
     next();

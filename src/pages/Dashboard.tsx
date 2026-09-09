@@ -1,3 +1,4 @@
+import { useEffect } from 'react';
 import { motion } from 'framer-motion';
 import { useGameStore } from '../store/gameStore';
 import StatusWindow from '../components/StatusWindow';
@@ -6,7 +7,11 @@ import QuickStats from '../components/QuickStats';
 import RankProgress from '../components/RankProgress';
 
 export default function Dashboard() {
-  const { profile, loadFromStorage } = useGameStore();
+  const { profile, loadDashboard } = useGameStore();
+
+  useEffect(() => {
+    loadDashboard();
+  }, [loadDashboard]);
 
   return (
     <div className="space-y-6">

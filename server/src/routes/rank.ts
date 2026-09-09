@@ -1,12 +1,13 @@
 import { Router, Request, Response } from 'express';
 import { pool } from '../db.js';
+import { authenticateToken } from '../middleware/auth.js';
 
 const router = Router();
 
 // GET /api/rank - Get current rank and progression
-router.get('/', async (req: Request, res: Response) => {
+router.get('/', authenticateToken, async (req: Request, res: Response) => {
   try {
-    const userResult = await pool.query('SELECT * FROM users WHERE id = 1');
+    const userResult = await pool.query('SELECT * FROM users WHERE id = $1', [req.user?.id]);
     const user = userResult.rows[0];
 
     if (!user) {
@@ -62,9 +63,9 @@ router.get('/', async (req: Request, res: Response) => {
 });
 
 // GET /api/rank/levels - Get level progression
-router.get('/levels', async (req: Request, res: Response) => {
+router.get('/levels', authenticateToken, async (req: Request, res: Response) => {
   try {
-    const userResult = await pool.query('SELECT xp FROM users WHERE id = 1');
+    const userResult = await pool.query('SELECT xp FROM users WHERE id = $1', [req.user?.id]);
     const user = userResult.rows[0];
 
     if (!user) {

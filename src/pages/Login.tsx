@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { motion } from 'framer-motion';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, Navigate } from 'react-router-dom';
 import { useAuthStore } from '../store/authStore';
 import { api } from '../lib/api';
 
@@ -15,8 +15,7 @@ export default function Login() {
 
   // If already logged in, redirect to dashboard
   if (user) {
-    navigate('/');
-    return null;
+    return <Navigate to="/" replace />;
   }
 
   const handleSubmit = async (e: React.FormEvent) => {

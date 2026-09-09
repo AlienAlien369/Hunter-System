@@ -6,7 +6,8 @@
     "dev": "tsx watch src/index.ts",
     "build": "tsc",
     "start": "node dist/index.js",
-    "migrate": "node-pg-migrate up"
+    "migrate": "node-pg-migrate up",
+    "test": "node --test src/tests/auth.test.ts"
   },
   "dependencies": {
     "bcrypt": "^6.0.0",

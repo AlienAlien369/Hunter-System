@@ -55,10 +55,12 @@ describe('Authentication API', () => {
   });
 
   it('should return 409 for duplicate username', async () => {
+    // Unique per run so the test is idempotent across database states
+    const username = 'duplicate_' + Date.now();
     const res = await fetch(`${BASE_URL}/api/auth/register`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ username: 'duplicate_user', password: 'TestPass123!' }),
+      body: JSON.stringify({ username, password: 'TestPass123!' }),
     });
     assert.strictEqual(res.status, 201);
 
@@ -66,7 +68,7 @@ describe('Authentication API', () => {
     const res2 = await fetch(`${BASE_URL}/api/auth/register`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ username: 'duplicate_user', password: 'TestPass123!' }),
+      body: JSON.stringify({ username, password: 'TestPass123!' }),
     });
     assert.strictEqual(res2.status, 409);
   });

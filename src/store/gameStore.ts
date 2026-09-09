@@ -12,6 +12,13 @@ export interface HunterProfile {
   stats: { str: number; agi: number; vit: number; int: number; sen: number };
   createdAt: string;
   lastActive: string;
+  // Diet/Calorie tracking
+  weightKg?: number;
+  heightCm?: number;
+  age?: number;
+  sex?: 'male' | 'female' | 'other';
+  activityLevel?: 'sedentary' | 'light' | 'moderate' | 'active' | 'athlete';
+  goal?: 'lose' | 'maintain' | 'gain';
 }
 
 export interface DailyQuest {
@@ -256,6 +263,7 @@ export const useGameStore = create<GameState>((set, get) => ({
         dailyQuests: updatedQuests,
         profile: {
           ...get().profile,
+          name: statsData.user.name || get().profile.name,
           xp: statsData.user.xp,
           rank: statsData.user.rank as HunterProfile['rank'],
           level: statsData.user.xp >= 1750 ? 2 : Math.floor(statsData.user.xp / 1000) + 1,
@@ -294,7 +302,7 @@ export const useGameStore = create<GameState>((set, get) => ({
   },
 
   completeQuest: async (questId: string, date: string) => {
-    const { dailyQuests, apiConnected } = get();
+    const { dailyQuests } = get();
     const quest = dailyQuests.find(q => q.id === questId);
 
     if (!quest) return;
@@ -315,14 +323,13 @@ export const useGameStore = create<GameState>((set, get) => ({
     set({ dailyQuests: updatedQuests });
     saveToLocalStorage({ dailyQuests: updatedQuests });
 
-    if (apiConnected) {
-      try {
-        await api.completeQuest(questId);
-        await get().loadDashboard();
-      } catch (error) {
-        console.error('Failed to sync with server:', error);
-        set({ error: 'Quest saved locally. Server sync failed.' });
-      }
+    // Always try to sync with the server; fall back to local-only on failure
+    try {
+      await api.completeQuest(questId);
+      await get().loadDashboard();
+    } catch (error) {
+      console.error('Failed to sync with server:', error);
+      set({ error: 'Quest saved locally. Server sync failed.' });
     }
   },
 
@@ -332,6 +339,19 @@ export const useGameStore = create<GameState>((set, get) => ({
       saveToLocalStorage({ profile: newProfile, dailyQuests: state.dailyQuests });
       return { profile: newProfile };
     });
+
+    // Persist stat/HP/MP changes to the server
+    const serverUpdates: Record<string, number> = {};
+    if (updates.stats) {
+      for (const f of ['str', 'agi', 'vit', 'int', 'sen'] as const) {
+        serverUpdates[f] = updates.stats[f];
+      }
+    }
+    if (updates.hp !== undefined) serverUpdates.hp = updates.hp;
+    if (updates.mp !== undefined) serverUpdates.mp = updates.mp;
+    if (Object.keys(serverUpdates).length > 0) {
+      api.updateStats(serverUpdates).catch(err => console.error('Failed to sync stats:', err));
+    }
   },
 
   logNutrition: (date: string, items: NutritionItem[]) => {
@@ -355,5 +375,18 @@ export const useGameStore = create<GameState>((set, get) => ({
 
   toggleApiConnection: (connected: boolean) => {
     set({ apiConnected: connected });
+  },
+
+  // Local storage methods
+  loadFromStorage: () => {
+    const saved = loadFromLocalStorage();
+    if (saved) {
+      set(saved);
+    }
+  },
+
+  saveToStorage: () => {
+    const state = get();
+    saveToLocalStorage({ dailyQuests: state.dailyQuests, profile: state.profile });
   },
 }));

@@ -4,6 +4,13 @@ import dsaQuestions from '../data/dsa-questions.json';
 
 type Difficulty = 'Easy' | 'Medium' | 'Hard';
 
+interface Question {
+  id: number;
+  title: string;
+  description: string;
+  difficulty: Difficulty;
+}
+
 const DIFFICULTY_CONFIG = {
   Easy: {
     color: 'text-green-400',
@@ -25,15 +32,8 @@ const DIFFICULTY_CONFIG = {
   },
 };
 
-interface Question {
-  id: number;
-  title: string;
-  description: string;
-  difficulty: Difficulty;
-}
-
 export default function DSARoadmap() {
-  const [questions, setQuestions] = useState<Question[]>(dsaQuestions);
+  const [questions] = useState<Question[]>(dsaQuestions as Question[]);
   const [studied, setStudied] = useState<Set<number>>(new Set());
   const [filter, setFilter] = useState<'All' | Difficulty>('All');
   const [expandedId, setExpandedId] = useState<number | null>(null);
@@ -201,7 +201,7 @@ export default function DSARoadmap() {
 
       {/* Questions List */}
       <div className="space-y-3">
-        <AnimatePresence mode="wait">
+        <AnimatePresence initial={false}>
           {filteredQuestions.map((question, index) => {
             const isStudied = studied.has(question.id);
             const isExpanded = expandedId === question.id;

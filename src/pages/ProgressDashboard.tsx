@@ -4,7 +4,7 @@ import { useEffect, useState } from 'react';
 import { LineChart, Line, XAxis, YAxis, Tooltip, Legend, ResponsiveContainer, CartesianGrid } from 'recharts';
 
 export default function ProgressDashboard() {
-  const { profile, stats, rank, loadDashboard } = useGameStore();
+  const { profile, stats, apiConnected, loadDashboard } = useGameStore();
   const [chartData, setChartData] = useState<any[]>([]);
   const [achievements] = useState([
     { id: 'ACH-01', title: 'First Steps', earned: true, icon: '👣' },
@@ -81,7 +81,7 @@ export default function ProgressDashboard() {
         <div className="text-right">
           <p className="text-purple-400 font-mono text-sm">{new Date().toLocaleDateString()}</p>
           <p className="text-gray-500 font-mono text-xs mt-1">
-            {profile.apiConnected ? '🟢 ONLINE' : '🟡 LOCAL MODE'}
+            {apiConnected ? '🟢 ONLINE' : '🟡 LOCAL MODE'}
           </p>
         </div>
       </motion.div>
