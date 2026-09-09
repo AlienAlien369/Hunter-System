@@ -202,6 +202,34 @@ describe('Progress semantics (daily reset, DSA permanence, nutrition months)', (
     assert.strictEqual(res.status, 400);
   });
 
+  it('progress is measured across week, month, quarter and year periods', async () => {
+    const cookie2 = await register('prog_period_' + suffix);
+    await fetch(`${BASE_URL}/api/quests/DQ-01/complete`, {
+      method: 'PATCH',
+      headers: { Cookie: cookie2 },
+    });
+
+    for (const period of ['week', 'month', 'quarter', 'year']) {
+      const res = await fetch(`${BASE_URL}/api/stats/progress?period=${period}`, {
+        headers: { Cookie: cookie2 },
+      });
+      assert.strictEqual(res.status, 200, `period ${period} failed`);
+      const data = await res.json();
+      assert.strictEqual(data.period, period);
+      assert.ok(Array.isArray(data.buckets) && data.buckets.length > 0, `${period} should have buckets`);
+      assert.strictEqual(data.totals.quests_completed, 1, `${period} quests`);
+      assert.strictEqual(data.totals.xp_earned, 10, `${period} xp`);
+      assert.strictEqual(data.totals.active_days, 1, `${period} active days`);
+      assert.ok(data.totals.completion_rate > 0, `${period} completion rate`);
+    }
+
+    // Invalid period is rejected
+    const bad = await fetch(`${BASE_URL}/api/stats/progress?period=decade`, {
+      headers: { Cookie: cookie2 },
+    });
+    assert.strictEqual(bad.status, 400);
+  });
+
   it('everything is logged in the activity log', async () => {
     const res = await fetch(`${BASE_URL}/api/activity`, { headers: { Cookie: cookie } });
     assert.strictEqual(res.status, 200);

@@ -1,9 +1,9 @@
 import { motion } from 'framer-motion';
 import { useGameStore } from '../store/gameStore';
 import { useEffect, useState } from 'react';
-import { LineChart, Line, XAxis, YAxis, Tooltip, Legend, ResponsiveContainer, CartesianGrid } from 'recharts';
+import { ComposedChart, Bar, Line, XAxis, YAxis, Tooltip, Legend, ResponsiveContainer, CartesianGrid } from 'recharts';
 import { api } from '../lib/api';
-import type { ActivityEntry } from '../lib/api';
+import type { ActivityEntry, ProgressPeriod, ProgressReport } from '../lib/api';
 
 const ACTIVITY_META: Record<string, { icon: string; label: string }> = {
   quest_complete: { icon: '✅', label: 'Quest completed' },
@@ -15,9 +15,17 @@ const ACTIVITY_META: Record<string, { icon: string; label: string }> = {
   register: { icon: '🆕', label: 'Registered' },
 };
 
+const PERIODS: { id: ProgressPeriod; label: string }[] = [
+  { id: 'week', label: 'WEEK' },
+  { id: 'month', label: 'MONTH' },
+  { id: 'quarter', label: 'QUARTER' },
+  { id: 'year', label: 'YEAR' },
+];
+
 export default function ProgressDashboard() {
   const { profile, stats, apiConnected, loadDashboard } = useGameStore();
-  const [chartData, setChartData] = useState<any[]>([]);
+  const [period, setPeriod] = useState<ProgressPeriod>('month');
+  const [progress, setProgress] = useState<ProgressReport | null>(null);
   const [activity, setActivity] = useState<ActivityEntry[]>([]);
   const [achievements] = useState([
     { id: 'ACH-01', title: 'First Steps', earned: true, icon: '👣' },
@@ -45,29 +53,10 @@ export default function ProgressDashboard() {
   }, []);
 
   useEffect(() => {
-    // Generate mock chart data based on current progress
-    const data = [];
-    let cumulativeXP = 0;
-    for (let i = 0; i < 7; i++) {
-      const date = new Date();
-      date.setDate(date.getDate() - (6 - i));
-      const dailyGain = Math.floor(Math.random() * 50) + 20;
-      cumulativeXP += dailyGain;
-      data.push({
-        date: date.toLocaleDateString('en-US', { weekday: 'short' }),
-        xp: cumulativeXP,
-        quests: Math.floor(Math.random() * 5) + 3,
-      });
-    }
-    // Update last entry with actual XP
-    if (data.length > 0) {
-      data[data.length - 1] = {
-        ...data[data.length - 1],
-        xp: profile.xp,
-      };
-    }
-    setChartData(data);
-  }, [profile.xp]);
+    api.getProgress(period)
+      .then(setProgress)
+      .catch(err => console.error('Failed to load progress:', err));
+  }, [period]);
 
   // Rank colors
   const rankColors: Record<string, string> = {
@@ -126,41 +115,86 @@ export default function ProgressDashboard() {
         ))}
       </div>
 
-      {/* XP Growth Chart */}
+      {/* Period Progress */}
       <motion.div
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ delay: 0.2 }}
         className="bg-[#161b22]/80 backdrop-blur-sm rounded-xl border border-purple-500/20 p-6"
       >
-        <h3 className="font-display text-white font-bold mb-4 tracking-wider">
-          XP GROWTH (LAST 7 DAYS)
-        </h3>
+        <div className="flex items-center justify-between flex-wrap gap-3 mb-5">
+          <h3 className="font-display text-white font-bold tracking-wider">
+            PERIOD PROGRESS
+          </h3>
+
+          {/* Period Tabs */}
+          <div className="flex space-x-1 bg-gray-900/60 rounded-lg p-1">
+            {PERIODS.map(p => (
+              <button
+                key={p.id}
+                onClick={() => setPeriod(p.id)}
+                className={`px-4 py-1.5 rounded-md font-mono text-xs transition-all ${
+                  period === p.id
+                    ? 'bg-purple-500/20 text-purple-400 border border-purple-500/30'
+                    : 'text-gray-500 hover:text-gray-300 border border-transparent'
+                }`}
+              >
+                {p.label}
+              </button>
+            ))}
+          </div>
+        </div>
+
+        {/* Period Stats */}
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
+          {[
+            { label: 'Quests Completed', value: progress?.totals.quests_completed ?? 0, color: 'text-purple-400' },
+            { label: 'XP Earned', value: progress?.totals.xp_earned ?? 0, color: 'text-gold' },
+            { label: 'Active Days', value: `${progress?.totals.active_days ?? 0}/${progress?.totals.days_elapsed ?? 1}`, color: 'text-blue-400' },
+            { label: 'Completion Rate', value: `${progress?.totals.completion_rate ?? 0}%`, color: 'text-green-400' },
+          ].map((stat, i) => (
+            <motion.div
+              key={stat.label}
+              initial={{ opacity: 0, scale: 0.9 }}
+              animate={{ opacity: 1, scale: 1 }}
+              transition={{ delay: i * 0.05 }}
+              className="bg-gray-900/50 rounded-lg border border-gray-800 p-3"
+            >
+              <p className={`text-xl font-display font-bold ${stat.color}`}>{stat.value}</p>
+              <p className="text-xs text-gray-500 font-mono mt-1">{stat.label}</p>
+            </motion.div>
+          ))}
+        </div>
+
         <div className="h-64">
-          {chartData.length > 0 ? (
+          {progress && progress.buckets.length > 0 ? (
             <ResponsiveContainer width="100%" height="100%">
-              <LineChart data={chartData}>
+              <ComposedChart data={progress.buckets}>
                 <CartesianGrid strokeDasharray="3 3" stroke="#2d3748" />
-                <XAxis dataKey="date" stroke="#8A92B2" fontSize={12} />
-                <YAxis stroke="#8A92B2" fontSize={12} />
+                <XAxis dataKey="label" stroke="#8A92B2" fontSize={12} />
+                <YAxis yAxisId="quests" stroke="#8A92B2" fontSize={12} />
+                <YAxis yAxisId="xp" orientation="right" stroke="#8A92B2" fontSize={12} />
                 <Tooltip
                   contentStyle={{ backgroundColor: '#161b22', border: '1px solid #5D26C1', borderRadius: '8px' }}
                   labelStyle={{ color: '#8E2DE2' }}
                 />
                 <Legend />
+                <Bar yAxisId="quests" dataKey="quests" name="Quests" fill="#8E2DE2" radius={[4, 4, 0, 0]} />
                 <Line
+                  yAxisId="xp"
                   type="monotone"
                   dataKey="xp"
-                  stroke="#8E2DE2"
+                  name="XP"
+                  stroke="#F1C40F"
                   strokeWidth={3}
-                  dot={{ fill: '#8E2DE2', strokeWidth: 2, r: 4 }}
-                  activeDot={{ r: 6, fill: '#F1C40F' }}
+                  dot={{ fill: '#F1C40F', strokeWidth: 2, r: 3 }}
+                  activeDot={{ r: 6, fill: '#8E2DE2' }}
                 />
-              </LineChart>
+              </ComposedChart>
             </ResponsiveContainer>
           ) : (
             <div className="flex items-center justify-center h-full text-gray-500 font-mono">
-              No data available
+              No activity this {period}
             </div>
           )}
         </div>

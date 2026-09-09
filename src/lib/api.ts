@@ -92,6 +92,28 @@ export interface ActivityEntry {
   created_at: string;
 }
 
+export type ProgressPeriod = 'week' | 'month' | 'quarter' | 'year';
+
+export interface ProgressBucket {
+  label: string;
+  quests: number;
+  xp: number;
+}
+
+export interface ProgressReport {
+  period: ProgressPeriod;
+  start: string;
+  granularity: 'day' | 'month';
+  buckets: ProgressBucket[];
+  totals: {
+    quests_completed: number;
+    xp_earned: number;
+    active_days: number;
+    days_elapsed: number;
+    completion_rate: number;
+  };
+}
+
 export interface AuthResponse {
   message: string;
   user: { id: number; username: string; name: string };
@@ -175,6 +197,9 @@ export const api = {
 
   getStatsHistory: (days = 30) =>
     request<StatHistory[]>(`/stats/history?days=${days}`),
+
+  getProgress: (period: ProgressPeriod = 'month') =>
+    request<ProgressReport>(`/stats/progress?period=${period}`),
 
   // Rank
   getRank: () => request<RankProgress>('/rank'),

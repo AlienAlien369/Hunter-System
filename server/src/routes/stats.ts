@@ -105,6 +105,127 @@ router.patch('/', authenticateToken, async (req: Request, res: Response) => {
   }
 });
 
+// GET /api/stats/progress?period=week|month|quarter|year
+// Aggregated progress for the current calendar period, scoped to the user.
+// Returns per-bucket (day or month) quest/xp totals plus period totals.
+router.get('/progress', authenticateToken, async (req: Request, res: Response) => {
+  try {
+    const userId = req.user?.id;
+    const period = (req.query.period as string) || 'week';
+    const now = new Date();
+
+    let start: Date;
+    let granularity: 'day' | 'month';
+    switch (period) {
+      case 'week': {
+        const dow = now.getDay(); // 0 = Sunday
+        start = new Date(now.getFullYear(), now.getMonth(), now.getDate() - ((dow + 6) % 7));
+        granularity = 'day';
+        break;
+      }
+      case 'month': {
+        start = new Date(now.getFullYear(), now.getMonth(), 1);
+        granularity = 'day';
+        break;
+      }
+      case 'quarter': {
+        const q = Math.floor(now.getMonth() / 3);
+        start = new Date(now.getFullYear(), q * 3, 1);
+        granularity = 'month';
+        break;
+      }
+      case 'year': {
+        start = new Date(now.getFullYear(), 0, 1);
+        granularity = 'month';
+        break;
+      }
+      default:
+        return res.status(400).json({ error: "period must be 'week', 'month', 'quarter' or 'year'" });
+    }
+
+    const startKey = localDateKey(start);
+    const rows = await pool.query(
+      `SELECT qc.completion_date::text AS date,
+              COUNT(qc.id)::int AS quests,
+              COALESCE(SUM(q.xp_reward), 0)::int AS xp
+       FROM quest_completions qc
+       JOIN quests q ON qc.quest_id = q.id
+       WHERE qc.user_id = $1 AND qc.completion_date >= $2::date
+       GROUP BY qc.completion_date
+       ORDER BY qc.completion_date`,
+      [userId, startKey]
+    );
+
+    const byDate = new Map<string, { quests: number; xp: number }>();
+    for (const r of rows.rows) {
+      byDate.set(String(r.date), { quests: r.quests, xp: r.xp });
+    }
+
+    const buckets: { label: string; quests: number; xp: number }[] = [];
+    let questsCompleted = 0;
+    let xpEarned = 0;
+    const activeDates = new Set<string>();
+
+    if (granularity === 'day') {
+      const isWeek = period === 'week';
+      for (let d = new Date(start); d <= now; d.setDate(d.getDate() + 1)) {
+        const key = localDateKey(d);
+        const agg = byDate.get(key) || { quests: 0, xp: 0 };
+        buckets.push({
+          label: isWeek
+            ? d.toLocaleDateString('en-US', { weekday: 'short' })
+            : d.toLocaleDateString('en-US', { month: 'short', day: 'numeric' }),
+          quests: agg.quests,
+          xp: agg.xp,
+        });
+        questsCompleted += agg.quests;
+        xpEarned += agg.xp;
+        if (agg.quests > 0) activeDates.add(key);
+      }
+    } else {
+      const cursor = new Date(start.getFullYear(), start.getMonth(), 1);
+      while (cursor <= now) {
+        const monthKey = localDateKey(cursor).slice(0, 7);
+        let quests = 0;
+        let xp = 0;
+        for (const [k, v] of byDate) {
+          if (k.startsWith(monthKey)) {
+            quests += v.quests;
+            xp += v.xp;
+            if (v.quests > 0) activeDates.add(k);
+          }
+        }
+        buckets.push({
+          label: cursor.toLocaleDateString('en-US', { month: 'short' }),
+          quests,
+          xp,
+        });
+        questsCompleted += quests;
+        xpEarned += xp;
+        cursor.setMonth(cursor.getMonth() + 1);
+      }
+    }
+
+    const daysElapsed = Math.max(1, Math.round((now.getTime() - start.getTime()) / 86400000) + 1);
+    res.json({
+      period,
+      start: startKey,
+      granularity,
+      buckets,
+      totals: {
+        quests_completed: questsCompleted,
+        xp_earned: xpEarned,
+        active_days: activeDates.size,
+        days_elapsed: daysElapsed,
+        completion_rate: Math.round((activeDates.size / daysElapsed) * 1000) / 10,
+      },
+    });
+  } catch (error) {
+    console.error('Error fetching period progress:', error);
+    res.status(500).json({ error: 'Failed to fetch progress' });
+  }
+});
+
 // GET /api/stats/history - Get stat history for charts
 router.get('/history', async (req: Request, res: Response) => {
   try {
@@ -130,6 +251,13 @@ router.get('/history', async (req: Request, res: Response) => {
     res.status(500).json({ error: 'Failed to fetch history' });
   }
 });
+
+function localDateKey(d: Date): string {
+  const y = d.getFullYear();
+  const m = String(d.getMonth() + 1).padStart(2, '0');
+  const day = String(d.getDate()).padStart(2, '0');
+  return `${y}-${m}-${day}`;
+}
 
 function calculateRank(xp: number): string {
   if (xp >= 1750) return 'S';
