@@ -32,15 +32,15 @@ COPY server/migrations ./server/migrations
 COPY --from=frontend-builder /app/dist /usr/share/nginx/html
 COPY nginx.conf /etc/nginx/conf.d/default.conf
 
-# Create non-root user
-RUN addgroup -g 1001 -S hunter && \
+# Create non-root user and nginx dirs
+RUN mkdir -p /var/cache/nginx /var/log/nginx /var/run && \
+    addgroup -g 1001 -S hunter && \
     adduser -S hunter -u 1001 -G hunter && \
     chown -R hunter:hunter /app && \
     chown -R hunter:hunter /usr/share/nginx/html && \
     chown -R hunter:hunter /var/cache/nginx && \
     chown -R hunter:hunter /var/log/nginx && \
-    touch /var/run/nginx.pid && \
-    chown -R hunter:hunter /var/run/nginx.pid
+    chown -R hunter:hunter /var/run
 
 USER hunter
 
