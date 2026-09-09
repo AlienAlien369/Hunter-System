@@ -365,7 +365,7 @@ npm run preview          # Preview production build
 curl http://localhost:3000/api/health
 curl -X POST http://localhost:3000/api/auth/login \
   -H "Content-Type: application/json" \
-  -d '{"username":"alien","password":"Alien@123"}'
+  -d '{"username":process.env.DEMO_USER,"password":process.env.DEMO_PASS}'
 ```
 
 ---
@@ -476,8 +476,8 @@ npm run dev:all
 open http://localhost:5173/login
 
 # 5. Login
-# Username: alien
-# Password: Alien@123
+# Username: demo_user
+# Password: DemoPass123!
 ```
 
 ---
@@ -491,7 +491,7 @@ curl http://localhost:3000/api/health
 # Login
 curl -X POST http://localhost:3000/api/auth/login \
   -H "Content-Type: application/json" \
-  -d '{"username":"alien","password":"Alien@123"}' \
+  -d '{"username":process.env.DEMO_USER,"password":process.env.DEMO_PASS}' \
   -c cookies.txt
 
 # Get user (with cookie)

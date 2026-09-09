@@ -49,8 +49,8 @@ npm run dev:server   # Backend on http://localhost:3000
 ### 4. Login
 
 Open http://localhost:5173/login and use:
-- **Username**: `alien`
-- **Password**: `Alien@123`
+- **Username**: `demo_user`
+- **Password**: `DemoPass123!`
 
 ## Project Structure
 
@@ -229,7 +229,7 @@ npm run docker:down  # Stop database
 1. Start the app: `npm run dev:all`
 2. Open http://localhost:5173
 3. You'll be redirected to /login
-4. Enter credentials: `alien` / `Alien@123`
+4. Enter credentials: `demo_user` / `DemoPass123!`
 5. Click "ENTER SYSTEM"
 6. You'll be redirected to the Dashboard
 7. Complete quests and see your XP increase
@@ -250,7 +250,7 @@ npm run docker:down  # Stop database
 
 **Login fails:**
 - Check if backend is running: `curl http://localhost:3000/api/health`
-- Verify database is seeded: Check for test user `alien`
+- Verify database is seeded: Check that demo user was seeded from DEMO_USER
 
 **Frontend shows "Backend unavailable":**
 - Start backend: `npm run dev:server`
