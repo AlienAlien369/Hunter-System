@@ -4,7 +4,7 @@ import dotenv from 'dotenv';
 import cookieParser from 'cookie-parser';
 import { fileURLToPath } from 'url';
 import { dirname, join } from 'path';
-import { existsSync } from 'fs';
+import { existsSync, readdirSync } from 'fs';
 import questRoutes from './routes/quests.js';
 import statsRoutes from './routes/stats.js';
 import rankRoutes from './routes/rank.js';
@@ -54,10 +54,24 @@ app.get('/api/health', (req, res) => res.json({ status: 'ok', timestamp: new Dat
 
 // Serve frontend static files in production
 const possibleFrontendPaths = [
+  process.env.FRONTEND_DIST_PATH,                 // Explicit env var
   '/usr/share/nginx/html',                        // Docker production
-  join(__dirname, '../../dist'),                    // Local dev (repo root dist/)
-  join(__dirname, '../../../dist'),                  // Alternate path
-];
+  join(__dirname, '../../dist'),                    // Local dev: server/dist → ../../dist
+].filter(Boolean) as string[];
+
+// Debug: log which paths exist
+for (const p of possibleFrontendPaths) {
+  const indexPath = join(p, 'index.html');
+  const exists = existsSync(indexPath);
+  console.log(`Frontend path ${p}: ${exists ? 'EXISTS' : 'NOT FOUND'}`);
+  if (exists) {
+    try {
+      const files = readdirSync(p);
+      console.log(`  Files: ${files.slice(0, 10).join(', ')}${files.length > 10 ? '...' : ''}`);
+    } catch {}
+  }
+}
+
 const frontendPath = possibleFrontendPaths.find(p => existsSync(join(p, 'index.html')));
 if (frontendPath) {
   app.use(express.static(frontendPath));
@@ -65,7 +79,12 @@ if (frontendPath) {
   app.get('*', (req, res) => {
     res.sendFile(join(frontendPath, 'index.html'));
   });
-  console.log(`Serving frontend from ${frontendPath}`);
+  console.log(`✅ Serving frontend from ${frontendPath}`);
+} else {
+  console.error('❌ No frontend dist found! Checked:', possibleFrontendPaths);
+  app.get('*', (req, res) => {
+    res.status(404).json({ error: 'Frontend not built. Set FRONTEND_DIST_PATH env var.' });
+  });
 }
 
 async function main() {
