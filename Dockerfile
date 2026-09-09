@@ -1,5 +1,5 @@
 # Stage 1: Build frontend
-FROM node:20-alpine AS frontend-builder
+FROM node:22-alpine AS frontend-builder
 WORKDIR /app
 COPY package.json package-lock.json ./
 RUN npm ci
@@ -9,7 +9,7 @@ ENV VITE_API_URL=${VITE_API_URL}
 RUN npm run build
 
 # Stage 2: Build backend
-FROM node:20-alpine AS backend-builder
+FROM node:22-alpine AS backend-builder
 WORKDIR /app
 COPY server/package.json server/package-lock.json ./
 RUN npm ci
@@ -17,7 +17,7 @@ COPY server/ .
 RUN npm run build
 
 # Stage 3: Production - serve frontend with nginx + run backend
-FROM node:20-alpine AS production
+FROM node:22-alpine AS production
 RUN apk add --no-cache curl nginx
 
 WORKDIR /app
