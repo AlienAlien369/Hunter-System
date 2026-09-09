@@ -4,6 +4,7 @@ import { useEffect, useMemo, useState } from 'react';
 import { BarChart, Bar, XAxis, YAxis, Tooltip, Legend, ResponsiveContainer } from 'recharts';
 import { PieChart, Pie, Cell, Tooltip as PieTooltip, Legend as PieLegend } from 'recharts';
 import { calculateTargetCalories, calculateTDEE, calculateProteinTotal } from '../utils/calorie';
+import { sfx } from '../utils/sounds';
 
 const FOODS = [
   { name: 'Fit Feast Pouch', protein: 20, cost: 60, unit: 'daily' },
@@ -124,6 +125,7 @@ export default function NutritionBudget() {
     const next = foods.map(f =>
       f.name === food.name ? { ...f, consumed: !f.consumed } : f
     );
+    sfx.click();
     setFoods(next);
 
     // Log the day's consumed items (daily marks reset; month rows persist)

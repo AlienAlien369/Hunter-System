@@ -3,6 +3,8 @@ import { motion } from 'framer-motion';
 import { useNavigate, Navigate } from 'react-router-dom';
 import { useAuthStore } from '../store/authStore';
 import { api } from '../lib/api';
+import { sfx } from '../utils/sounds';
+import BackgroundFX from '../components/BackgroundFX';
 
 export default function Login() {
   const navigate = useNavigate();
@@ -27,10 +29,12 @@ export default function Login() {
       if (mode === 'login') {
         const response = await api.login(username, password);
         login(response.user);
+        sfx.login();
         navigate('/');
       } else {
         const response = await api.register(username, password);
         login(response.user);
+        sfx.login();
         navigate('/');
       }
     } catch (err) {
@@ -42,14 +46,8 @@ export default function Login() {
 
   return (
     <div className="min-h-screen bg-[#0a0e1a] flex items-center justify-center p-4">
-      {/* Background Effects */}
-      <div className="fixed inset-0 pointer-events-none">
-        <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_center,_var(--tw-gradient-stops))] from-purple-900/30 via-transparent to-transparent" />
-        <div className="absolute inset-0 opacity-10" style={{
-          backgroundImage: 'linear-gradient(rgba(139, 92, 246, 0.3) 1px, transparent 1px), linear-gradient(90deg, rgba(139, 92, 246, 0.3) 1px, transparent 1px)',
-          backgroundSize: '50px 50px'
-        }} />
-      </div>
+      {/* Animated system background */}
+      <BackgroundFX />
 
       <motion.div
         initial={{ opacity: 0, scale: 0.9 }}

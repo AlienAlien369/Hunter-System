@@ -1,3 +1,5 @@
+import { motion } from 'framer-motion';
+
 interface DailyQuest {
   id: string;
   title: string;
@@ -28,15 +30,18 @@ export default function QuestCard({ quest, onComplete, showXP = true }: QuestCar
   const config = CATEGORY_CONFIG[quest.category as keyof typeof CATEGORY_CONFIG] || CATEGORY_CONFIG.discipline;
 
   return (
-    <button
+    <motion.button
       onClick={onComplete}
       type="button"
+      whileHover={{ y: -3, scale: 1.01 }}
+      whileTap={{ scale: 0.95 }}
+      transition={{ type: 'spring', stiffness: 420, damping: 24 }}
       className={`
-        w-full text-left p-4 rounded-xl border-2 transition-all duration-200 cursor-pointer
-        active:scale-95 hover:shadow-lg
+        w-full text-left p-4 rounded-xl border-2 transition-colors duration-200 cursor-pointer
+        hover:shadow-lg
         ${quest.completedToday
-          ? `${config.bg} ${config.border} opacity-80`
-          : 'bg-[#161b22]/80 border-purple-500/20 hover:border-purple-500/50 hover:bg-[#1a2332]'
+          ? `${config.bg} ${config.border} opacity-80 shadow-[0_0_18px_rgba(139,92,246,0.15)]`
+          : 'bg-[#161b22]/80 border-purple-500/20 hover:border-purple-500/50 hover:bg-[#1a2332] hover:shadow-purple-500/10'
         }
       `}
     >
@@ -50,9 +55,17 @@ export default function QuestCard({ quest, onComplete, showXP = true }: QuestCar
           }
         `}>
           {quest.completedToday && (
-            <svg className={`w-4 h-4 ${config.color}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <motion.svg
+              initial={{ scale: 0, rotate: -30 }}
+              animate={{ scale: 1, rotate: 0 }}
+              transition={{ type: 'spring', stiffness: 600, damping: 15 }}
+              className={`w-4 h-4 ${config.color}`}
+              fill="none"
+              stroke="currentColor"
+              viewBox="0 0 24 24"
+            >
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M5 13l4 4L19 7" />
-            </svg>
+            </motion.svg>
           )}
         </div>
 
@@ -80,16 +93,22 @@ export default function QuestCard({ quest, onComplete, showXP = true }: QuestCar
         {/* XP Reward */}
         {showXP && (
           <div className="text-right flex-shrink-0">
-            <span className={`
-              text-sm font-display font-bold
-              ${quest.completedToday ? 'text-gray-500' : 'text-gold'}
-            `}>
-              +{quest.xpReward}
-            </span>
+            <motion.span
+              key={quest.completedToday ? 'done' : 'open'}
+              initial={{ scale: 0.6 }}
+              animate={{ scale: 1 }}
+              transition={{ type: 'spring', stiffness: 500, damping: 20 }}
+              className={`
+                text-sm font-display font-bold
+                ${quest.completedToday ? 'text-gray-500' : 'text-gold'}
+              `}
+            >
+              {quest.completedToday ? '✓' : '+'}{quest.xpReward}
+            </motion.span>
             <p className="text-xs text-gray-500 font-mono">XP</p>
           </div>
         )}
       </div>
-    </button>
+    </motion.button>
   );
 }

@@ -107,3 +107,95 @@
 .glow-blue {
   box-shadow: 0 0 20px rgba(59, 130, 246, 0.5), 0 0 40px rgba(59, 130, 246, 0.2);
 }
+
+/* ========== Ambient Background Effects ========== */
+
+@keyframes aurora-drift-1 {
+  0%, 100% { transform: translate(0, 0) scale(1); }
+  33% { transform: translate(70px, 45px) scale(1.15); }
+  66% { transform: translate(-50px, 90px) scale(0.92); }
+}
+
+@keyframes aurora-drift-2 {
+  0%, 100% { transform: translate(0, 0) scale(1); }
+  40% { transform: translate(-80px, 60px) scale(1.1); }
+  70% { transform: translate(40px, -40px) scale(0.95); }
+}
+
+@keyframes aurora-drift-3 {
+  0%, 100% { transform: translate(0, 0) scale(1); }
+  50% { transform: translate(60px, -70px) scale(1.2); }
+  80% { transform: translate(-30px, 30px) scale(0.9); }
+}
+
+@keyframes particle-rise {
+  0% { transform: translateY(0) translateX(0); opacity: 0; }
+  12% { opacity: 0.9; }
+  85% { opacity: 0.35; }
+  100% { transform: translateY(-105vh) translateX(35px); opacity: 0; }
+}
+
+@keyframes scan-sweep {
+  0% { transform: translateY(-100%); opacity: 0; }
+  8% { opacity: 1; }
+  92% { opacity: 1; }
+  100% { transform: translateY(100%); opacity: 0; }
+}
+
+@keyframes flash-out {
+  0% { opacity: 1; }
+  100% { opacity: 0; }
+}
+
+@keyframes confetti-fall {
+  0% { transform: translateY(0) rotate(0deg); opacity: 1; }
+  100% { transform: translateY(92vh) rotate(540deg); opacity: 0; }
+}
+
+@keyframes shimmer-sweep {
+  0% { transform: translateX(-100%); }
+  100% { transform: translateX(200%); }
+}
+
+.animate-aurora-1 {
+  animation: aurora-drift-1 26s ease-in-out infinite;
+}
+
+.animate-aurora-2 {
+  animation: aurora-drift-2 32s ease-in-out infinite;
+}
+
+.animate-aurora-3 {
+  animation: aurora-drift-3 38s ease-in-out infinite;
+}
+
+.animate-particle-rise {
+  animation: particle-rise linear infinite;
+}
+
+.animate-scan-sweep {
+  animation: scan-sweep 16s linear infinite;
+}
+
+.animate-flash-out {
+  animation: flash-out 0.7s ease-out forwards;
+}
+
+.animate-confetti-fall {
+  animation: confetti-fall ease-in forwards;
+}
+
+/* Shimmer sweep for highlighted bars/cards */
+.shimmer {
+  position: relative;
+  overflow: hidden;
+}
+
+.shimmer::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(105deg, transparent 40%, rgba(255, 255, 255, 0.12) 50%, transparent 60%);
+  animation: shimmer-sweep 2.8s ease-in-out infinite;
+  pointer-events: none;
+}

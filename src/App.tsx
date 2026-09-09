@@ -26,6 +26,7 @@ import DSARoadmap from './pages/DSARoadmap';
 import Sidebar from './components/layout/Sidebar';
 import TopBar from './components/layout/TopBar';
 import CelebrationBanner from './components/CelebrationBanner';
+import BackgroundFX from './components/BackgroundFX';
 
 const NAV_ITEMS = [
   { path: '/', label: 'Dashboard', icon: '⚔' },
@@ -52,14 +53,8 @@ function AppContent() {
 
   return (
     <div className="min-h-screen bg-[#0a0e1a] text-white overflow-hidden">
-      {/* Background Effects */}
-      <div className="fixed inset-0 pointer-events-none">
-        <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_top,_var(--tw-gradient-stops))] from-purple-900/20 via-transparent to-transparent" />
-        <div className="absolute inset-0 opacity-5" style={{
-          backgroundImage: 'linear-gradient(rgba(139, 92, 246, 0.1) 1px, transparent 1px), linear-gradient(90deg, rgba(139, 92, 246, 0.1) 1px, transparent 1px)',
-          backgroundSize: '50px 50px'
-        }} />
-      </div>
+      {/* Animated system background */}
+      <BackgroundFX />
 
       <div className="relative flex h-screen">
         {/* Sidebar */}
@@ -80,10 +75,10 @@ function AppContent() {
             <AnimatePresence mode="wait">
               <motion.div
                 key={location.pathname}
-                initial={{ opacity: 0, y: 20 }}
-                animate={{ opacity: 1, y: 0 }}
-                exit={{ opacity: 0, y: -20 }}
-                transition={{ duration: 0.2 }}
+                initial={{ opacity: 0, y: 24, scale: 0.985, filter: 'blur(5px)' }}
+                animate={{ opacity: 1, y: 0, scale: 1, filter: 'blur(0px)' }}
+                exit={{ opacity: 0, y: -24, scale: 0.985, filter: 'blur(5px)' }}
+                transition={{ duration: 0.24, ease: 'easeOut' }}
                 className="p-4 sm:p-6"
               >
                 <Routes>

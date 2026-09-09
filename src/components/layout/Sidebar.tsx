@@ -1,6 +1,7 @@
 import { Link } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useAuthStore } from '../../store/authStore';
+import { sfx } from '../../utils/sounds';
 
 interface NavItem {
   path: string;
@@ -49,7 +50,11 @@ function SidebarContent({ items, currentPath, userName, onLogout, layoutIdPrefix
         {items.map((item, index) => {
           const isActive = currentPath === item.path;
           return (
-            <Link key={item.path} to={item.path}>
+            <Link
+              key={item.path}
+              to={item.path}
+              onClick={() => sfx.click()}
+            >
               <motion.div
                 initial={{ opacity: 0, x: -20 }}
                 animate={{ opacity: 1, x: 0 }}
@@ -66,7 +71,7 @@ function SidebarContent({ items, currentPath, userName, onLogout, layoutIdPrefix
                 {isActive && (
                   <motion.div
                     layoutId={`${layoutIdPrefix}ActiveIndicator`}
-                    className="absolute left-0 w-1 h-8 bg-purple-500 rounded-r-full"
+                    className="absolute left-0 w-1 h-8 bg-purple-500 rounded-r-full shadow-[0_0_10px_rgba(139,92,246,0.9)]"
                     initial={{ opacity: 0 }}
                     animate={{ opacity: 1 }}
                     exit={{ opacity: 0 }}
@@ -111,7 +116,10 @@ function SidebarContent({ items, currentPath, userName, onLogout, layoutIdPrefix
         {/* Logout Button */}
         {onLogout && (
           <button
-            onClick={onLogout}
+            onClick={() => {
+              sfx.logout();
+              onLogout();
+            }}
             className="w-full flex items-center justify-center space-x-2 px-4 py-2 bg-red-500/10 hover:bg-red-500/20 text-red-400 rounded-lg border border-red-500/20 transition-all font-mono text-sm"
           >
             <span>🚪</span>

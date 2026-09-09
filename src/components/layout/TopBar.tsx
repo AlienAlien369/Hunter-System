@@ -1,5 +1,7 @@
 import { useLocation } from 'react-router-dom';
 import { motion } from 'framer-motion';
+import { useSoundStore } from '../../store/soundStore';
+import { sfx } from '../../utils/sounds';
 
 interface TopBarProps {
   onMenuToggle?: () => void;
@@ -7,6 +9,8 @@ interface TopBarProps {
 
 export default function TopBar({ onMenuToggle }: TopBarProps) {
   const location = useLocation();
+  const muted = useSoundStore(s => s.muted);
+  const toggleMuted = useSoundStore(s => s.toggleMuted);
   const pageTitle = location.pathname.replace('/', '') || 'Dashboard';
 
   return (
@@ -37,7 +41,32 @@ export default function TopBar({ onMenuToggle }: TopBarProps) {
         </nav>
 
         {/* Right Actions */}
-        <div className="flex items-center space-x-3 sm:space-x-4 flex-shrink-0">
+        <div className="flex items-center space-x-2.5 sm:space-x-4 flex-shrink-0">
+          {/* Sound Toggle */}
+          <motion.button
+            onClick={() => {
+              sfx.click();
+              toggleMuted();
+            }}
+            whileTap={{ scale: 0.8 }}
+            className="relative p-2 text-gray-400 hover:text-white transition-colors"
+            title={muted ? 'Unmute sounds' : 'Mute sounds'}
+            aria-label={muted ? 'Unmute sounds' : 'Mute sounds'}
+          >
+            <motion.span
+              key={muted ? 'muted' : 'on'}
+              initial={{ scale: 0.4, opacity: 0 }}
+              animate={{ scale: 1, opacity: 1 }}
+              transition={{ type: 'spring', stiffness: 500, damping: 20 }}
+              className="block text-lg leading-none"
+            >
+              {muted ? '🔇' : '🔊'}
+            </motion.span>
+            {!muted && (
+              <span className="absolute top-1.5 right-1.5 w-1.5 h-1.5 bg-purple-500 rounded-full animate-pulse" />
+            )}
+          </motion.button>
+
           {/* System Status */}
           <div className="hidden sm:flex items-center space-x-2 px-3 py-1.5 bg-green-500/10 rounded-full border border-green-500/20">
             <span className="w-2 h-2 bg-green-500 rounded-full animate-pulse" />

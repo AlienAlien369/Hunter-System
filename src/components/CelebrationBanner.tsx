@@ -1,7 +1,8 @@
-import { useEffect } from 'react';
+import { useEffect, useMemo, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useGameStore } from '../store/gameStore';
 import type { Celebration } from '../store/gameStore';
+import { sfx } from '../utils/sounds';
 
 const RANK_NAMES: Record<string, string> = {
   E: 'Novice',
@@ -20,6 +21,45 @@ const RANK_ICONS: Record<string, string> = {
   A: '🌟',
   S: '👑',
 };
+
+const CONFETTI_COLORS = ['#F1C40F', '#8E2DE2', '#3b82f6', '#ffffff', '#a855f7', '#2ECC71'];
+
+function ConfettiBurst() {
+  const pieces = useMemo(
+    () =>
+      Array.from({ length: 22 }, (_, i) => ({
+        left: `${(i * 47 + 11) % 100}%`,
+        delay: `${(i % 11) * 0.12}s`,
+        duration: `${1.1 + (i % 7) * 0.16}s`,
+        color: CONFETTI_COLORS[i % CONFETTI_COLORS.length],
+        size: 5 + (i % 4) * 2,
+      })),
+    [],
+  );
+
+  return (
+    <div className="fixed inset-0 z-[70] pointer-events-none overflow-hidden" aria-hidden>
+      {/* Screen flash */}
+      <div className="absolute inset-0 bg-gradient-to-b from-gold/25 via-purple-500/10 to-transparent animate-flash-out" />
+      {/* Falling confetti */}
+      {pieces.map((p, i) => (
+        <span
+          key={i}
+          className="absolute top-0 rounded-sm animate-confetti-fall"
+          style={{
+            left: p.left,
+            width: p.size,
+            height: p.size * 0.5,
+            backgroundColor: p.color,
+            animationDelay: p.delay,
+            animationDuration: p.duration,
+            boxShadow: `0 0 8px ${p.color}`,
+          }}
+        />
+      ))}
+    </div>
+  );
+}
 
 function Banner({ celebration, onDismiss }: { celebration: Celebration; onDismiss: () => void }) {
   const isLevel = celebration.type !== 'rank';
@@ -42,8 +82,8 @@ function Banner({ celebration, onDismiss }: { celebration: Celebration; onDismis
       style={{ transform: 'translateX(-50%)' }}
     >
       <motion.div
-        initial={{ opacity: 0, y: -60, scale: 0.7 }}
-        animate={{ opacity: 1, y: 0, scale: 1 }}
+        initial={{ opacity: 0, y: -60, scale: 0.7, rotate: -2 }}
+        animate={{ opacity: 1, y: 0, scale: 1, rotate: 0 }}
         exit={{ opacity: 0, y: -40, scale: 0.9 }}
         transition={{ type: 'spring', stiffness: 300, damping: 18 }}
         onClick={onDismiss}
@@ -51,6 +91,7 @@ function Banner({ celebration, onDismiss }: { celebration: Celebration; onDismis
       >
         {/* Glow */}
         <div className="absolute -inset-1 rounded-2xl bg-gold/40 blur-lg animate-pulse" />
+        <div className="absolute -inset-3 rounded-3xl bg-purple-500/30 blur-2xl animate-pulse" />
 
         {/* Banner */}
         <div className="relative bg-gradient-to-r from-purple-900 via-[#1b1140] to-purple-900 border-2 border-gold/70 rounded-2xl px-6 sm:px-12 py-4 sm:py-5 text-center shadow-2xl w-[92vw] max-w-md">
@@ -72,9 +113,15 @@ function Banner({ celebration, onDismiss }: { celebration: Celebration; onDismis
             {title}
           </p>
           {lines.map(line => (
-            <p key={line} className="text-white font-mono text-sm sm:text-base mt-1.5">
+            <motion.p
+              key={line}
+              initial={{ opacity: 0, y: 6 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: 0.25 }}
+              className="text-white font-mono text-sm sm:text-base mt-1.5"
+            >
               {line}
-            </p>
+            </motion.p>
           ))}
           <p className="text-gray-400 text-[10px] font-mono mt-2.5 tracking-widest">
             TAP TO DISMISS
@@ -88,6 +135,18 @@ function Banner({ celebration, onDismiss }: { celebration: Celebration; onDismis
 export default function CelebrationBanner() {
   const celebration = useGameStore(s => s.celebration);
   const dismissCelebration = useGameStore(s => s.dismissCelebration);
+  const lastPlayed = useRef<Celebration | null>(null);
+
+  // Play the fanfare once per new celebration (ref guards against StrictMode double-fire)
+  useEffect(() => {
+    if (!celebration) return;
+    if (lastPlayed.current === celebration) return;
+    lastPlayed.current = celebration;
+
+    if (celebration.type === 'level') sfx.levelUp();
+    else if (celebration.type === 'rank') sfx.rankUp();
+    else sfx.doubleUp();
+  }, [celebration]);
 
   // Auto-dismiss after 5 seconds
   useEffect(() => {
@@ -97,8 +156,13 @@ export default function CelebrationBanner() {
   }, [celebration, dismissCelebration]);
 
   return (
-    <AnimatePresence>
-      {celebration && <Banner celebration={celebration} onDismiss={dismissCelebration} />}
-    </AnimatePresence>
+    <>
+      <AnimatePresence>
+        {celebration && <ConfettiBurst />}
+      </AnimatePresence>
+      <AnimatePresence>
+        {celebration && <Banner celebration={celebration} onDismiss={dismissCelebration} />}
+      </AnimatePresence>
+    </>
   );
 }
