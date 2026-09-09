@@ -48,12 +48,12 @@ export default function HunterNameEntry({ onComplete }: HunterNameEntryProps) {
   };
 
   return (
-    <div className="fixed inset-0 z-[100] flex items-center justify-center bg-[#0a0e1a]">
+    <div className="fixed inset-0 z-[100] flex items-center justify-center" style={{ background: 'var(--bg-base)' }}>
       {/* Animated background */}
       <div className="absolute inset-0 overflow-hidden">
-        <div className="absolute top-1/4 left-1/4 w-96 h-96 bg-purple-600/20 rounded-full blur-3xl animate-pulse" />
-        <div className="absolute bottom-1/4 right-1/4 w-80 h-80 bg-blue-600/20 rounded-full blur-3xl animate-pulse" style={{ animationDelay: '1s' }} />
-        <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-64 h-64 bg-purple-500/10 rounded-full blur-2xl animate-pulse" style={{ animationDelay: '0.5s' }} />
+        <div className="absolute top-1/4 left-1/4 w-96 h-96 rounded-full blur-3xl animate-pulse" style={{ background: 'var(--aurora-1)' }} />
+        <div className="absolute bottom-1/4 right-1/4 w-80 h-80 rounded-full blur-3xl animate-pulse" style={{ background: 'var(--aurora-2)', animationDelay: '1s' }} />
+        <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-64 h-64 rounded-full blur-2xl animate-pulse" style={{ background: 'var(--aurora-3)', animationDelay: '0.5s' }} />
       </div>
 
       <motion.div
@@ -63,7 +63,7 @@ export default function HunterNameEntry({ onComplete }: HunterNameEntryProps) {
         className="relative z-10 w-full max-w-md mx-4"
       >
         {/* Card */}
-        <div className="bg-[#0d1117]/95 backdrop-blur-xl rounded-2xl border border-purple-500/30 p-8 shadow-2xl shadow-purple-500/20">
+        <div className="backdrop-blur-xl rounded-2xl p-8 shadow-2xl" style={{ background: 'var(--bg-card)', border: '1px solid var(--accent-border)' }}>
           {/* Header */}
           <div className="text-center mb-8">
             <motion.div

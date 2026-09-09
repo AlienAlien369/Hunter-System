@@ -15,6 +15,16 @@ const THEMES = {
     gradientStart: "#7E14FF",
     gradientEnd: "#3b82f6",
     scrollbar: "#8E2DE2",
+    // Background
+    bgBase: "#0a0e1a",
+    bgCard: "#161b22",
+    aurora1: "rgba(126, 20, 255, 0.25)",
+    aurora2: "rgba(59, 130, 246, 0.20)",
+    aurora3: "rgba(168, 85, 247, 0.15)",
+    particleColor: "#a855f7",
+    particleGlow: "rgba(168, 85, 247, 0.8)",
+    gridColor: "rgba(139, 92, 246, 0.12)",
+    scanColor: "rgba(168, 85, 247, 0.10)",
   },
   gold: {
     id: "gold",
@@ -29,6 +39,16 @@ const THEMES = {
     gradientStart: "#F1C40F",
     gradientEnd: "#f59e0b",
     scrollbar: "#F1C40F",
+    // Background
+    bgBase: "#0f0c06",
+    bgCard: "#1a1508",
+    aurora1: "rgba(241, 196, 15, 0.18)",
+    aurora2: "rgba(245, 158, 11, 0.15)",
+    aurora3: "rgba(251, 191, 36, 0.12)",
+    particleColor: "#F5D76E",
+    particleGlow: "rgba(241, 196, 15, 0.8)",
+    gridColor: "rgba(241, 196, 15, 0.08)",
+    scanColor: "rgba(245, 215, 110, 0.08)",
   },
   crimson: {
     id: "crimson",
@@ -43,6 +63,16 @@ const THEMES = {
     gradientStart: "#DC143C",
     gradientEnd: "#8B0000",
     scrollbar: "#DC143C",
+    // Background
+    bgBase: "#0c0608",
+    bgCard: "#1a0c10",
+    aurora1: "rgba(220, 20, 60, 0.20)",
+    aurora2: "rgba(139, 0, 0, 0.18)",
+    aurora3: "rgba(255, 77, 109, 0.12)",
+    particleColor: "#FF4D6D",
+    particleGlow: "rgba(220, 20, 60, 0.8)",
+    gridColor: "rgba(220, 20, 60, 0.10)",
+    scanColor: "rgba(255, 77, 109, 0.08)",
   },
 };
 
@@ -78,6 +108,16 @@ function applyTheme(themeId: ThemeId, animate = true) {
   root.style.setProperty("--gradient-start", colors.gradientStart);
   root.style.setProperty("--gradient-end", colors.gradientEnd);
   root.style.setProperty("--scrollbar-color", colors.scrollbar);
+  // Background colors
+  root.style.setProperty("--bg-base", colors.bgBase);
+  root.style.setProperty("--bg-card", colors.bgCard);
+  root.style.setProperty("--aurora-1", colors.aurora1);
+  root.style.setProperty("--aurora-2", colors.aurora2);
+  root.style.setProperty("--aurora-3", colors.aurora3);
+  root.style.setProperty("--particle-color", colors.particleColor);
+  root.style.setProperty("--particle-glow", colors.particleGlow);
+  root.style.setProperty("--grid-color", colors.gridColor);
+  root.style.setProperty("--scan-color", colors.scanColor);
   root.setAttribute("data-theme", themeId);
 
   // Trigger animation effects

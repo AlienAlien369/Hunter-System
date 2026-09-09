@@ -98,7 +98,7 @@ function AppContent() {
   }, [location.pathname]);
 
   return (
-    <div className="min-h-screen bg-[#0a0e1a] text-white overflow-hidden">
+    <div className="min-h-screen text-white overflow-hidden" style={{ background: 'var(--bg-base)', transition: 'background 0.8s ease' }}>
       {/* Animated system background */}
       <BackgroundFX />
 

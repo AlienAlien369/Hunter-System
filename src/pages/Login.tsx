@@ -45,7 +45,7 @@ export default function Login() {
   };
 
   return (
-    <div className="min-h-screen bg-[#0a0e1a] flex items-center justify-center p-4">
+    <div className="min-h-screen flex items-center justify-center p-4" style={{ background: 'var(--bg-base)' }}>
       {/* Animated system background */}
       <BackgroundFX />
 
@@ -55,7 +55,7 @@ export default function Login() {
         className="relative w-full max-w-md"
       >
         {/* Card */}
-        <div className="bg-[#161b22]/90 backdrop-blur-xl rounded-2xl border border-purple-500/30 p-8 shadow-2xl shadow-purple-500/20">
+        <div className="backdrop-blur-xl rounded-2xl p-8 shadow-2xl" style={{ background: 'var(--bg-card)', border: '1px solid var(--accent-border)', boxShadow: '0 25px 50px -12px var(--aurora-1)' }}>
           {/* Header */}
           <div className="text-center mb-8">
             <motion.div

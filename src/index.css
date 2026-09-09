@@ -27,7 +27,10 @@
 
 @layer base {
   body {
-    @apply bg-midnight text-white font-body;
+    background: var(--bg-base);
+    color: white;
+    font-family: var(--font-body);
+    transition: background-color 0.8s cubic-bezier(0.4, 0, 0.2, 1);
   }
 
   h1, h2, h3, h4, h5, h6 {
@@ -80,6 +83,17 @@
 
 /* Theme-aware CSS Variables (overridden by JS on theme change) */
 :root {
+  /* Background colors */
+  --bg-base: #0a0e1a;
+  --bg-card: #161b22;
+  --aurora-1: rgba(126, 20, 255, 0.25);
+  --aurora-2: rgba(59, 130, 246, 0.20);
+  --aurora-3: rgba(168, 85, 247, 0.15);
+  --particle-color: #a855f7;
+  --particle-glow: rgba(168, 85, 247, 0.8);
+  --grid-color: rgba(139, 92, 246, 0.12);
+  --scan-color: rgba(168, 85, 247, 0.10);
+
   --accent: #8E2DE2;
   --accent-light: #a855f7;
   --accent-glow: #8E2DE2;
@@ -116,6 +130,15 @@
 
 /* Apply theme variables when data-theme is set */
 [data-theme="purple-monarch"] {
+  --bg-base: #0a0e1a;
+  --bg-card: #161b22;
+  --aurora-1: rgba(126, 20, 255, 0.25);
+  --aurora-2: rgba(59, 130, 246, 0.20);
+  --aurora-3: rgba(168, 85, 247, 0.15);
+  --particle-color: #a855f7;
+  --particle-glow: rgba(168, 85, 247, 0.8);
+  --grid-color: rgba(139, 92, 246, 0.12);
+  --scan-color: rgba(168, 85, 247, 0.10);
   --accent: #8E2DE2;
   --accent-light: #a855f7;
   --accent-glow: #8E2DE2;
@@ -139,6 +162,15 @@
 }
 
 [data-theme="gold"] {
+  --bg-base: #0f0c06;
+  --bg-card: #1a1508;
+  --aurora-1: rgba(241, 196, 15, 0.18);
+  --aurora-2: rgba(245, 158, 11, 0.15);
+  --aurora-3: rgba(251, 191, 36, 0.12);
+  --particle-color: #F5D76E;
+  --particle-glow: rgba(241, 196, 15, 0.8);
+  --grid-color: rgba(241, 196, 15, 0.08);
+  --scan-color: rgba(245, 215, 110, 0.08);
   --accent: #F1C40F;
   --accent-light: #F5D76E;
   --accent-glow: #F1C40F;
@@ -162,6 +194,15 @@
 }
 
 [data-theme="crimson"] {
+  --bg-base: #0c0608;
+  --bg-card: #1a0c10;
+  --aurora-1: rgba(220, 20, 60, 0.20);
+  --aurora-2: rgba(139, 0, 0, 0.18);
+  --aurora-3: rgba(255, 77, 109, 0.12);
+  --particle-color: #FF4D6D;
+  --particle-glow: rgba(220, 20, 60, 0.8);
+  --grid-color: rgba(220, 20, 60, 0.10);
+  --scan-color: rgba(255, 77, 109, 0.08);
   --accent: #DC143C;
   --accent-light: #FF4D6D;
   --accent-glow: #DC143C;
@@ -268,7 +309,15 @@ html {
     --btn-primary-bg 0.6s cubic-bezier(0.4, 0, 0.2, 1),
     --btn-primary-border 0.6s cubic-bezier(0.4, 0, 0.2, 1),
     --btn-primary-hover-bg 0.6s cubic-bezier(0.4, 0, 0.2, 1),
-    --btn-primary-text 0.6s cubic-bezier(0.4, 0, 0.2, 1);
+    --btn-primary-text 0.6s cubic-bezier(0.4, 0, 0.2, 1),
+    --bg-base 0.8s cubic-bezier(0.4, 0, 0.2, 1),
+    --bg-card 0.8s cubic-bezier(0.4, 0, 0.2, 1),
+    --aurora-1 0.8s cubic-bezier(0.4, 0, 0.2, 1),
+    --aurora-2 0.8s cubic-bezier(0.4, 0, 0.2, 1),
+    --aurora-3 0.8s cubic-bezier(0.4, 0, 0.2, 1),
+    --particle-color 0.8s cubic-bezier(0.4, 0, 0.2, 1),
+    --grid-color 0.8s cubic-bezier(0.4, 0, 0.2, 1),
+    --scan-color 0.8s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
 /* Theme flash overlay - shown briefly during theme change */
