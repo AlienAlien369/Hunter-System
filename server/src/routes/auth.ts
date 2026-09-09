@@ -4,6 +4,7 @@ import jwt from 'jsonwebtoken';
 import { pool } from '../db.js';
 import { authenticateToken } from '../middleware/auth.js';
 import { logActivity } from '../activity.js';
+import { calculateLevel, calculateRank } from '../progression.js';
 
 const router = Router();
 
@@ -166,10 +167,17 @@ router.get('/me', authenticateToken, async (req: Request, res: Response) => {
 
     const user = result.rows[0];
 
-    // Remove password hash from response
+    // Remove password hash from response, and report the live rank/level
+    // computed from XP (the stored rank column is only a registration default)
     const { password_hash, ...userWithoutPassword } = user;
 
-    res.json({ user: userWithoutPassword });
+    res.json({
+      user: {
+        ...userWithoutPassword,
+        rank: calculateRank(user.xp),
+        level: calculateLevel(user.xp),
+      },
+    });
   } catch (error) {
     console.error('Get me error:', error);
     res.status(500).json({ error: 'Failed to get user info' });

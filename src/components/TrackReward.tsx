@@ -1,4 +1,4 @@
-import { LEVEL_XP, calculateLevel, calculateRank } from '../utils/xp';
+import { calculateLevel, calculateRank, getLevelInfo } from '../utils/xp';
 
 interface TrackRewardProps {
   /** Every quest in the track, with its XP and whether it's done. */
@@ -41,9 +41,10 @@ export default function TrackReward({
   const projectedLevel = calculateLevel(projectedXp);
   const projectedRank = calculateRank(projectedXp);
   const levelGain = calculateLevel(projectedXp) - calculateLevel(currentXp);
+  const levelBand = getLevelInfo(currentXp).nextLevelXP - getLevelInfo(currentXp).currentLevelXP;
   const gainLabel = levelGain > 0
     ? `+${levelGain} LVL${levelGain > 1 ? 'S' : ''}`
-    : `+${(remainingXp / LEVEL_XP).toFixed(1)} LVL`;
+    : `+${(remainingXp / levelBand).toFixed(1)} LVL`;
 
   return (
     <div className={`flex flex-wrap items-center gap-x-2.5 gap-y-1 font-mono text-xs px-3 py-2 rounded-lg border ${chipClass}`}>

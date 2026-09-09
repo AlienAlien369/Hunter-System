@@ -307,7 +307,7 @@ export const useGameStore = create<GameState>((set, get) => ({
           ...get().profile,
           name: statsData.user.name || get().profile.name,
           xp: newXp,
-          rank: statsData.user.rank as HunterProfile['rank'],
+          rank: (statsData.rank || statsData.user.rank) as HunterProfile['rank'],
           level: calculateLevel(newXp),
           hp: statsData.user.hp,
           mp: statsData.user.mp,

@@ -1,6 +1,6 @@
 import { motion } from 'framer-motion';
 import { useGameStore } from '../store/gameStore';
-import { calculateLevel, calculateRank, getNextLevelXP } from '../utils/xp';
+import { calculateRank, getLevelInfo } from '../utils/xp';
 
 const RANK_COLORS: Record<string, string> = {
   E: '#8A92B2',
@@ -14,9 +14,8 @@ const RANK_COLORS: Record<string, string> = {
 export default function StatusWindow() {
   const { profile } = useGameStore();
   const { level, xp, rank, name, stats, hp, mp } = profile;
-  const nextLevelXP = getNextLevelXP(level);
-  const currentLevelXP = (level - 1) * 1000;
-  const progressToNext = ((xp - currentLevelXP) / (nextLevelXP - currentLevelXP)) * 100;
+  const { currentLevelXP, nextLevelXP, intoLevel } = getLevelInfo(xp);
+  const progressToNext = ((intoLevel) / (nextLevelXP - currentLevelXP)) * 100;
 
   return (
     <motion.div
@@ -72,7 +71,7 @@ export default function StatusWindow() {
             <div className="mt-2">
               <div className="flex justify-between text-xs font-mono mb-1">
                 <span className="text-gray-500">XP</span>
-                <span className="text-purple-400">{xp} / {nextLevelXP}</span>
+                <span className="text-purple-400">{xp.toLocaleString()} / {nextLevelXP.toLocaleString()}</span>
               </div>
               <div className="h-2 bg-gray-800 rounded-full overflow-hidden">
                 <motion.div

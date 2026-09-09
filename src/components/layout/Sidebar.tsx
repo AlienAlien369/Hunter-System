@@ -2,6 +2,7 @@ import { Link } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useAuthStore } from '../../store/authStore';
 import { sfx } from '../../utils/sounds';
+import { getLevelInfo } from '../../utils/xp';
 
 interface NavItem {
   path: string;
@@ -100,13 +101,13 @@ function SidebarContent({ items, currentPath, userName, onLogout, layoutIdPrefix
           <div className="space-y-1">
             <div className="flex justify-between text-xs text-gray-400">
               <span>XP</span>
-              <span>{user?.xp || 0} / 1000</span>
+              <span>{((user?.xp ?? 0) || 0).toLocaleString()} / {getLevelInfo(user?.xp ?? 0).nextLevelXP.toLocaleString()}</span>
             </div>
             <div className="h-1.5 bg-gray-700/50 rounded-full overflow-hidden">
               <motion.div
                 className="h-full bg-gradient-to-r from-purple-500 to-blue-500"
                 initial={{ width: 0 }}
-                animate={{ width: `${Math.min(((user?.xp || 0) % 1000) / 10, 100)}%` }}
+                animate={{ width: `${getLevelInfo(user?.xp ?? 0).intoLevel / (getLevelInfo(user?.xp ?? 0).nextLevelXP - getLevelInfo(user?.xp ?? 0).currentLevelXP) * 100}%` }}
                 transition={{ duration: 1, delay: 0.5 }}
               />
             </div>

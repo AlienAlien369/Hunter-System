@@ -1,5 +1,6 @@
 import { useGameStore } from '../store/gameStore';
 import { motion, useTransform } from 'framer-motion';
+import { getLevelInfo } from '../utils/xp';
 
 interface HunterCardProps {
   level: number;
@@ -18,6 +19,9 @@ export default function HunterCard({
   levelProgress,
   xpAnimation,
 }: HunterCardProps) {
+  const { currentLevelXP, nextLevelXP } = getLevelInfo(xp);
+  const levelBand = nextLevelXP - currentLevelXP;
+
   const rankColors: Record<'E' | 'D' | 'C' | 'B' | 'A' | 'S', string> = {
     E: 'text-muted',
     D: 'text-blue-info',
@@ -85,7 +89,7 @@ export default function HunterCard({
           ></div>
         </div>
         <div className="flex justify-between text-sm text-muted mt-1">
-          <span>{Math.floor((level - 1) * 1000)} / {level * 1000} XP</span>
+          <span>{currentLevelXP.toLocaleString()} / {nextLevelXP.toLocaleString()} XP</span>
           <span>{Math.floor(levelProgress * 100)}%</span>
         </div>
       </div>
@@ -99,7 +103,7 @@ export default function HunterCard({
           className="absolute inset-0 flex items-center justify-center pointer-events-none"
         >
           <div className="text-gold font-display text-5xl">+{Math.floor(
-            (levelProgress - 0.01) * 1000
+            (levelProgress - 0.01) * levelBand
           )} XP</div>
         </motion.div>
       )}

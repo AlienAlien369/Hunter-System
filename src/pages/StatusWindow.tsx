@@ -4,14 +4,14 @@ import { useEffect, useState } from 'react';
 import HunterCard from '../components/HunterCard';
 import QuestBoard from '../components/QuestBoard';
 import AchievementPanel from '../components/AchievementPanel';
+import { getLevelInfo } from '../utils/xp';
 
 export default function StatusWindow() {
   const { profile } = useGameStore();
   const { level, xp, rank, stats } = profile;
 
-  // Calculate progress to next level
-  const currentLevelXP = (level - 1) * 1000;
-  const nextLevelXP = level * 1000;
+  // Calculate progress to next level (infinite quadratic curve)
+  const { currentLevelXP, nextLevelXP } = getLevelInfo(xp);
   const levelProgress = (xp - currentLevelXP) / (nextLevelXP - currentLevelXP);
 
   // XP gain animation trigger

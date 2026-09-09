@@ -1,14 +1,17 @@
 import { motion } from 'framer-motion';
 import { useGameStore } from '../store/gameStore';
+import { RANK_THRESHOLDS } from '../utils/xp';
 
-const RANKS = [
-  { rank: 'E', name: 'E-Rank', minXP: 0, color: '#8A92B2', glow: 'shadow-gray-500/20' },
-  { rank: 'D', name: 'D-Rank', minXP: 350, color: '#3498DB', glow: 'shadow-blue-500/20' },
-  { rank: 'C', name: 'C-Rank', minXP: 700, color: '#5D26C1', glow: 'shadow-purple-500/20' },
-  { rank: 'B', name: 'B-Rank', minXP: 1050, color: '#8E2DE2', glow: 'shadow-purple-400/20' },
-  { rank: 'A', name: 'A-Rank', minXP: 1400, color: '#F1C40F', glow: 'shadow-gold/20' },
-  { rank: 'S', name: 'S-Rank', minXP: 1750, color: '#F1C40F', glow: 'shadow-gold/40' },
-];
+const RANK_STYLES: Record<string, { name: string; color: string; glow: string }> = {
+  E: { name: 'E-Rank', color: '#8A92B2', glow: 'shadow-gray-500/20' },
+  D: { name: 'D-Rank', color: '#3498DB', glow: 'shadow-blue-500/20' },
+  C: { name: 'C-Rank', color: '#5D26C1', glow: 'shadow-purple-500/20' },
+  B: { name: 'B-Rank', color: '#8E2DE2', glow: 'shadow-purple-400/20' },
+  A: { name: 'A-Rank', color: '#F1C40F', glow: 'shadow-gold/20' },
+  S: { name: 'S-Rank', color: '#F1C40F', glow: 'shadow-gold/40' },
+};
+
+const RANKS = RANK_THRESHOLDS.map(t => ({ rank: t.rank, minXP: t.minXP, ...RANK_STYLES[t.rank] }));
 
 export default function Rank() {
   const { profile } = useGameStore();
@@ -31,7 +34,7 @@ export default function Rank() {
           RANK PROGRESSION
         </h1>
         <p className="text-gray-400 mt-1 font-mono text-sm">
-          Your journey to becoming an S-Rank Hunter
+          Your journey to becoming an S-Rank Hunter — 25,000 XP, no shortcuts
         </p>
       </motion.div>
 
@@ -76,10 +79,10 @@ export default function Rank() {
       <div className="max-w-md mx-auto space-y-2">
         <div className="flex justify-between text-sm">
           <span className="text-gray-400 font-mono">
-            {profile.xp} XP
+            {profile.xp.toLocaleString()} XP
           </span>
           <span className="text-gray-500 font-mono">
-            {nextRank ? `→ ${nextRank.minXP} XP` : 'MAX'}
+            {nextRank ? `→ ${nextRank.minXP.toLocaleString()} XP` : 'MAX'}
           </span>
         </div>
         <div className="h-3 bg-gray-800 rounded-full overflow-hidden">
@@ -92,7 +95,7 @@ export default function Rank() {
         </div>
         {nextRank && (
           <p className="text-center text-xs text-gray-500 font-mono">
-            {nextRank.minXP - profile.xp} XP to next rank
+            {(nextRank.minXP - profile.xp).toLocaleString()} XP to next rank
           </p>
         )}
       </div>
@@ -164,10 +167,10 @@ export default function Rank() {
                     </div>
                   </div>
                   <div className="text-right">
-                    <p className="text-sm font-mono text-gray-400">{rank.minXP} XP</p>
+                    <p className="text-sm font-mono text-gray-400">{rank.minXP.toLocaleString()} XP</p>
                     {isNext && (
                       <p className="text-xs font-mono text-purple-400 mt-1">
-                        {rank.minXP - profile.xp} to go
+                        {(rank.minXP - profile.xp).toLocaleString()} to go
                       </p>
                     )}
                   </div>

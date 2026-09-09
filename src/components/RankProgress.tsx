@@ -1,15 +1,31 @@
 import { motion } from 'framer-motion';
 import { useGameStore } from '../store/gameStore';
-import { calculateRank } from '../utils/xp';
+import { calculateRank, RANK_THRESHOLDS } from '../utils/xp';
 
-const RANKS = [
-  { rank: 'E', minXP: 0, color: '#8A92B2', label: 'Novice' },
-  { rank: 'D', minXP: 350, color: '#3498DB', label: 'Apprentice' },
-  { rank: 'C', minXP: 700, color: '#5D26C1', label: 'Journeyman' },
-  { rank: 'B', minXP: 1050, color: '#8E2DE2', label: 'Expert' },
-  { rank: 'A', minXP: 1400, color: '#F1C40F', label: 'Master' },
-  { rank: 'S', minXP: 1750, color: '#F1C40F', label: 'Legend' },
-];
+const RANK_COLORS: Record<string, string> = {
+  E: '#8A92B2',
+  D: '#3498DB',
+  C: '#5D26C1',
+  B: '#8E2DE2',
+  A: '#F1C40F',
+  S: '#F1C40F',
+};
+
+const RANK_LABELS: Record<string, string> = {
+  E: 'Novice',
+  D: 'Apprentice',
+  C: 'Journeyman',
+  B: 'Expert',
+  A: 'Master',
+  S: 'Legend',
+};
+
+const RANKS = RANK_THRESHOLDS.map(t => ({
+  rank: t.rank,
+  minXP: t.minXP,
+  color: RANK_COLORS[t.rank],
+  label: RANK_LABELS[t.rank],
+}));
 
 export default function RankProgress() {
   const { profile } = useGameStore();
@@ -62,7 +78,7 @@ export default function RankProgress() {
         <div className="space-y-2">
           <div className="flex justify-between text-xs font-mono">
             <span className="text-gray-500">Progress to {nextRankData.rank}</span>
-            <span className="text-gray-400">{nextRankData.minXP - profile.xp} XP needed</span>
+            <span className="text-gray-400">{(nextRankData.minXP - profile.xp).toLocaleString()} XP needed</span>
           </div>
           <div className="h-2 bg-gray-800 rounded-full overflow-hidden">
             <motion.div

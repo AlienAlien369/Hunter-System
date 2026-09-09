@@ -4,6 +4,7 @@ import { useEffect, useState } from 'react';
 import { ComposedChart, Bar, Line, XAxis, YAxis, Tooltip, Legend, ResponsiveContainer, CartesianGrid } from 'recharts';
 import { api } from '../lib/api';
 import type { ActivityEntry, ProgressPeriod, ProgressReport, TrackStats } from '../lib/api';
+import { RANK_THRESHOLDS } from '../utils/xp';
 
 const ACTIVITY_META: Record<string, { icon: string; label: string }> = {
   quest_complete: { icon: '✅', label: 'Quest completed' },
@@ -227,19 +228,17 @@ export default function ProgressDashboard() {
           RANK PROGRESSION
         </h3>
         <div className="space-y-3">
-          {(['E', 'D', 'C', 'B', 'A', 'S'] as const).map((rank, index) => {
+          {RANK_THRESHOLDS.map((t, index) => {
+            const rank = t.rank;
             const isCurrent = profile.rank === rank;
-            const isCompleted = profile.rank === 'S' ||
-              (rank === 'E' && profile.xp >= 0) ||
-              (rank === 'D' && profile.xp >= 350) ||
-              (rank === 'C' && profile.xp >= 700) ||
-              (rank === 'B' && profile.xp >= 1050) ||
-              (rank === 'A' && profile.xp >= 1400) ||
-              (rank === 'S' && profile.xp >= 1750);
+            const isCompleted = profile.xp >= t.minXP;
 
-            const xpRequired = [0, 350, 700, 1050, 1400, 1750][index];
+            const xpRequired = t.minXP;
+            const prevMin = index > 0 ? RANK_THRESHOLDS[index - 1].minXP : 0;
+            const nextMin = index + 1 < RANK_THRESHOLDS.length ? RANK_THRESHOLDS[index + 1].minXP : null;
+            const band = (nextMin ?? prevMin) - prevMin;
             const progress = isCurrent
-              ? ((profile.xp - (index > 0 ? [0, 350, 700, 1050, 1400][index - 1] : 0)) / 350) * 100
+              ? ((profile.xp - prevMin) / (band || 1)) * 100
               : isCompleted ? 100 : 0;
 
             return (
@@ -261,7 +260,7 @@ export default function ProgressDashboard() {
                 <div className="flex-1">
                   <div className="flex justify-between text-sm mb-1">
                     <span className="text-gray-400 font-mono">{rank}-Rank</span>
-                    <span className="text-gray-500 font-mono text-xs">{xpRequired} XP</span>
+                    <span className="text-gray-500 font-mono text-xs">{xpRequired.toLocaleString()} XP</span>
                   </div>
                   <div className="h-2 bg-gray-800 rounded-full overflow-hidden">
                     <motion.div

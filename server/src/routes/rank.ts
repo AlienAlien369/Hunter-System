@@ -1,6 +1,7 @@
 import { Router, Request, Response } from 'express';
 import { pool } from '../db.js';
 import { authenticateToken } from '../middleware/auth.js';
+import { calculateLevel, calculateRank, levelThreshold, RANK_THRESHOLDS } from '../progression.js';
 
 const router = Router();
 
@@ -14,14 +15,20 @@ router.get('/', authenticateToken, async (req: Request, res: Response) => {
       return res.status(404).json({ error: 'No user found' });
     }
 
-    const ranks = [
-      { name: 'E', minXP: 0, maxXP: 350, color: '#8A92B2' },
-      { name: 'D', minXP: 350, maxXP: 700, color: '#3498DB' },
-      { name: 'C', minXP: 700, maxXP: 1050, color: '#5D26C1' },
-      { name: 'B', minXP: 1050, maxXP: 1400, color: '#8E2DE2' },
-      { name: 'A', minXP: 1400, maxXP: 1750, color: '#F1C40F' },
-      { name: 'S', minXP: 1750, maxXP: 2100, color: '#F1C40F' },
-    ];
+    const RANK_COLORS: Record<string, string> = {
+      E: '#8A92B2',
+      D: '#3498DB',
+      C: '#5D26C1',
+      B: '#8E2DE2',
+      A: '#F1C40F',
+      S: '#F1C40F',
+    };
+    const ranks = RANK_THRESHOLDS.map((t, i) => ({
+      name: t.rank,
+      minXP: t.minXP,
+      maxXP: i + 1 < RANK_THRESHOLDS.length ? RANK_THRESHOLDS[i + 1].minXP : Number.MAX_SAFE_INTEGER,
+      color: RANK_COLORS[t.rank],
+    }));
 
     const currentRank = ranks.find(r => user.xp >= r.minXP && user.xp < r.maxXP) || ranks[0];
     const nextRankIndex = ranks.indexOf(currentRank) + 1;
@@ -45,7 +52,7 @@ router.get('/', authenticateToken, async (req: Request, res: Response) => {
         name: user.name,
         rank: currentRank.name,
         xp: user.xp,
-        level: Math.floor(user.xp / 1000) + 1,
+        level: calculateLevel(user.xp),
       },
       currentRank: {
         ...currentRank,
@@ -74,13 +81,15 @@ router.get('/levels', authenticateToken, async (req: Request, res: Response) => 
     }
 
     const levels = [];
-    const currentLevel = Math.floor(user.xp / 1000) + 1;
+    const currentLevel = calculateLevel(user.xp);
+    // Infinite progression: always show well past the current level, never capped
+    const maxLevel = Math.max(currentLevel + 10, 12);
 
-    for (let i = 1; i <= currentLevel + 5; i++) {
-      const levelXP = i * 1000;
-      const prevLevelXP = (i - 1) * 1000;
+    for (let i = 1; i <= maxLevel; i++) {
+      const levelXP = levelThreshold(i);
+      const prevLevelXP = levelThreshold(Math.max(i - 1, 1));
       const isCompleted = user.xp >= levelXP;
-      const progress = isCompleted ? 100 : ((user.xp - prevLevelXP) / 1000) * 100;
+      const progress = isCompleted ? 100 : ((user.xp - prevLevelXP) / (levelXP - prevLevelXP)) * 100;
 
       levels.push({
         level: i,

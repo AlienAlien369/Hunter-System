@@ -2,6 +2,7 @@ import { Router, Request, Response } from 'express';
 import { pool } from '../db.js';
 import { authenticateToken } from '../middleware/auth.js';
 import { logActivity } from '../activity.js';
+import { calculateRank } from '../progression.js';
 
 const router = Router();
 
@@ -314,13 +315,5 @@ function localDateKey(d: Date): string {
   return `${y}-${m}-${day}`;
 }
 
-function calculateRank(xp: number): string {
-  if (xp >= 1750) return 'S';
-  if (xp >= 1400) return 'A';
-  if (xp >= 1050) return 'B';
-  if (xp >= 700) return 'C';
-  if (xp >= 350) return 'D';
-  return 'E';
-}
 
 export default router;
