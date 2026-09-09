@@ -1,0 +1,96 @@
+import { motion } from 'framer-motion';
+
+interface DailyQuest {
+  id: string;
+  title: string;
+  xpReward: number;
+  category: 'discipline' | 'skill' | 'physical' | 'nutrition' | 'saas' | 'mindset' | 'spiritual' | 'health';
+  completedDates: string[];
+}
+
+interface QuestCardProps {
+  quest: DailyQuest & { completedToday: boolean };
+  onComplete: () => void;
+  showXP?: boolean;
+}
+
+const CATEGORY_CONFIG = {
+  discipline: { color: 'text-red-400', bg: 'bg-red-500/10', border: 'border-red-500/20', icon: '⚡' },
+  skill: { color: 'text-blue-400', bg: 'bg-blue-500/10', border: 'border-blue-500/20', icon: '💻' },
+  physical: { color: 'text-green-400', bg: 'bg-green-500/10', border: 'border-green-500/20', icon: '💪' },
+  nutrition: { color: 'text-gold', bg: 'bg-gold/10', border: 'border-gold/20', icon: '🥗' },
+  saas: { color: 'text-purple-400', bg: 'bg-purple-500/10', border: 'border-purple-500/20', icon: '🚀' },
+  mindset: { color: 'text-blue-300', bg: 'bg-blue-300/10', border: 'border-blue-300/20', icon: '🧘' },
+  spiritual: { color: 'text-pink-400', bg: 'bg-pink-500/10', border: 'border-pink-500/20', icon: '🕯️' },
+  health: { color: 'text-teal-400', bg: 'bg-teal-500/10', border: 'border-teal-500/20', icon: '❤️' },
+};
+
+export default function QuestCard({ quest, onComplete, showXP = true }: QuestCardProps) {
+  const config = CATEGORY_CONFIG[quest.category as keyof typeof CATEGORY_CONFIG] || CATEGORY_CONFIG.discipline;
+
+  return (
+    <button
+      onClick={onComplete}
+      type="button"
+      className={`
+        w-full text-left p-4 rounded-xl border-2 transition-all duration-200 cursor-pointer
+        active:scale-95 hover:shadow-lg
+        ${quest.completedToday
+          ? `${config.bg} ${config.border} opacity-80`
+          : 'bg-[#161b22]/80 border-purple-500/20 hover:border-purple-500/50 hover:bg-[#1a2332]'
+        }
+      `}
+    >
+      <div className="flex items-center space-x-3">
+        {/* Checkbox */}
+        <div className={`
+          w-6 h-6 rounded-lg flex items-center justify-center border-2 transition-all flex-shrink-0
+          ${quest.completedToday
+            ? `${config.bg} ${config.border}`
+            : 'border-gray-600 hover:border-purple-400 bg-transparent'
+          }
+        `}>
+          {quest.completedToday && (
+            <svg className={`w-4 h-4 ${config.color}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M5 13l4 4L19 7" />
+            </svg>
+          )}
+        </div>
+
+        {/* Content */}
+        <div className="flex-1 min-w-0">
+          <div className="flex items-center space-x-2">
+            <span className="text-xl">{config.icon}</span>
+            <p className={`
+              font-mono text-sm font-medium truncate
+              ${quest.completedToday ? 'text-gray-500 line-through' : 'text-white'}
+            `}>
+              {quest.title}
+            </p>
+          </div>
+          <div className="flex items-center space-x-2 mt-1">
+            <span className={`
+              text-xs px-2 py-0.5 rounded-full font-mono border
+              ${config.bg} ${config.color} ${config.border}
+            `}>
+              {quest.category.toUpperCase()}
+            </span>
+          </div>
+        </div>
+
+        {/* XP Reward */}
+        {showXP && (
+          <div className="text-right flex-shrink-0">
+            <span className={`
+              text-sm font-display font-bold
+              ${quest.completedToday ? 'text-gray-500' : 'text-gold'}
+            `}>
+              +{quest.xpReward}
+            </span>
+            <p className="text-xs text-gray-500 font-mono">XP</p>
+          </div>
+        )}
+      </div>
+    </button>
+  );
+}

@@ -1,0 +1,142 @@
+const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:3000/api';
+
+// Type Definitions
+export interface Quest {
+  id: number;
+  quest_id: string;
+  title: string;
+  xp_reward: number;
+  category: string;
+  difficulty: number;
+  is_daily: boolean;
+  completions?: { completion_date: string }[];
+}
+
+export interface User {
+  id: number;
+  username: string;
+  name: string;
+  rank: string;
+  xp: number;
+  hp: number;
+  mp: number;
+  str: number;
+  agi: number;
+  vit: number;
+  int: number;
+  sen: number;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface Stats {
+  user: User;
+  daily: { daily_xp: number; quests_completed: number };
+  weekly: { weekly_xp: number; active_days: number; total_quests: number };
+  streak: number;
+  rank: string;
+}
+
+export interface RankProgress {
+  user: { name: string; rank: string; xp: number; level: number };
+  currentRank: { name: string; minXP: number; maxXP: number; color: string; progress: number };
+  nextRank: { name: string; minXP: number; maxXP: number; color: string; xpRequired: number } | null;
+  history: { rank: string; xp_at_rank: number; achieved_at: string }[];
+}
+
+export interface Level {
+  level: number;
+  xpRequired: number;
+  isCompleted: boolean;
+  progress: number;
+  isCurrent: boolean;
+}
+
+export interface StatHistory {
+  completion_date: string;
+  quests_completed: number;
+  xp_gained: number;
+}
+
+export interface QuestStats {
+  today: { completed: number; total: number; xp: number };
+  weekly: { weekly_xp: number; active_days: number; total_completions: number };
+  categories: { category: string; completed_count: number; total_count: number }[];
+}
+
+export interface AuthResponse {
+  message: string;
+  user: { id: number; username: string; name: string };
+}
+
+export interface LoginResponse {
+  message: string;
+  user: { id: number; username: string; name: string };
+}
+
+// API Client with auth support
+async function request<T>(endpoint: string, options: RequestInit = {}): Promise<T> {
+  const response = await fetch(`${API_URL}${endpoint}`, {
+    headers: { 'Content-Type': 'application/json' },
+    credentials: 'include', // Send cookies
+    ...options,
+  });
+
+  if (!response.ok) {
+    const error = await response.json().catch(() => ({ error: response.statusText }));
+    throw new Error(error.error || `API error: ${response.status}`);
+  }
+
+  return response.json();
+}
+
+export const api = {
+  // Auth
+  login: (username: string, password: string) =>
+    request<LoginResponse>('/auth/login', {
+      method: 'POST',
+      body: JSON.stringify({ username, password }),
+    }),
+
+  register: (username: string, password: string) =>
+    request<AuthResponse>('/auth/register', {
+      method: 'POST',
+      body: JSON.stringify({ username, password }),
+    }),
+
+  logout: () =>
+    request<{ message: string }>('/auth/logout', {
+      method: 'POST',
+    }),
+
+  getMe: () =>
+    request<{ user: User }>('/auth/me'),
+
+  // Quests
+  getQuests: (category?: string, completed?: boolean) =>
+    request<Quest[]>(`/quests${category ? `?category=${category}&completed=${completed}` : ''}`),
+
+  getQuest: (id: string) => request<Quest>(`/quests/${id}`),
+
+  completeQuest: (id: string) =>
+    request<{ action: string; xpGained: number }>(`/quests/${id}/complete`, { method: 'PATCH' }),
+
+  getQuestStats: () => request<QuestStats>('/quests/stats'),
+
+  // Stats
+  getStats: () => request<Stats>('/stats'),
+
+  updateStats: (updates: Partial<{ hp: number; mp: number; str: number; agi: number; vit: number; int: number; sen: number }>) =>
+    request<User>('/stats', { method: 'PATCH', body: JSON.stringify(updates) }),
+
+  getStatsHistory: (days = 30) =>
+    request<StatHistory[]>(`/stats/history?days=${days}`),
+
+  // Rank
+  getRank: () => request<RankProgress>('/rank'),
+
+  getLevels: () => request<{ levels: Level[]; currentLevel: number }>('/rank/levels'),
+
+  // Health
+  health: () => request<{ status: string; timestamp: string }>('/health'),
+};

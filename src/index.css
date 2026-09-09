@@ -1,0 +1,109 @@
+@import "tailwindcss";
+
+@theme {
+  --color-midnight: #0a0e1a;
+  --color-dungeon: #0d1117;
+  --color-card: #161b22;
+  --color-purple-monarch: #5D26C1;
+  --color-purple-glow: #8E2DE2;
+  --color-purple-light: #a855f7;
+  --color-blue-electric: #3b82f6;
+  --color-blue-light: #60a5fa;
+  --color-gold: #F1C40F;
+  --color-gold-amber: #f59e0b;
+  --color-green-success: #2ECC71;
+  --color-red-danger: #E74C3C;
+  --color-blue-info: #3498DB;
+  --color-text-white: #FFFFFF;
+  --color-text-gold: #F1C40F;
+  --color-text-purple: #D6A2E8;
+  --color-text-muted: #8A92B2;
+  --color-text-gray: #4B5563;
+  --color-border-purple: rgba(139, 92, 246, 0.3);
+  --font-display: "Orbitron", sans-serif;
+  --font-body: "Inter", sans-serif;
+  --font-mono: "JetBrains Mono", monospace;
+}
+
+@layer base {
+  body {
+    @apply bg-midnight text-white font-body;
+  }
+
+  h1, h2, h3, h4, h5, h6 {
+    @apply font-display tracking-wider;
+  }
+}
+
+/* Custom Animations */
+@keyframes fadeIn {
+  from { opacity: 0; transform: translateY(10px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes slideIn {
+  from { opacity: 0; transform: translateX(-20px); }
+  to { opacity: 1; transform: translateX(0); }
+}
+
+@keyframes pulse-glow {
+  0%, 100% { box-shadow: 0 0 20px rgba(139, 92, 246, 0.3); }
+  50% { box-shadow: 0 0 40px rgba(139, 92, 246, 0.6); }
+}
+
+@keyframes float {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-10px); }
+}
+
+.animate-fade-in {
+  animation: fadeIn 0.5s ease-out;
+}
+
+.animate-slide-in {
+  animation: slideIn 0.3s ease-out;
+}
+
+.animate-pulse-glow {
+  animation: pulse-glow 2s ease-in-out infinite;
+}
+
+.animate-float {
+  animation: float 3s ease-in-out infinite;
+}
+
+/* Custom Scrollbar */
+.custom-scrollbar {
+  scrollbar-width: thin;
+  scrollbar-color: #5D26C1 transparent;
+}
+
+.custom-scrollbar::-webkit-scrollbar {
+  width: 6px;
+}
+
+.custom-scrollbar::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.custom-scrollbar::-webkit-scrollbar-thumb {
+  background: #5D26C1;
+  border-radius: 9999px;
+}
+
+.custom-scrollbar::-webkit-scrollbar-thumb:hover {
+  background: #8E2DE2;
+}
+
+/* Glow Effects */
+.glow-purple {
+  box-shadow: 0 0 20px rgba(142, 45, 226, 0.5), 0 0 40px rgba(142, 45, 226, 0.2);
+}
+
+.glow-gold {
+  box-shadow: 0 0 20px rgba(241, 196, 15, 0.5), 0 0 40px rgba(241, 196, 15, 0.2);
+}
+
+.glow-blue {
+  box-shadow: 0 0 20px rgba(59, 130, 246, 0.5), 0 0 40px rgba(59, 130, 246, 0.2);
+}
