@@ -6,6 +6,8 @@ import questRoutes from './routes/quests.js';
 import statsRoutes from './routes/stats.js';
 import rankRoutes from './routes/rank.js';
 import authRoutes from './routes/auth.js';
+import nutritionRoutes from './routes/nutrition.js';
+import activityRoutes from './routes/activity.js';
 import { initDatabase } from './db.js';
 
 // Load the project root .env (works regardless of CWD)
@@ -27,6 +29,8 @@ app.use('/api/auth', authRoutes);
 app.use('/api/quests', questRoutes);
 app.use('/api/stats', statsRoutes);
 app.use('/api/rank', rankRoutes);
+app.use('/api/nutrition', nutritionRoutes);
+app.use('/api/activity', activityRoutes);
 app.get('/api/health', (req, res) => res.json({ status: 'ok', timestamp: new Date().toISOString() }));
 
 async function main() {

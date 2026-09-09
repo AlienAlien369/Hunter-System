@@ -1,21 +1,34 @@
 import { useGameStore } from '../store/gameStore';
 import { motion } from 'framer-motion';
-import { useEffect, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { BarChart, Bar, XAxis, YAxis, Tooltip, Legend, ResponsiveContainer } from 'recharts';
 import { PieChart, Pie, Cell, Tooltip as PieTooltip, Legend as PieLegend } from 'recharts';
 import { calculateTargetCalories, calculateTDEE, calculateProteinTotal } from '../utils/calorie';
 
 const FOODS = [
-  { name: 'Fit Feast Pouch', protein: 20, cost: 20, unit: 'daily' },
-  { name: 'Nandini Milk 500ml', protein: 16, cost: 6, unit: 'daily' },
-  { name: 'Pintola Oats 50g', protein: 6, cost: 2.5, unit: 'daily' },
-  { name: 'Milky Mist Paneer 150g', protein: 27, cost: 40, unit: 'daily' },
+  { name: 'Fit Feast Pouch', protein: 20, cost: 60, unit: 'daily' },
+  { name: 'Nandini Milk 500ml', protein: 16.5, cost: 24, unit: 'daily' },
+  { name: 'Pintola Oats 50g', protein: 13, cost: 26.5, unit: 'daily' },
+  { name: 'Milky Mist Paneer 150g', protein: 25, cost: 84, unit: 'daily' },
   { name: 'Roasted Chana 30g', protein: 6, cost: 3.5, unit: 'daily' },
   { name: 'Peanuts 20g', protein: 5, cost: 2.5, unit: 'daily' },
   { name: 'Company Buffet', protein: 18, cost: 55, unit: 'weekday' },
   { name: 'Saturday Extra Meal', protein: 20, cost: 90, unit: 'saturday' },
   { name: 'Sunday Udupi Meal', protein: 40, cost: 180, unit: 'sunday' },
 ];
+
+// Maps each tracked food to its monthly budget category
+const BUDGET_CATEGORY_MAP: Record<string, string> = {
+  'Fit Feast Pouch': 'Fit Feast Pouches',
+  'Nandini Milk 500ml': 'Nandini Milk',
+  'Pintola Oats 50g': 'Pintola Oats',
+  'Milky Mist Paneer 150g': 'Milky Mist Paneer',
+  'Roasted Chana 30g': 'Roasted Chana & Peanuts',
+  'Peanuts 20g': 'Roasted Chana & Peanuts',
+  'Company Buffet': 'Company Buffet Meals',
+  'Saturday Extra Meal': 'Weekend Dining Out',
+  'Sunday Udupi Meal': 'Weekend Dining Out',
+};
 
 const BUDGET_ITEMS = [
   { category: 'Fit Feast Pouches', target: 1800 },
@@ -37,22 +50,33 @@ type CalorieGoal = 'lose' | 'maintain' | 'gain';
 export default function NutritionBudget() {
   const {
     logNutrition,
+    loadNutrition,
+    nutritionEntries,
     profile,
   } = useGameStore();
+  const today = new Date().toISOString().split('T')[0];
+  const month = today.slice(0, 7);
+  const monthLabel = new Date(today + 'T00:00:00').toLocaleDateString('en-US', { month: 'long', year: 'numeric' });
+
   const [foods, setFoods] = useState(() =>
     FOODS.map(food => ({ ...food, consumed: false }))
   );
-  const [budget] = useState(() =>
-    BUDGET_ITEMS.map(item => ({ ...item, actual: 0 }))
-  );
-  const [proteinData, setProteinData] = useState([]);
-  const selectedDate = new Date().toISOString().split('T')[0];
-  const goal: CalorieGoal = 'maintain';
 
-  // Load nutrition data from storage on mount
+  // Load this month's nutrition log from the DB (monthly totals reset on the 1st)
   useEffect(() => {
-    setProteinData([]);
-  }, []);
+    loadNutrition(month);
+  }, [loadNutrition, month]);
+
+  // Restore today's marks from the DB — each day starts fresh, so daily marks reset automatically
+  useEffect(() => {
+    const todayItems = nutritionEntries.get(today) || [];
+    setFoods(FOODS.map(food => ({
+      ...food,
+      consumed: todayItems.some(item => item.name === food.name),
+    })));
+  }, [nutritionEntries, today]);
+
+  const goal: CalorieGoal = 'maintain';
 
   // Derive simple profile defaults if missing
   const weightKg = Number.isFinite(profile?.weightKg) ? (profile as any).weightKg : 70;
@@ -65,25 +89,48 @@ export default function NutritionBudget() {
   const targetCalories = calculateTargetCalories({ weightKg, heightCm, age, sex, activityLevel, goal });
   const totalProtein = calculateProteinTotal(foods);
 
-  // Calculate budget progress
-  const budgetProgress = budget.map(item => ({
-    ...item,
-    progress: Math.min((item.actual / item.target) * 100, 100)
-  }));
+  // Monthly aggregates from the DB (persist all month, reset on the 1st)
+  // All entries in the store belong to the loaded month (server filters by month)
+  const monthEntries = useMemo(
+    () => Array.from(nutritionEntries.values()).flat(),
+    [nutritionEntries]
+  );
+  const monthlyProtein = monthEntries.reduce((sum, item) => sum + item.protein, 0);
+  const monthlyCost = monthEntries.reduce((sum, item) => sum + item.cost, 0);
+
+  // Budget progress from actual monthly spend per category
+  const budgetProgress = BUDGET_ITEMS.map(item => {
+    const actual = monthEntries
+      .filter(e => BUDGET_CATEGORY_MAP[e.name] === item.category)
+      .reduce((sum, e) => sum + e.cost, 0);
+    return { ...item, actual, progress: Math.min((actual / item.target) * 100, 100) };
+  });
+
+  // Protein trend: daily totals for this month
+  const proteinData = useMemo(() => {
+    const byDate = new Map<string, number>();
+    nutritionEntries.forEach((items, date) => {
+      byDate.set(date, items.reduce((s, i) => s + i.protein, 0));
+    });
+    return Array.from(byDate.entries())
+      .sort(([a], [b]) => a.localeCompare(b))
+      .map(([date, protein]) => ({
+        date: new Date(date + 'T00:00:00').toLocaleDateString('en-US', { day: 'numeric', month: 'short' }),
+        protein: Math.round(protein * 10) / 10,
+      }));
+  }, [nutritionEntries]);
 
   const handleToggleFood = (food: typeof FOODS[0]) => {
-    setFoods(prev => prev.map(f =>
+    const next = foods.map(f =>
       f.name === food.name ? { ...f, consumed: !f.consumed } : f
-    ));
+    );
+    setFoods(next);
 
-    // Log nutrition when food is toggled
-    const consumedFoods = foods.filter(f => f.consumed);
-    logNutrition(selectedDate, consumedFoods.map(f => ({
-      name: f.name,
-      protein: f.protein,
-      cost: f.cost,
-      consumed: true
-    })));
+    // Log the day's consumed items (daily marks reset; month rows persist)
+    const consumedItems = next
+      .filter(f => f.consumed)
+      .map(f => ({ name: f.name, protein: f.protein, cost: f.cost, consumed: true }));
+    logNutrition(today, consumedItems);
   };
 
   return (
@@ -93,10 +140,13 @@ export default function NutritionBudget() {
       transition={{ duration: 0.6 }}
       className="min-h-[calc(100vh-64px)] p-6"
     >
-      <div className="mb-6">
+      <div className="mb-6 flex items-center justify-between flex-wrap gap-2">
         <h1 className="text-2xl font-display text-purple-monarch flex items-center space-x-3">
           NUTRITION & BUDGET
         </h1>
+        <div className="text-xs text-muted font-mono bg-card/50 rounded-lg px-3 py-2 border border-purple-monarch/20">
+          <span className="text-gold">{monthLabel}</span> • Daily marks reset every day • Month totals reset on the 1st
+        </div>
       </div>
 
       <div className="grid gap-6 md:grid-cols-2">
@@ -165,6 +215,18 @@ export default function NutritionBudget() {
                 style={{ width: `${Math.min((totalProtein / PROTEIN_GOAL_G) * 100, 100)}%` }}
               ></div>
             </div>
+
+            {/* Monthly totals */}
+            <div className="mt-4 grid grid-cols-2 gap-3">
+              <div className="bg-dungeon/50 rounded-lg p-3">
+                <p className="text-xs text-muted font-mono uppercase">Month Protein</p>
+                <p className="text-lg font-display text-gold">{Math.round(monthlyProtein * 10) / 10}g</p>
+              </div>
+              <div className="bg-dungeon/50 rounded-lg p-3">
+                <p className="text-xs text-muted font-mono uppercase">Month Spend</p>
+                <p className="text-lg font-display text-purple-glow">₹{Math.round(monthlyCost * 10) / 10}</p>
+              </div>
+            </div>
           </div>
         </motion.div>
 
@@ -175,9 +237,10 @@ export default function NutritionBudget() {
           transition={{ duration: 0.4, delay: 0.4 }}
           className="bg-card/80 backdrop-blur-sm rounded-2xl border border-purple-monarch/20 p-6"
         >
-          <h2 className="text-xl font-display text-purple-monarch mb-4">
+          <h2 className="text-xl font-display text-purple-monarch mb-1">
             PROTEIN TREND
           </h2>
+          <p className="text-xs text-muted font-mono mb-4">Daily protein • {monthLabel} (resets on the 1st)</p>
 
           <div className="h-48 w-full">
             {proteinData.length > 0 ? (
@@ -192,7 +255,7 @@ export default function NutritionBudget() {
               </ResponsiveContainer>
             ) : (
               <div className="flex h-full items-center justify-center text-muted">
-                No data available yet
+                No data available yet — mark foods to start tracking
               </div>
             )}
           </div>
@@ -206,9 +269,10 @@ export default function NutritionBudget() {
         transition={{ duration: 0.6, delay: 0.6 }}
         className="bg-card/80 backdrop-blur-sm rounded-2xl border border-purple-monarch/20 p-6"
       >
-        <h2 className="text-xl font-display text-purple-monarch mb-4">
+        <h2 className="text-xl font-display text-purple-monarch mb-1">
           MONTHLY BUDGET TRACKER
         </h2>
+        <p className="text-xs text-muted font-mono mb-4">Real spend from your nutrition marks • resets on the 1st</p>
 
         <div className="space-y-4">
           {budgetProgress.map((item, index) => (
@@ -235,23 +299,6 @@ export default function NutritionBudget() {
               </div>
             </motion.div>
           ))}
-        </div>
-
-        <div className="mt-5 pt-4 border-t border-purple-monarch/10">
-          <div className="space-y-3">
-            {budgetProgress.map((item) => (
-              <div key={item.category} className="flex items-center space-x-3 p-2 bg-dungeon/50 rounded">
-                <div className="w-3 h-3 rounded-full"
-                  style={{ backgroundColor: item.progress >= 100 ? '#E74C3C' : '#2ECC71' }}></div>
-                <div className="flex-1">
-                  <span className="font-mono text-sm">{item.category}</span>
-                </div>
-                <div className="w-10 text-sm text-right">
-                  ₹{item.actual}
-                </div>
-              </div>
-            ))}
-          </div>
         </div>
       </motion.div>
 

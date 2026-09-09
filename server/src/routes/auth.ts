@@ -3,6 +3,7 @@ import bcrypt from 'bcrypt';
 import jwt from 'jsonwebtoken';
 import { pool } from '../db.js';
 import { authenticateToken } from '../middleware/auth.js';
+import { logActivity } from '../activity.js';
 
 const router = Router();
 
@@ -64,6 +65,8 @@ router.post('/register', async (req: Request, res: Response) => {
       maxAge: 60 * 60 * 1000, // 1 hour
     });
 
+    await logActivity(user.id, 'register', user.username);
+
     res.status(201).json({
       message: 'User registered successfully',
       user: { id: user.id, username: user.username, name: user.name },
@@ -117,6 +120,8 @@ router.post('/login', async (req: Request, res: Response) => {
       sameSite: 'strict',
       maxAge: 60 * 60 * 1000, // 1 hour
     });
+
+    await logActivity(user.id, 'login', user.username);
 
     res.json({
       message: 'Login successful',

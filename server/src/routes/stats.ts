@@ -1,6 +1,7 @@
 import { Router, Request, Response } from 'express';
 import { pool } from '../db.js';
 import { authenticateToken } from '../middleware/auth.js';
+import { logActivity } from '../activity.js';
 
 const router = Router();
 
@@ -96,6 +97,7 @@ router.patch('/', authenticateToken, async (req: Request, res: Response) => {
 
     const result = await pool.query('SELECT * FROM users WHERE id = $1', [userId]);
     const { password_hash, ...user } = result.rows[0];
+    await logActivity(userId, 'stats_update', 'profile', updates);
     res.json(user);
   } catch (error) {
     console.error('Error updating stats:', error);

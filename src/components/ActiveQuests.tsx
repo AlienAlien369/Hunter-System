@@ -6,10 +6,12 @@ export default function ActiveQuests() {
   const { dailyQuests, completeQuest } = useGameStore();
   const today = new Date().toISOString().split('T')[0];
 
-  const todaysQuests = dailyQuests.map(quest => ({
-    ...quest,
-    completedToday: quest.completedDates.includes(today),
-  }));
+  const todaysQuests = dailyQuests
+    .filter(quest => !quest.id.startsWith('LC-')) // DSA is permanent progress, not a daily quest
+    .map(quest => ({
+      ...quest,
+      completedToday: quest.completedDates.includes(today),
+    }));
 
   const completedCount = todaysQuests.filter(q => q.completedToday).length;
   const pendingCount = todaysQuests.length - completedCount;

@@ -64,6 +64,34 @@ export interface QuestStats {
   categories: { category: string; completed_count: number; total_count: number }[];
 }
 
+export interface NutritionEntry {
+  id: number;
+  date: string;
+  name: string;
+  protein: number;
+  cost: number;
+}
+
+export interface NutritionPayload {
+  month: string;
+  entries: NutritionEntry[];
+  totals: { protein: number; cost: number };
+}
+
+export interface NutritionItemInput {
+  name: string;
+  protein: number;
+  cost: number;
+}
+
+export interface ActivityEntry {
+  id: number;
+  action: string;
+  entity: string | null;
+  details: Record<string, unknown> | null;
+  created_at: string;
+}
+
 export interface AuthResponse {
   message: string;
   user: { id: number; username: string; name: string };
@@ -122,6 +150,22 @@ export const api = {
     request<{ action: string; xpGained: number }>(`/quests/${id}/complete`, { method: 'PATCH' }),
 
   getQuestStats: () => request<QuestStats>('/quests/stats'),
+
+  redoDSA: () =>
+    request<{ action: string; deleted: number; message: string }>('/quests/redo-dsa', { method: 'POST' }),
+
+  // Nutrition
+  getNutrition: (month?: string) =>
+    request<NutritionPayload>(`/nutrition${month ? `?month=${month}` : ''}`),
+
+  saveNutritionDay: (date: string, items: NutritionItemInput[]) =>
+    request<{ message: string; date: string; count: number }>('/nutrition/day', {
+      method: 'POST',
+      body: JSON.stringify({ date, items }),
+    }),
+
+  // Activity log
+  getActivity: (limit = 50) => request<ActivityEntry[]>(`/activity?limit=${limit}`),
 
   // Stats
   getStats: () => request<Stats>('/stats'),

@@ -75,11 +75,32 @@ export async function initDatabase() {
         UNIQUE(user_id, stat_date)
       );
 
+      CREATE TABLE IF NOT EXISTS nutrition_logs (
+        id SERIAL PRIMARY KEY,
+        user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+        log_date DATE NOT NULL,
+        food_name VARCHAR(100) NOT NULL,
+        protein NUMERIC(6,2) NOT NULL DEFAULT 0,
+        cost NUMERIC(8,2) NOT NULL DEFAULT 0,
+        created_at TIMESTAMP NOT NULL DEFAULT NOW()
+      );
+
+      CREATE TABLE IF NOT EXISTS activity_log (
+        id SERIAL PRIMARY KEY,
+        user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+        action VARCHAR(50) NOT NULL,
+        entity VARCHAR(100),
+        details JSONB,
+        created_at TIMESTAMP NOT NULL DEFAULT NOW()
+      );
+
       -- Create indexes
       CREATE INDEX IF NOT EXISTS idx_quest_completions_date ON quest_completions(completion_date);
       CREATE INDEX IF NOT EXISTS idx_quest_completions_quest ON quest_completions(quest_id);
       CREATE INDEX IF NOT EXISTS idx_rank_history_user ON rank_history(user_id);
       CREATE INDEX IF NOT EXISTS idx_users_username ON users(username);
+      CREATE INDEX IF NOT EXISTS idx_nutrition_user_date ON nutrition_logs(user_id, log_date);
+      CREATE INDEX IF NOT EXISTS idx_activity_user_time ON activity_log(user_id, created_at DESC);
 
     `);
 

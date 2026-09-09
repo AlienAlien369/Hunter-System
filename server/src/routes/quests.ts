@@ -1,6 +1,7 @@
 import { Router, Request, Response } from 'express';
 import { pool } from '../db.js';
 import { authenticateToken, optionalAuth } from '../middleware/auth.js';
+import { logActivity } from '../activity.js';
 
 const router = Router();
 
@@ -37,6 +38,56 @@ router.get('/', optionalAuth, async (req: Request, res: Response) => {
   } catch (error) {
     console.error('Error fetching quests:', error);
     res.status(500).json({ error: 'Failed to fetch quests' });
+  }
+});
+
+// GET /api/quests/stats - Get quest statistics (scoped to the current user)
+router.get('/stats', optionalAuth, async (req: Request, res: Response) => {
+  try {
+    const userId = req.user?.id ?? null;
+    const today = new Date().toISOString().split('T')[0];
+    const weekAgo = new Date();
+    weekAgo.setDate(weekAgo.getDate() - 7);
+
+    const todayStats = await pool.query(
+      `SELECT COUNT(*) as completed FROM quest_completions qc
+       JOIN quests q ON qc.quest_id = q.id
+       WHERE qc.completion_date = $1 AND ($2::int IS NULL OR qc.user_id = $2)`,
+      [today, userId]
+    );
+
+    const weekStats = await pool.query(
+      `SELECT COUNT(DISTINCT qc.completion_date) as active_days,
+              SUM(CASE WHEN qc.completion_date >= $1 THEN 1 ELSE 0 END) as total_completions,
+              SUM(q.xp_reward) as total_xp
+       FROM quest_completions qc
+       JOIN quests q ON qc.quest_id = q.id
+       WHERE qc.completion_date >= $1 AND ($2::int IS NULL OR qc.user_id = $2)`,
+      [weekAgo.toISOString().split('T')[0], userId]
+    );
+
+    const categoryStats = await pool.query(
+      `SELECT q.category,
+              COUNT(qc.id) as completed_count,
+              COUNT(q.id) as total_count
+       FROM quests q
+       LEFT JOIN quest_completions qc ON qc.quest_id = q.id AND qc.completion_date = $1 AND ($2::int IS NULL OR qc.user_id = $2)
+       GROUP BY q.category`,
+      [today, userId]
+    );
+
+    res.json({
+      today: {
+        completed: parseInt(todayStats.rows[0].completed),
+        total: parseInt(await pool.query('SELECT COUNT(*) FROM quests').then((r: any) => r.rows[0].count)),
+        xp: parseInt(todayStats.rows[0].completed) * 10, // rough estimate
+      },
+      weekly: weekStats.rows[0],
+      categories: categoryStats.rows,
+    });
+  } catch (error) {
+    console.error('Error fetching quest stats:', error);
+    res.status(500).json({ error: 'Failed to fetch quest stats' });
   }
 });
 
@@ -85,52 +136,69 @@ router.post('/', async (req: Request, res: Response) => {
   }
 });
 
-// PATCH /api/quests/:id/complete - Toggle quest completion for today
+// PATCH /api/quests/:id/complete - Toggle quest completion
+// Daily quests (DQ-*) reset every day: completion is tracked per date.
+// DSA problems (LC-*) are permanent: once marked, they stay done until
+// the user explicitly undoes them or uses "redo all" (XP untouched).
 router.patch('/:id/complete', authenticateToken, async (req: Request, res: Response) => {
   try {
     const { id } = req.params;
     const userId = req.user?.id;
     const today = new Date().toISOString().split('T')[0];
 
-    // Check if already completed by this user
-    const existing = await pool.query(
-      `SELECT qc.id FROM quest_completions qc
-       JOIN quests q ON qc.quest_id = q.id
-       WHERE qc.user_id = $1 AND q.quest_id = $2 AND qc.completion_date = $3`,
-      [userId, id, today]
+    const quest = await pool.query(
+      'SELECT id, quest_id, title, xp_reward FROM quests WHERE quest_id = $1',
+      [id]
     );
+    if (quest.rows.length === 0) {
+      return res.status(404).json({ error: 'Quest not found' });
+    }
+    const q = quest.rows[0];
+    const isDSA = q.quest_id.startsWith('LC-');
+
+    // Check if already completed by this user (DSA: any date = done; daily: today only)
+    const existing = isDSA
+      ? await pool.query(
+          `SELECT id FROM quest_completions
+           WHERE user_id = $1 AND quest_id = $2`,
+          [userId, q.id]
+        )
+      : await pool.query(
+          `SELECT id FROM quest_completions
+           WHERE user_id = $1 AND quest_id = $2 AND completion_date = $3`,
+          [userId, q.id, today]
+        );
 
     if (existing.rows.length > 0) {
-      // Undo completion
-      await pool.query('DELETE FROM quest_completions WHERE id = $1', [existing.rows[0].id]);
+      // Undo completion (removes every row for DSA so the mark is cleared)
+      await pool.query(
+        'DELETE FROM quest_completions WHERE user_id = $1 AND quest_id = $2',
+        [userId, q.id]
+      );
 
       // Reduce XP from user
       await pool.query(
-        'UPDATE users SET xp = GREATEST(0, xp - (SELECT xp_reward FROM quests WHERE quest_id = $1)) WHERE id = $2',
-        [id, userId]
+        'UPDATE users SET xp = GREATEST(0, xp - $1), updated_at = NOW() WHERE id = $2',
+        [q.xp_reward, userId]
       );
-      await pool.query('UPDATE users SET updated_at = NOW() WHERE id = $1', [userId]);
+      await logActivity(userId, 'quest_undo', id, { title: q.title, xp: q.xp_reward });
 
-      res.json({ action: 'completed', message: 'Quest uncompleted' });
+      res.json({ action: 'undone', message: 'Quest uncompleted' });
     } else {
       // Mark as completed
-      const quest = await pool.query('SELECT id, xp_reward FROM quests WHERE quest_id = $1', [id]);
-      if (quest.rows.length === 0) {
-        return res.status(404).json({ error: 'Quest not found' });
-      }
-
       await pool.query(
         'INSERT INTO quest_completions (user_id, quest_id, completion_date) VALUES ($1, $2, $3)',
-        [userId, quest.rows[0].id, today]
+        [userId, q.id, today]
       );
 
       // Add XP to user
       await pool.query(
         'UPDATE users SET xp = xp + $1, updated_at = NOW() WHERE id = $2',
-        [quest.rows[0].xp_reward, userId]
+        [q.xp_reward, userId]
       );
+      await logActivity(userId, 'quest_complete', id, { title: q.title, xp: q.xp_reward });
 
-      res.json({ action: 'completed', xpGained: quest.rows[0].xp_reward });
+      res.json({ action: 'completed', xpGained: q.xp_reward });
     }
   } catch (error) {
     console.error('Error toggling quest completion:', error);
@@ -138,52 +206,25 @@ router.patch('/:id/complete', authenticateToken, async (req: Request, res: Respo
   }
 });
 
-// GET /api/quests/stats - Get quest statistics
-router.get('/stats', async (req: Request, res: Response) => {
+// POST /api/quests/redo-dsa - Reset all DSA (LeetCode) progress, keep XP and level
+router.post('/redo-dsa', authenticateToken, async (req: Request, res: Response) => {
   try {
-    const today = new Date().toISOString().split('T')[0];
-    const weekAgo = new Date();
-    weekAgo.setDate(weekAgo.getDate() - 7);
-
-    const todayStats = await pool.query(
-      `SELECT COUNT(*) as completed FROM quest_completions qc
-       JOIN quests q ON qc.quest_id = q.id
-       WHERE qc.completion_date = $1`,
-      [today]
+    const userId = req.user?.id;
+    const result = await pool.query(
+      `DELETE FROM quest_completions qc
+       USING quests q
+       WHERE qc.quest_id = q.id AND qc.user_id = $1 AND q.quest_id LIKE 'LC-%'`,
+      [userId]
     );
-
-    const weekStats = await pool.query(
-      `SELECT COUNT(DISTINCT qc.completion_date) as active_days,
-              SUM(CASE WHEN qc.completion_date >= $1 THEN 1 ELSE 0 END) as total_completions,
-              SUM(q.xp_reward) as total_xp
-       FROM quest_completions qc
-       JOIN quests q ON qc.quest_id = q.id
-       WHERE qc.completion_date >= $1`,
-      [weekAgo.toISOString().split('T')[0]]
-    );
-
-    const categoryStats = await pool.query(
-      `SELECT q.category,
-              COUNT(qc.id) as completed_count,
-              COUNT(q.id) as total_count
-       FROM quests q
-       LEFT JOIN quest_completions qc ON qc.quest_id = q.id AND qc.completion_date = $1
-       GROUP BY q.category`,
-      [today]
-    );
-
+    await logActivity(userId, 'dsa_redo', 'LC', { reset: result.rowCount ?? 0 });
     res.json({
-      today: {
-        completed: parseInt(todayStats.rows[0].completed),
-        total: parseInt(await pool.query('SELECT COUNT(*) FROM quests').then((r: any) => r.rows[0].count)),
-        xp: parseInt(todayStats.rows[0].completed) * 10, // rough estimate
-      },
-      weekly: weekStats.rows[0],
-      categories: categoryStats.rows,
+      action: 'redone',
+      deleted: result.rowCount ?? 0,
+      message: 'All DSA problems reset. XP and level unchanged.',
     });
   } catch (error) {
-    console.error('Error fetching quest stats:', error);
-    res.status(500).json({ error: 'Failed to fetch quest stats' });
+    console.error('Error redoing DSA quests:', error);
+    res.status(500).json({ error: 'Failed to reset DSA quests' });
   }
 });
 

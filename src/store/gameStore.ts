@@ -147,7 +147,7 @@ interface GameState {
   rank: RankProgress | null;
   levels: Level[] | null;
   dailyQuests: DailyQuest[];
-  nutritionLogs: Map<string, NutritionItem[]>;
+  nutritionEntries: Map<string, NutritionItem[]>;
   budgetItems: BudgetItem[];
   archChallenges: ArchChallenge[];
 
@@ -159,7 +159,9 @@ interface GameState {
   // Actions
   loadDashboard: () => Promise<void>;
   completeQuest: (questId: string, date: string) => Promise<void>;
+  redoDSAQuest: () => Promise<void>;
   updateProfile: (updates: Partial<HunterProfile>) => void;
+  loadNutrition: (month: string) => Promise<void>;
   logNutrition: (date: string, items: NutritionItem[]) => void;
   saveArchDecision: (week: number, data: Partial<ArchChallenge>) => void;
   toggleApiConnection: (connected: boolean) => void;
@@ -237,7 +239,7 @@ export const useGameStore = create<GameState>((set, get) => ({
   rank: null,
   levels: null,
   dailyQuests: DEFAULT_QUESTS.map(q => ({ ...q, completedDates: [] })),
-  nutritionLogs: new Map(),
+  nutritionEntries: new Map(),
   budgetItems: [],
   archChallenges: [],
   loading: false,
@@ -313,14 +315,21 @@ export const useGameStore = create<GameState>((set, get) => ({
 
     if (!quest) return;
 
-    const isCompleted = quest.completedDates.includes(date);
+    // DSA problems (LC-*) are permanent: done = any completion ever.
+    // Daily quests (DQ-*) reset each day: done = completed today.
+    const isDSA = questId.startsWith('LC-');
+    const isCompleted = isDSA
+      ? quest.completedDates.length > 0
+      : quest.completedDates.includes(date);
 
     // Optimistic update
     const updatedQuests = dailyQuests.map(q => {
       if (q.id === questId) {
         const completedDates = isCompleted
-          ? q.completedDates.filter(d => d !== date)
-          : [...q.completedDates, date];
+          ? []
+          : isDSA
+            ? [date]
+            : [...q.completedDates, date];
         return { ...q, completedDates };
       }
       return q;
@@ -336,6 +345,16 @@ export const useGameStore = create<GameState>((set, get) => ({
     } catch (error) {
       console.error('Failed to sync with server:', error);
       set({ error: 'Quest saved locally. Server sync failed.' });
+    }
+  },
+
+  redoDSAQuest: async () => {
+    try {
+      await api.redoDSA();
+      await get().loadDashboard();
+    } catch (error) {
+      console.error('Failed to reset DSA quests:', error);
+      set({ error: 'Failed to reset DSA quests.' });
     }
   },
 
@@ -360,12 +379,32 @@ export const useGameStore = create<GameState>((set, get) => ({
     }
   },
 
+  loadNutrition: async (month: string) => {
+    try {
+      const data = await api.getNutrition(month);
+      const entries = new Map<string, NutritionItem[]>();
+      for (const entry of data.entries) {
+        const items = entries.get(entry.date) || [];
+        items.push({ name: entry.name, protein: entry.protein, cost: entry.cost, consumed: true });
+        entries.set(entry.date, items);
+      }
+      set({ nutritionEntries: entries });
+    } catch (error) {
+      console.error('Failed to load nutrition:', error);
+      set({ error: 'Failed to load nutrition data.' });
+    }
+  },
+
   logNutrition: (date: string, items: NutritionItem[]) => {
+    // Optimistic update: today's marks reset each day, month rows persist
     set(state => {
-      const nutritionLogs = new Map(state.nutritionLogs);
-      nutritionLogs.set(date, items);
-      return { nutritionLogs };
+      const nutritionEntries = new Map(state.nutritionEntries);
+      nutritionEntries.set(date, items);
+      return { nutritionEntries };
     });
+
+    api.saveNutritionDay(date, items.map(({ name, protein, cost }) => ({ name, protein, cost })))
+      .catch(err => console.error('Failed to sync nutrition:', err));
   },
 
   saveArchDecision: (week: number, data: Partial<ArchChallenge>) => {

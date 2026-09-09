@@ -2,10 +2,23 @@ import { motion } from 'framer-motion';
 import { useGameStore } from '../store/gameStore';
 import { useEffect, useState } from 'react';
 import { LineChart, Line, XAxis, YAxis, Tooltip, Legend, ResponsiveContainer, CartesianGrid } from 'recharts';
+import { api } from '../lib/api';
+import type { ActivityEntry } from '../lib/api';
+
+const ACTIVITY_META: Record<string, { icon: string; label: string }> = {
+  quest_complete: { icon: '✅', label: 'Quest completed' },
+  quest_undo: { icon: '↩️', label: 'Quest uncompleted' },
+  dsa_redo: { icon: '🔄', label: 'DSA reset (redo all)' },
+  nutrition_update: { icon: '🥗', label: 'Nutrition marked' },
+  stats_update: { icon: '📊', label: 'Stats updated' },
+  login: { icon: '🔐', label: 'Logged in' },
+  register: { icon: '🆕', label: 'Registered' },
+};
 
 export default function ProgressDashboard() {
   const { profile, stats, apiConnected, loadDashboard } = useGameStore();
   const [chartData, setChartData] = useState<any[]>([]);
+  const [activity, setActivity] = useState<ActivityEntry[]>([]);
   const [achievements] = useState([
     { id: 'ACH-01', title: 'First Steps', earned: true, icon: '👣' },
     { id: 'ACH-02', title: 'Disciplined Initiate', earned: true, icon: '⚔️' },
@@ -24,6 +37,12 @@ export default function ProgressDashboard() {
   useEffect(() => {
     loadDashboard();
   }, [loadDashboard]);
+
+  useEffect(() => {
+    api.getActivity(30)
+      .then(setActivity)
+      .catch(err => console.error('Failed to load activity:', err));
+  }, []);
 
   useEffect(() => {
     // Generate mock chart data based on current progress
@@ -211,6 +230,60 @@ export default function ProgressDashboard() {
             );
           })}
         </div>
+      </motion.div>
+
+      {/* Recent Activity Log */}
+      <motion.div
+        initial={{ opacity: 0, y: 20 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ delay: 0.35 }}
+        className="bg-[#161b22]/80 backdrop-blur-sm rounded-xl border border-purple-500/20 p-6"
+      >
+        <div className="flex items-center justify-between mb-4">
+          <h3 className="font-display text-white font-bold tracking-wider">
+            RECENT ACTIVITY
+          </h3>
+          <span className="text-gray-500 font-mono text-xs">
+            LOGGED IN THE DATABASE — EVERYTHING YOU DO
+          </span>
+        </div>
+        {activity.length > 0 ? (
+          <div className="space-y-2 max-h-72 overflow-y-auto custom-scrollbar">
+            {activity.map(entry => {
+              const meta = ACTIVITY_META[entry.action] || { icon: '📋', label: entry.action };
+              const detail =
+                entry.action === 'quest_complete' || entry.action === 'quest_undo'
+                  ? String((entry.details as any)?.title || entry.entity || '')
+                  : entry.action === 'nutrition_update'
+                    ? `${new Date(entry.entity + 'T00:00:00').toLocaleDateString()} • ${(entry.details as any)?.items || 0} foods`
+                    : entry.action === 'stats_update'
+                      ? Object.keys((entry.details as any) || {}).join(', ')
+                      : entry.action === 'dsa_redo'
+                        ? `${(entry.details as any)?.reset || 0} problems reset`
+                        : '';
+              return (
+                <div
+                  key={entry.id}
+                  className="flex items-center space-x-3 p-2.5 rounded-lg bg-gray-900/40 border border-gray-800"
+                >
+                  <span className="text-lg">{meta.icon}</span>
+                  <div className="flex-1 min-w-0">
+                    <p className="text-sm text-gray-300 font-mono truncate">
+                      {meta.label}{detail ? ` — ${detail}` : ''}
+                    </p>
+                  </div>
+                  <span className="text-xs text-gray-600 font-mono flex-shrink-0">
+                    {new Date(entry.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                  </span>
+                </div>
+              );
+            })}
+          </div>
+        ) : (
+          <div className="text-center text-gray-500 font-mono py-6">
+            No activity yet — complete quests, mark nutrition, or edit stats
+          </div>
+        )}
       </motion.div>
 
       {/* Achievements */}
