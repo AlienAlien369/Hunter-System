@@ -1,6 +1,8 @@
 import { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import dsaQuestions from '../data/dsa-questions.json';
+import { useGameStore } from '../store/gameStore';
+import TrackReward from '../components/TrackReward';
 
 type Difficulty = 'Easy' | 'Medium' | 'Hard';
 
@@ -33,6 +35,7 @@ const DIFFICULTY_CONFIG = {
 };
 
 export default function DSARoadmap() {
+  const { dailyQuests, profile } = useGameStore();
   const [questions] = useState<Question[]>(dsaQuestions as Question[]);
   const [studied, setStudied] = useState<Set<number>>(new Set());
   const [filter, setFilter] = useState<'All' | Difficulty>('All');
@@ -111,6 +114,19 @@ export default function DSARoadmap() {
             PROGRESS OVERVIEW
           </h2>
           <span className="text-purple-400 font-mono text-sm">{progress.toFixed(1)}%</span>
+        </div>
+
+        {/* Reward Preview */}
+        <div className="mb-4">
+          <TrackReward
+            quests={questions.map(q => ({
+              xpReward: dailyQuests.find(dq => dq.id === `LC-${String(q.id).padStart(2, '0')}`)?.xpReward ?? 0,
+              done: studied.has(q.id),
+            }))}
+            currentXp={profile.xp}
+            accentClass="text-gold"
+            chipClass="border-purple-500/10 bg-[#0d1117]/60"
+          />
         </div>
 
         {/* Overall Progress Bar */}

@@ -1,6 +1,7 @@
 import { useGameStore } from '../store/gameStore';
 import { motion } from 'framer-motion';
 import { useState } from 'react';
+import TrackReward from '../components/TrackReward';
 
 const ARCH_CHALLENGES = [
   { week: 1, scenario: 'Multi-tenant B2B SaaS data isolation', scale: '100 tenants / 100k users' },
@@ -20,7 +21,7 @@ const ARCH_CHALLENGES = [
 const challengeQuestId = (index: number) => `AR-${String(index + 1).padStart(2, '0')}`;
 
 export default function SystemDesign() {
-  const { dailyQuests, completeQuest, redoTrack, saveArchDecision } = useGameStore();
+  const { dailyQuests, completeQuest, redoTrack, saveArchDecision, profile } = useGameStore();
   const [expandedChallenge, setExpandedChallenge] = useState<number | null>(null);
   const [formData, setFormData] = useState({
     decision: '',
@@ -97,6 +98,14 @@ export default function SystemDesign() {
               </button>
             )}
           </div>
+        </div>
+        <div className="mt-4">
+          <TrackReward
+            quests={dailyQuests.filter(q => q.id.startsWith('AR-')).map(q => ({ xpReward: q.xpReward, done: q.completedDates.length > 0 }))}
+            currentXp={profile.xp}
+            accentClass="text-red-danger"
+            chipClass="border-red-500/20 bg-red-500/5"
+          />
         </div>
         <div className="mt-4 h-2 bg-dungeon/50 rounded-full overflow-hidden">
           <motion.div

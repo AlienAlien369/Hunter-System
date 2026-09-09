@@ -1,6 +1,7 @@
 import { useGameStore } from '../store/gameStore';
 import { motion } from 'framer-motion';
 import { useState } from 'react';
+import TrackReward from '../components/TrackReward';
 
 const SAAS_STAGES = [
   { id: 1, title: 'Market Research', description: 'Validate problem-solution fit', icon: '🔍', duration: '2 weeks' },
@@ -14,7 +15,7 @@ const SAAS_STAGES = [
 const stageQuestId = (id: number) => `SS-${String(id).padStart(2, '0')}`;
 
 export default function SaaSRoadmap() {
-  const { dailyQuests, completeQuest, redoTrack } = useGameStore();
+  const { dailyQuests, completeQuest, redoTrack, profile } = useGameStore();
   const [expandedStage, setExpandedStage] = useState<number | null>(null);
   const today = new Date().toISOString().split('T')[0];
 
@@ -77,6 +78,14 @@ export default function SaaSRoadmap() {
               </button>
             )}
           </div>
+        </div>
+        <div className="mt-4">
+          <TrackReward
+            quests={dailyQuests.filter(q => q.id.startsWith('SS-')).map(q => ({ xpReward: q.xpReward, done: q.completedDates.length > 0 }))}
+            currentXp={profile.xp}
+            accentClass="text-purple-glow"
+            chipClass="border-purple-monarch/20 bg-purple-monarch/5"
+          />
         </div>
         <div className="mt-4 h-2 bg-dungeon/50 rounded-full overflow-hidden">
           <motion.div

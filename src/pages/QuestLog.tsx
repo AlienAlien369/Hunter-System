@@ -1,6 +1,7 @@
 import { motion } from 'framer-motion';
 import { useGameStore } from '../store/gameStore';
 import QuestCard from '../components/QuestCard';
+import TrackReward from '../components/TrackReward';
 
 interface TrackConfig {
   id: string;
@@ -45,11 +46,13 @@ const TRACKS: TrackConfig[] = [
 function TrackSection({
   track,
   quests,
+  currentXp,
   onToggle,
   onRedo,
 }: {
   track: TrackConfig;
   quests: { id: string; title: string; xpReward: number; category: string; completedDates: string[] }[];
+  currentXp: number;
   onToggle: (id: string) => void;
   onRedo: () => void;
 }) {
@@ -88,6 +91,14 @@ function TrackSection({
         </div>
       </div>
 
+      {/* Reward Preview */}
+      <TrackReward
+        quests={quests.map(q => ({ xpReward: q.xpReward, done: q.completedDates.length > 0 }))}
+        currentXp={currentXp}
+        accentClass={track.textClass}
+        chipClass="border-purple-500/10 bg-[#0d1117]/60"
+      />
+
       {/* Track Progress Bar */}
       <div className="h-1.5 bg-gray-800 rounded-full overflow-hidden">
         <motion.div
@@ -120,7 +131,7 @@ function TrackSection({
 }
 
 export default function QuestLog() {
-  const { dailyQuests, completeQuest, redoTrack } = useGameStore();
+  const { dailyQuests, completeQuest, redoTrack, profile } = useGameStore();
   const today = new Date().toISOString().split('T')[0];
 
   const dailyQuestsList = dailyQuests
@@ -195,6 +206,15 @@ export default function QuestLog() {
           <span className="text-xs text-gray-500 font-mono">RESETS EVERY DAY • {today}</span>
         </div>
 
+        {/* Reward Preview */}
+        <TrackReward
+          quests={dailyQuestsList.map(q => ({ xpReward: q.xpReward, done: q.completedToday }))}
+          currentXp={profile.xp}
+          label="⚡ TODAY'S XP"
+          accentClass="text-purple-400"
+          chipClass="border-purple-500/10 bg-[#0d1117]/60"
+        />
+
         {/* Daily Progress Bar */}
         <div className="h-1 bg-gray-800 rounded-full overflow-hidden">
           <motion.div
@@ -234,6 +254,7 @@ export default function QuestLog() {
           <TrackSection
             track={track}
             quests={trackQuestLists[track.id]}
+            currentXp={profile.xp}
             onToggle={id => completeQuest(id, today)}
             onRedo={() => redoTrack(track.id as 'dsa' | 'saas' | 'arch')}
           />
