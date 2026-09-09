@@ -203,6 +203,8 @@ export interface Celebration {
   level: number;
   rank: string;
   newXp: number;
+  /** Big milestones (rank changes, every-5th level) get the full-screen overlay. */
+  big: boolean;
 }
 
 // Local storage keys (scoped per user so accounts never see each other's data)
@@ -296,6 +298,8 @@ export const useGameStore = create<GameState>((set, get) => ({
             level: newLevel,
             rank: newRank,
             newXp,
+            // Rank changes are always big; pure level-ups celebrate every 5th level
+            big: rankUp || (levelUp && newLevel % 5 === 0),
           };
         }
       }
