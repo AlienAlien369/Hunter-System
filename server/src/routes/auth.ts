@@ -12,6 +12,31 @@ const JWT_SECRET = process.env.JWT_SECRET || "hunter-system-secret-key-2024";
 const JWT_EXPIRES_IN = "1h";
 
 /**
+ * Build cookie options for the JWT auth cookie.
+ *
+ * When the frontend and API are hosted on different sites (e.g. a Vercel
+ * frontend calling this API on Render), the request is cross-site. Browsers
+ * reject `SameSite=strict` cookies in that context, so the token never gets
+ * stored and every authenticated request fails with 401 "Access denied.
+ * No token provided.". We therefore use `SameSite=None; Secure` for
+ * non-localhost hosts (the API is always served over HTTPS there) and fall
+ * back to `Lax` for local development over plain HTTP.
+ */
+function getAuthCookieOptions(req: Request) {
+  const host = (req.hostname || "").toLowerCase();
+  const isLocal =
+    host === "localhost" || host === "127.0.0.1" || host.endsWith(".localhost");
+
+  return {
+    httpOnly: true,
+    // SameSite=None is only accepted together with the Secure attribute.
+    secure: !isLocal,
+    sameSite: (isLocal ? "lax" : "none") as "lax" | "none",
+    maxAge: 60 * 60 * 1000, // 1 hour (matches JWT_EXPIRES_IN)
+  };
+}
+
+/**
  * POST /api/auth/register
  * Register a new user
  */
@@ -68,12 +93,7 @@ router.post("/register", async (req: Request, res: Response) => {
     );
 
     // Set HttpOnly cookie
-    res.cookie("token", token, {
-      httpOnly: true,
-      secure: process.env.NODE_ENV === "production",
-      sameSite: "strict",
-      maxAge: 60 * 60 * 1000, // 1 hour
-    });
+    res.cookie("token", token, getAuthCookieOptions(req));
 
     await logActivity(user.id, "register", user.username);
 
@@ -128,12 +148,7 @@ router.post("/login", async (req: Request, res: Response) => {
     );
 
     // Set HttpOnly cookie
-    res.cookie("token", token, {
-      httpOnly: true,
-      secure: process.env.NODE_ENV === "production",
-      sameSite: "strict",
-      maxAge: 60 * 60 * 1000, // 1 hour
-    });
+    res.cookie("token", token, getAuthCookieOptions(req));
 
     await logActivity(user.id, "login", user.username);
 
@@ -156,7 +171,14 @@ router.post("/login", async (req: Request, res: Response) => {
  * Clear the JWT cookie
  */
 router.post("/logout", (req: Request, res: Response) => {
-  res.clearCookie("token");
+  // Match the attributes used when setting the cookie so the browser
+  // reliably removes it in every deployment context.
+  const cookieOptions = getAuthCookieOptions(req);
+  res.clearCookie("token", {
+    httpOnly: cookieOptions.httpOnly,
+    secure: cookieOptions.secure,
+    sameSite: cookieOptions.sameSite,
+  });
   res.json({ message: "Logged out successfully" });
 });
 

@@ -21,6 +21,10 @@ dotenv.config({ path: join(__dirname, '../../.env') });
 const app = express();
 const PORT = process.env.BACKEND_PORT || 3000;
 
+// Trust Render/nginx reverse proxy so req.hostname and req.secure reflect
+// the real request (needed for correct Secure-cookie decisions).
+app.set("trust proxy", 1);
+
 // Allowed CORS origins
 const ALLOWED_ORIGINS = [
   process.env.FRONTEND_URL,
