@@ -26,7 +26,7 @@ export interface DailyQuest {
   id: string;
   title: string;
   xpReward: number;
-  category: 'discipline' | 'skill' | 'physical' | 'nutrition' | 'saas' | 'mindset' | 'spiritual' | 'health';
+  category: 'discipline' | 'skill' | 'physical' | 'nutrition' | 'saas' | 'mindset' | 'spiritual' | 'health' | 'architecture';
   completedDates: string[];
 }
 
@@ -159,7 +159,7 @@ interface GameState {
   // Actions
   loadDashboard: () => Promise<void>;
   completeQuest: (questId: string, date: string) => Promise<void>;
-  redoDSAQuest: () => Promise<void>;
+  redoTrack: (track: 'dsa' | 'saas' | 'arch') => Promise<void>;
   updateProfile: (updates: Partial<HunterProfile>) => void;
   loadNutrition: (month: string) => Promise<void>;
   logNutrition: (date: string, items: NutritionItem[]) => void;
@@ -315,10 +315,10 @@ export const useGameStore = create<GameState>((set, get) => ({
 
     if (!quest) return;
 
-    // DSA problems (LC-*) are permanent: done = any completion ever.
+    // Permanent tracks (LC-*, SS-*, AR-*) are done = any completion ever.
     // Daily quests (DQ-*) reset each day: done = completed today.
-    const isDSA = questId.startsWith('LC-');
-    const isCompleted = isDSA
+    const isDaily = questId.startsWith('DQ-');
+    const isCompleted = !isDaily
       ? quest.completedDates.length > 0
       : quest.completedDates.includes(date);
 
@@ -327,7 +327,7 @@ export const useGameStore = create<GameState>((set, get) => ({
       if (q.id === questId) {
         const completedDates = isCompleted
           ? []
-          : isDSA
+          : !isDaily
             ? [date]
             : [...q.completedDates, date];
         return { ...q, completedDates };
@@ -348,13 +348,13 @@ export const useGameStore = create<GameState>((set, get) => ({
     }
   },
 
-  redoDSAQuest: async () => {
+  redoTrack: async (track: 'dsa' | 'saas' | 'arch') => {
     try {
-      await api.redoDSA();
+      await api.redoTrack(track);
       await get().loadDashboard();
     } catch (error) {
-      console.error('Failed to reset DSA quests:', error);
-      set({ error: 'Failed to reset DSA quests.' });
+      console.error(`Failed to reset ${track} track:`, error);
+      set({ error: `Failed to reset ${track} track.` });
     }
   },
 

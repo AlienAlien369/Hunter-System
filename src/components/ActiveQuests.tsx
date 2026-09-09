@@ -7,7 +7,7 @@ export default function ActiveQuests() {
   const today = new Date().toISOString().split('T')[0];
 
   const todaysQuests = dailyQuests
-    .filter(quest => !quest.id.startsWith('LC-')) // DSA is permanent progress, not a daily quest
+    .filter(quest => quest.id.startsWith('DQ-')) // permanent tracks (LC/SS/AR) are not daily quests
     .map(quest => ({
       ...quest,
       completedToday: quest.completedDates.includes(today),

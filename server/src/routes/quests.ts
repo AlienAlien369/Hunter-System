@@ -138,8 +138,8 @@ router.post('/', async (req: Request, res: Response) => {
 
 // PATCH /api/quests/:id/complete - Toggle quest completion
 // Daily quests (DQ-*) reset every day: completion is tracked per date.
-// DSA problems (LC-*) are permanent: once marked, they stay done until
-// the user explicitly undoes them or uses "redo all" (XP untouched).
+// Permanent tracks (LC-* DSA, SS-* SaaS, AR-* Architecture) stay done
+// until the user explicitly undoes them or uses "redo all" (XP untouched).
 router.patch('/:id/complete', authenticateToken, async (req: Request, res: Response) => {
   try {
     const { id } = req.params;
@@ -154,10 +154,10 @@ router.patch('/:id/complete', authenticateToken, async (req: Request, res: Respo
       return res.status(404).json({ error: 'Quest not found' });
     }
     const q = quest.rows[0];
-    const isDSA = q.quest_id.startsWith('LC-');
+    const isDaily = q.quest_id.startsWith('DQ-');
 
-    // Check if already completed by this user (DSA: any date = done; daily: today only)
-    const existing = isDSA
+    // Check if already completed by this user (permanent tracks: any date = done; daily: today only)
+    const existing = !isDaily
       ? await pool.query(
           `SELECT id FROM quest_completions
            WHERE user_id = $1 AND quest_id = $2`,
@@ -206,25 +206,38 @@ router.patch('/:id/complete', authenticateToken, async (req: Request, res: Respo
   }
 });
 
-// POST /api/quests/redo-dsa - Reset all DSA (LeetCode) progress, keep XP and level
-router.post('/redo-dsa', authenticateToken, async (req: Request, res: Response) => {
+// POST /api/quests/redo/:track - Reset a permanent track, keep XP and level
+// tracks: dsa (LC-*), saas (SS-*), arch (AR-*)
+const TRACK_PREFIXES: Record<string, string> = {
+  dsa: 'LC-%',
+  saas: 'SS-%',
+  arch: 'AR-%',
+};
+
+router.post('/redo/:track', authenticateToken, async (req: Request, res: Response) => {
   try {
+    const track = req.params.track;
+    const prefix = TRACK_PREFIXES[track];
+    if (!prefix) {
+      return res.status(400).json({ error: `Unknown track '${track}'. Expected dsa, saas or arch.` });
+    }
     const userId = req.user?.id;
     const result = await pool.query(
       `DELETE FROM quest_completions qc
        USING quests q
-       WHERE qc.quest_id = q.id AND qc.user_id = $1 AND q.quest_id LIKE 'LC-%'`,
-      [userId]
+       WHERE qc.quest_id = q.id AND qc.user_id = $1 AND q.quest_id LIKE $2`,
+      [userId, prefix]
     );
-    await logActivity(userId, 'dsa_redo', 'LC', { reset: result.rowCount ?? 0 });
+    await logActivity(userId, `${track}_redo`, track.toUpperCase(), { reset: result.rowCount ?? 0 });
     res.json({
       action: 'redone',
+      track,
       deleted: result.rowCount ?? 0,
-      message: 'All DSA problems reset. XP and level unchanged.',
+      message: `All ${track.toUpperCase()} items reset. XP and level unchanged.`,
     });
   } catch (error) {
-    console.error('Error redoing DSA quests:', error);
-    res.status(500).json({ error: 'Failed to reset DSA quests' });
+    console.error('Error redoing track:', error);
+    res.status(500).json({ error: 'Failed to reset track' });
   }
 });
 

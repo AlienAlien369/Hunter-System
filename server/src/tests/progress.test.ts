@@ -93,7 +93,7 @@ describe('Progress semantics (daily reset, DSA permanence, nutrition months)', (
     const before = await (await fetch(`${BASE_URL}/api/stats`, { headers: { Cookie: cookie } })).json();
     assert.strictEqual(before.user.xp, 30);
 
-    const redo = await fetch(`${BASE_URL}/api/quests/redo-dsa`, {
+    const redo = await fetch(`${BASE_URL}/api/quests/redo/dsa`, {
       method: 'POST',
       headers: { Cookie: cookie },
     });
@@ -154,6 +154,52 @@ describe('Progress semantics (daily reset, DSA permanence, nutrition months)', (
     const prev = await (await fetch(`${BASE_URL}/api/nutrition?month=${lastMonth}`, { headers: { Cookie: cookie } })).json();
     assert.strictEqual(prev.entries.length, 0);
     assert.strictEqual(prev.totals.protein, 0);
+  });
+
+  it('SaaS and Architecture tracks are permanent and redo independently of XP', async () => {
+    // Mark one SaaS milestone and one Architecture challenge
+    await fetch(`${BASE_URL}/api/quests/SS-01/complete`, { method: 'PATCH', headers: { Cookie: cookie } });
+    await fetch(`${BASE_URL}/api/quests/AR-01/complete`, { method: 'PATCH', headers: { Cookie: cookie } });
+    const before = await (await fetch(`${BASE_URL}/api/stats`, { headers: { Cookie: cookie } })).json();
+    const xpBefore = before.user.xp;
+
+    // Both are permanent: any completion = done
+    let quests = await (await fetch(`${BASE_URL}/api/quests`, { headers: { Cookie: cookie } })).json();
+    assert.strictEqual(quests.find((q: any) => q.quest_id === 'SS-01').completions.length, 1);
+    assert.strictEqual(quests.find((q: any) => q.quest_id === 'AR-01').completions.length, 1);
+
+    // Redo the SaaS track only: SS-01 clears, AR-01 stays, XP unchanged
+    const redoSaas = await fetch(`${BASE_URL}/api/quests/redo/saas`, {
+      method: 'POST',
+      headers: { Cookie: cookie },
+    });
+    assert.strictEqual(redoSaas.status, 200);
+    assert.strictEqual((await redoSaas.json()).deleted, 1);
+
+    quests = await (await fetch(`${BASE_URL}/api/quests`, { headers: { Cookie: cookie } })).json();
+    assert.strictEqual(quests.find((q: any) => q.quest_id === 'SS-01').completions.length, 0);
+    assert.strictEqual(quests.find((q: any) => q.quest_id === 'AR-01').completions.length, 1);
+
+    const after = await (await fetch(`${BASE_URL}/api/stats`, { headers: { Cookie: cookie } })).json();
+    assert.strictEqual(after.user.xp, xpBefore);
+
+    // Redo the architecture track too
+    const redoArch = await fetch(`${BASE_URL}/api/quests/redo/arch`, {
+      method: 'POST',
+      headers: { Cookie: cookie },
+    });
+    assert.strictEqual((await redoArch.json()).deleted, 1);
+    quests = await (await fetch(`${BASE_URL}/api/quests`, { headers: { Cookie: cookie } })).json();
+    assert.strictEqual(quests.find((q: any) => q.quest_id === 'AR-01').completions.length, 0);
+    assert.strictEqual(after.user.xp, xpBefore);
+  });
+
+  it('unknown redo track is rejected', async () => {
+    const res = await fetch(`${BASE_URL}/api/quests/redo/nope`, {
+      method: 'POST',
+      headers: { Cookie: cookie },
+    });
+    assert.strictEqual(res.status, 400);
   });
 
   it('everything is logged in the activity log', async () => {

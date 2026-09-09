@@ -17,14 +17,36 @@ const ARCH_CHALLENGES = [
   { week: 6, scenario: 'Deployment/observability for production SaaS', scale: 'Multi-service production' },
 ];
 
+const challengeQuestId = (index: number) => `AR-${String(index + 1).padStart(2, '0')}`;
+
 export default function SystemDesign() {
-  const { saveArchDecision } = useGameStore();
+  const { dailyQuests, completeQuest, redoTrack, saveArchDecision } = useGameStore();
   const [expandedChallenge, setExpandedChallenge] = useState<number | null>(null);
   const [formData, setFormData] = useState({
     decision: '',
     why: '',
     tradeoffs: '',
   });
+  const today = new Date().toISOString().split('T')[0];
+
+  const doneSet = new Set(
+    dailyQuests
+      .filter(q => q.id.startsWith('AR-') && q.completedDates.length > 0)
+      .map(q => q.id)
+  );
+  const completed = doneSet.size;
+  const progress = (completed / ARCH_CHALLENGES.length) * 100;
+  const allDone = completed === ARCH_CHALLENGES.length;
+
+  const handleToggle = (index: number) => {
+    completeQuest(challengeQuestId(index), today);
+  };
+
+  const handleRedo = () => {
+    if (window.confirm('Reset ALL Architecture challenges to start from the beginning?\n\nYour XP and level will stay the same.')) {
+      redoTrack('arch');
+    }
+  };
 
   const handleSave = (week: number) => {
     saveArchDecision(week, formData);
@@ -48,18 +70,57 @@ export default function SystemDesign() {
         </div>
       </div>
 
+      {/* Progress Overview */}
+      <motion.div
+        initial={{ opacity: 0, y: 10 }}
+        animate={{ opacity: 1, y: 0 }}
+        className="bg-card/80 backdrop-blur-sm rounded-xl border border-purple-monarch/20 p-5 mb-6"
+      >
+        <div className="flex items-center justify-between flex-wrap gap-3">
+          <div>
+            <h2 className="font-display text-red-danger font-bold tracking-wider">
+              ARCHITECTURE PROGRESS
+            </h2>
+            <span className="text-xs text-muted font-mono">PERMANENT • CHALLENGES STAY UNTIL YOU REDO</span>
+          </div>
+          <div className="flex items-center space-x-4">
+            <div className="text-right">
+              <p className="text-xl font-display text-red-danger">{completed}/{ARCH_CHALLENGES.length}</p>
+              <p className="text-xs text-muted font-mono">CHALLENGES DONE</p>
+            </div>
+            {allDone && (
+              <button
+                onClick={handleRedo}
+                className="px-4 py-2 bg-red-500/10 text-red-400 border border-red-500/30 rounded-lg hover:bg-red-500/20 transition-all font-display text-sm font-bold"
+              >
+                🔄 REDO ALL CHALLENGES
+              </button>
+            )}
+          </div>
+        </div>
+        <div className="mt-4 h-2 bg-dungeon/50 rounded-full overflow-hidden">
+          <motion.div
+            className="h-full bg-gradient-to-r from-red-danger to-orange-400"
+            initial={{ width: 0 }}
+            animate={{ width: `${progress}%` }}
+            transition={{ duration: 0.8 }}
+          />
+        </div>
+      </motion.div>
+
       <div className="grid gap-4 md:grid-cols-2">
         {ARCH_CHALLENGES.map((challenge, index) => {
           const isExpanded = expandedChallenge === index;
+          const isDone = doneSet.has(challengeQuestId(index));
           return (
             <motion.div
               key={challenge.scenario}
               initial={{ opacity: 0, y: 10 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ duration: 0.4, delay: 0.05 * index }}
-              className={`bg-card/80 backdrop-blur-sm rounded-xl border border-purple-monarch/20 p-4 ${
-                isExpanded ? 'border-l-4 border-purple-glow' : ''
-              }`}
+              className={`bg-card/80 backdrop-blur-sm rounded-xl border p-4 ${
+                isExpanded ? 'border-l-4 border-purple-glow' : 'border-purple-monarch/20'
+              } ${isDone ? 'opacity-80' : ''}`}
               onClick={() => setExpandedChallenge(isExpanded ? null : index)}
             >
               <div className="flex items-center justify-between mb-3">
@@ -68,20 +129,37 @@ export default function SystemDesign() {
                     <span className="text-purple-monarch font-bold">W{challenge.week}</span>
                   </div>
                   <div>
-                    <h3 className="font-display text-sm">{challenge.scenario}</h3>
+                    <h3 className={`font-display text-sm ${isDone ? 'text-gold line-through' : ''}`}>{challenge.scenario}</h3>
                     <p className="text-xs text-muted">{challenge.scale}</p>
                   </div>
                 </div>
-                <div className="w-5 h-5 flex-shrink-0">
-                  {isExpanded ? (
-                    <svg className="text-purple-monarch" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
-                    </svg>
-                  ) : (
-                    <svg className="text-purple-monarch" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 18l6-6-6-6" />
-                    </svg>
-                  )}
+                <div className="flex items-center space-x-2">
+                  {/* Mark complete (permanent) */}
+                  <button
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      handleToggle(index);
+                    }}
+                    className={`w-7 h-7 rounded-full flex items-center justify-center border-2 transition-all ${
+                      isDone
+                        ? 'bg-gold/20 border-gold text-gold'
+                        : 'bg-dungeon/50 border-purple-monarch/30 text-muted hover:border-purple-glow'
+                    }`}
+                    title={isDone ? 'Mark as not done' : 'Mark as done'}
+                  >
+                    {isDone ? '✓' : '○'}
+                  </button>
+                  <div className={`w-5 h-5 flex-shrink-0 ${isDone ? '' : ''}`}>
+                    {isExpanded ? (
+                      <svg className="text-purple-monarch" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                      </svg>
+                    ) : (
+                      <svg className="text-purple-monarch" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 18l6-6-6-6" />
+                      </svg>
+                    )}
+                  </div>
                 </div>
               </div>
 

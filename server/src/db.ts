@@ -208,6 +208,26 @@ export async function initDatabase() {
       { id: 'LC-73', title: 'Set Matrix Zeroes', xp: 20, category: 'skill', difficulty: 2 },
       { id: 'LC-74', title: 'Search a 2D Matrix', xp: 15, category: 'skill', difficulty: 2 },
       { id: 'LC-75', title: 'Sort Colors', xp: 15, category: 'skill', difficulty: 2 },
+      // SaaS milestones (permanent track)
+      { id: 'SS-01', title: 'Market Research', xp: 40, category: 'saas', difficulty: 2 },
+      { id: 'SS-02', title: 'MVP Development', xp: 50, category: 'saas', difficulty: 2 },
+      { id: 'SS-03', title: 'Beta Launch', xp: 50, category: 'saas', difficulty: 2 },
+      { id: 'SS-04', title: 'Product-Market Fit', xp: 60, category: 'saas', difficulty: 2 },
+      { id: 'SS-05', title: 'Team Expansion', xp: 50, category: 'saas', difficulty: 2 },
+      { id: 'SS-06', title: 'Series Funding', xp: 80, category: 'saas', difficulty: 3 },
+      // Architecture challenges (permanent track)
+      { id: 'AR-01', title: 'Multi-tenant B2B SaaS data isolation', xp: 30, category: 'architecture', difficulty: 3 },
+      { id: 'AR-02', title: 'Notification system with retries & DLQ', xp: 30, category: 'architecture', difficulty: 3 },
+      { id: 'AR-03', title: 'Fleet telemetry ingestion & live dashboard', xp: 30, category: 'architecture', difficulty: 3 },
+      { id: 'AR-04', title: 'Role/permission system for multi-tenants', xp: 30, category: 'architecture', difficulty: 3 },
+      { id: 'AR-05', title: 'File/document storage with tenant isolation', xp: 30, category: 'architecture', difficulty: 3 },
+      { id: 'AR-06', title: 'Audit logging for enterprise', xp: 30, category: 'architecture', difficulty: 3 },
+      { id: 'AR-07', title: 'Configuration/feature flags per tenant', xp: 30, category: 'architecture', difficulty: 3 },
+      { id: 'AR-08', title: 'Order/trip workflow with idempotency', xp: 30, category: 'architecture', difficulty: 3 },
+      { id: 'AR-09', title: 'API rate limiting and abuse protection', xp: 30, category: 'architecture', difficulty: 3 },
+      { id: 'AR-10', title: 'Search/reporting without hurting transactional DB', xp: 30, category: 'architecture', difficulty: 3 },
+      { id: 'AR-11', title: 'Caching strategy and invalidation', xp: 30, category: 'architecture', difficulty: 3 },
+      { id: 'AR-12', title: 'Deployment/observability for production SaaS', xp: 30, category: 'architecture', difficulty: 3 },
     ];
 
     for (const q of defaultQuests) {

@@ -151,8 +151,8 @@ export const api = {
 
   getQuestStats: () => request<QuestStats>('/quests/stats'),
 
-  redoDSA: () =>
-    request<{ action: string; deleted: number; message: string }>('/quests/redo-dsa', { method: 'POST' }),
+  redoTrack: (track: 'dsa' | 'saas' | 'arch') =>
+    request<{ action: string; track: string; deleted: number; message: string }>(`/quests/redo/${track}`, { method: 'POST' }),
 
   // Nutrition
   getNutrition: (month?: string) =>

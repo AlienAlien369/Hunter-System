@@ -1,10 +1,8 @@
-import { motion } from 'framer-motion';
-
 interface DailyQuest {
   id: string;
   title: string;
   xpReward: number;
-  category: 'discipline' | 'skill' | 'physical' | 'nutrition' | 'saas' | 'mindset' | 'spiritual' | 'health';
+  category: 'discipline' | 'skill' | 'physical' | 'nutrition' | 'saas' | 'mindset' | 'spiritual' | 'health' | 'architecture';
   completedDates: string[];
 }
 
@@ -20,6 +18,7 @@ const CATEGORY_CONFIG = {
   physical: { color: 'text-green-400', bg: 'bg-green-500/10', border: 'border-green-500/20', icon: '💪' },
   nutrition: { color: 'text-gold', bg: 'bg-gold/10', border: 'border-gold/20', icon: '🥗' },
   saas: { color: 'text-purple-400', bg: 'bg-purple-500/10', border: 'border-purple-500/20', icon: '🚀' },
+  architecture: { color: 'text-orange-400', bg: 'bg-orange-500/10', border: 'border-orange-500/20', icon: '📐' },
   mindset: { color: 'text-blue-300', bg: 'bg-blue-300/10', border: 'border-blue-300/20', icon: '🧘' },
   spiritual: { color: 'text-pink-400', bg: 'bg-pink-500/10', border: 'border-pink-500/20', icon: '🕯️' },
   health: { color: 'text-teal-400', bg: 'bg-teal-500/10', border: 'border-teal-500/20', icon: '❤️' },
