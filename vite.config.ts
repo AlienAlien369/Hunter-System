@@ -13,8 +13,9 @@ export default defineConfig({
     port: 5173,
     proxy: {
       '/api': {
-        target: 'http://localhost:3000',
+        target: 'https://hunter-system-kss0.onrender.com',
         changeOrigin: true,
+        secure: true,
       },
     },
   },
