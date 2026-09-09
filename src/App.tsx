@@ -2,6 +2,7 @@ import { Routes, Route, useLocation, Navigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useEffect, useState } from 'react';
 import { useAuthStore } from './store/authStore';
+import { useGameStore } from './store/gameStore';
 import { useSoundStore } from './store/soundStore';
 import { useThemeStore, applyTheme } from './store/themeStore';
 import { sfx } from './utils/sounds';
@@ -156,6 +157,8 @@ function AppContent() {
         <HunterNameEntry
           onComplete={(name) => {
             setHunterName(name);
+            // Refresh game store so dashboard shows the new name
+            useGameStore.getState().loadDashboard();
             sfx.levelUp();
           }}
         />
