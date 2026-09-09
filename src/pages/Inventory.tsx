@@ -2,7 +2,6 @@ import { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useGameStore } from '../store/gameStore';
 import { ITEMS, RARITY_CONFIG, type Rarity, type InventoryItem } from '../data/items';
-import { sfx } from '../utils/sounds';
 
 const RARITY_ORDER: Rarity[] = ['legendary', 'epic', 'rare', 'common'];
 
@@ -102,7 +101,7 @@ function TitleCard({ title, isActive, onEquip, onUnequip }: {
 }
 
 export default function Inventory() {
-  const { inventory, equipped, unlockedTitles, useItem, equipTitle, unequipTitle, equipXpBoost, deactivateXpBoost } = useGameStore();
+  const { inventory, equipped, unlockedTitles, useItem: consumeItem, equipTitle, unequipTitle, deactivateXpBoost } = useGameStore();
   const [activeTab, setActiveTab] = useState<'items' | 'titles' | 'boost'>('items');
   const [filterRarity, setFilterRarity] = useState<Rarity | 'all'>('all');
   const [confirmUse, setConfirmUse] = useState<InventoryItem | null>(null);
@@ -116,8 +115,6 @@ export default function Inventory() {
 
   // Sort by rarity then name
   const sortedEntries = Object.values(grouped).sort((a, b) => {
-    const rarA = RARITY_CONFIG[ITEMS[a.item.itemId]?.rarity as Rarity];
-    const rarB = RARITY_CONFIG[ITEMS[b.item.itemId]?.rarity as Rarity];
     const idxA = RARITY_ORDER.indexOf(ITEMS[a.item.itemId]?.rarity as Rarity);
     const idxB = RARITY_ORDER.indexOf(ITEMS[b.item.itemId]?.rarity as Rarity);
     if (idxA !== idxB) return idxA - idxB;
@@ -139,7 +136,7 @@ export default function Inventory() {
         equipTitle(item.itemId);
       } else {
         // First time using a title scroll
-        useItem(item.itemId);
+        consumeItem(item.itemId);
       }
     } else {
       setConfirmUse(item);
@@ -148,7 +145,7 @@ export default function Inventory() {
 
   const confirmUseItem = () => {
     if (confirmUse) {
-      useItem(confirmUse.instanceId);
+      consumeItem(confirmUse.instanceId);
       setConfirmUse(null);
     }
   };

@@ -1,7 +1,7 @@
 import { Router, Request, Response } from 'express';
 import { pool } from '../db.js';
 import { authenticateToken } from '../middleware/auth.js';
-import { calculateLevel, calculateRank, levelThreshold, RANK_THRESHOLDS } from '../progression.js';
+import { calculateLevel, levelThreshold, RANK_THRESHOLDS } from '../progression.js';
 
 const router = Router();
 

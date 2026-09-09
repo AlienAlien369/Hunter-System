@@ -43,14 +43,6 @@ function countCompletions(dailyQuests: GameState['dailyQuests'], prefix?: string
     .reduce((sum, q) => sum + q.completedDates.length, 0);
 }
 
-function countDistinctDays(dailyQuests: GameState['dailyQuests'], prefix?: string): number {
-  const days = new Set<string>();
-  dailyQuests
-    .filter(q => !prefix || q.id.startsWith(prefix))
-    .forEach(q => q.completedDates.forEach(d => days.add(d)));
-  return days.size;
-}
-
 function countDailyQuestsCompletedOnAnyDay(dailyQuests: GameState['dailyQuests']): number {
   return dailyQuests
     .filter(q => q.id.startsWith('DQ-'))
@@ -306,7 +298,7 @@ export const ACHIEVEMENTS: AchievementDef[] = [
     id: 'ACH-310', title: 'Perfect Day', icon: '✨', category: 'quest', xpReward: 150,
     description: 'Complete 10+ daily quests in a single day',
     check: (s) => {
-      const allDates = new Set(s.dailyQuests.filter(q => q.id.startsWith('DQ-')).flatMap(q => q.completedDates));
+      const allDates = new Set(s.dailyQuests.filter((q: GameState['dailyQuests'][number]) => q.id.startsWith('DQ-')).flatMap((q: GameState['dailyQuests'][number]) => q.completedDates));
       for (const d of allDates) {
         if (dqCompletedOnDate(s.dailyQuests, d) >= 10) return true;
       }
@@ -409,13 +401,13 @@ export const ACHIEVEMENTS: AchievementDef[] = [
   {
     id: 'ACH-601', title: 'Shadow Hunter', icon: '🌑', category: 'hidden', xpReward: 150,
     description: 'Complete a hidden quest',
-    check: (s) => s.hiddenQuest?.completedToday === true || s.dailyQuests.some(q => q.id.startsWith('HQ-') && q.completedDates.length > 0),
+    check: (s) => s.hiddenQuest?.completedToday === true || s.dailyQuests.some((q: GameState['dailyQuests'][number]) => q.id.startsWith('HQ-') && q.completedDates.length > 0),
   },
   {
     id: 'ACH-602', title: 'Hidden Elite', icon: '🔮', category: 'hidden', xpReward: 300,
     description: 'Complete 5 hidden quests',
     hidden: true,
-    check: (s) => s.dailyQuests.filter(q => q.id.startsWith('HQ-')).reduce((sum, q) => sum + q.completedDates.length, 0) >= 5,
+    check: (s) => s.dailyQuests.filter((q: GameState['dailyQuests'][number]) => q.id.startsWith('HQ-')).reduce((sum, q) => sum + q.completedDates.length, 0) >= 5,
   },
 
   // ══════════════════════════════════════════════════════════════════════════
@@ -440,7 +432,7 @@ export const ACHIEVEMENTS: AchievementDef[] = [
   {
     id: 'ACH-704', title: 'Legendary Find', icon: '🌟', category: 'inventory', xpReward: 300,
     description: 'Find a Legendary item',
-    check: (s) => s.inventory.some(i => ['supreme_rank_stone', 'title_scroll_legend', 'title_scroll_hunterking'].includes(i.itemId)),
+    check: (s) => s.inventory.some((i: GameState['inventory'][number]) => ['supreme_rank_stone', 'title_scroll_legend', 'title_scroll_hunterking'].includes(i.itemId)),
   },
 
   // ══════════════════════════════════════════════════════════════════════════
@@ -469,11 +461,11 @@ export const ACHIEVEMENTS: AchievementDef[] = [
     id: 'ACH-901', title: 'Balanced Diet', icon: '🍽️', category: 'daily', xpReward: 100,
     description: 'Complete all 6 nutrition quests in one day',
     check: (s) => {
-      const allDates = new Set(s.dailyQuests.filter(q => q.id.startsWith('DQ-')).flatMap(q => q.completedDates));
+      const allDates = new Set(s.dailyQuests.filter((q: GameState['dailyQuests'][number]) => q.id.startsWith('DQ-')).flatMap((q: GameState['dailyQuests'][number]) => q.completedDates));
       for (const d of allDates) {
         const nutritionDone = s.dailyQuests
-          .filter(q => q.id.startsWith('DQ-') && q.category === 'nutrition')
-          .filter(q => q.completedDates.includes(d)).length;
+          .filter((q: GameState['dailyQuests'][number]) => q.id.startsWith('DQ-') && q.category === 'nutrition')
+          .filter((q: GameState['dailyQuests'][number]) => q.completedDates.includes(d)).length;
         if (nutritionDone >= 6) return true;
       }
       return false;
@@ -483,7 +475,7 @@ export const ACHIEVEMENTS: AchievementDef[] = [
     id: 'ACH-902', title: 'Martial Artist', icon: '🥋', category: 'daily', xpReward: 150,
     description: 'Attend MMA class 10 times',
     check: (s) => {
-      const mma = s.dailyQuests.find(q => q.id === 'DQ-04');
+      const mma = s.dailyQuests.find((q: GameState['dailyQuests'][number]) => q.id === 'DQ-04');
       return mma ? mma.completedDates.length >= 10 : false;
     },
   },
@@ -491,7 +483,7 @@ export const ACHIEVEMENTS: AchievementDef[] = [
     id: 'ACH-903', title: 'Sleep disciplined', icon: '🌙', category: 'daily', xpReward: 100,
     description: 'Sleep by 10:45 PM for 7 days',
     check: (s) => {
-      const sleep = s.dailyQuests.find(q => q.id === 'DQ-15');
+      const sleep = s.dailyQuests.find((q: GameState['dailyQuests'][number]) => q.id === 'DQ-15');
       return sleep ? sleep.completedDates.length >= 7 : false;
     },
   },
@@ -499,7 +491,7 @@ export const ACHIEVEMENTS: AchievementDef[] = [
     id: 'ACH-904', title: 'SaaS Marathon', icon: '💻', category: 'daily', xpReward: 200,
     description: 'Log SaaS building time 10 times',
     check: (s) => {
-      const saas = s.dailyQuests.find(q => q.id === 'DQ-11');
+      const saas = s.dailyQuests.find((q: GameState['dailyQuests'][number]) => q.id === 'DQ-11');
       return saas ? saas.completedDates.length >= 10 : false;
     },
   },
@@ -507,7 +499,7 @@ export const ACHIEVEMENTS: AchievementDef[] = [
     id: 'ACH-905', title: 'System Architect', icon: '📐', category: 'daily', xpReward: 150,
     description: 'Practice system design 10 times',
     check: (s) => {
-      const sd = s.dailyQuests.find(q => q.id === 'DQ-12');
+      const sd = s.dailyQuests.find((q: GameState['dailyQuests'][number]) => q.id === 'DQ-12');
       return sd ? sd.completedDates.length >= 10 : false;
     },
   },
@@ -515,7 +507,7 @@ export const ACHIEVEMENTS: AchievementDef[] = [
     id: 'ACH-906', title: 'Sportsman', icon: '🏓', category: 'daily', xpReward: 100,
     description: 'Play badminton/table tennis 10 times',
     check: (s) => {
-      const sport = s.dailyQuests.find(q => q.id === 'DQ-14');
+      const sport = s.dailyQuests.find((q: GameState['dailyQuests'][number]) => q.id === 'DQ-14');
       return sport ? sport.completedDates.length >= 10 : false;
     },
   },
@@ -542,7 +534,7 @@ export const ACHIEVEMENTS: AchievementDef[] = [
     id: 'ACH-1101', title: 'The Chosen One', icon: '✨', category: 'special', xpReward: 1000,
     description: 'Reach S-Rank with all stats at 30+',
     hidden: true,
-    check: (s) => s.profile.rank === 'S' && Object.values(s.profile.stats).every(v => v >= 30),
+    check: (s) => s.profile.rank === 'S' && Object.values(s.profile.stats).every(v => Number(v) >= 30),
   },
   {
     id: 'ACH-1102', title: 'Speedrun', icon: '⏩', category: 'special', xpReward: 300,
@@ -559,7 +551,7 @@ export const ACHIEVEMENTS: AchievementDef[] = [
     id: 'ACH-1103', title: 'True Hunter', icon: '🗡️', category: 'special', xpReward: 500,
     description: 'Complete every quest category at least once',
     check: (s) => {
-      const cats = new Set(s.dailyQuests.filter(q => q.id.startsWith('DQ-')).map(q => q.category));
+      const cats = new Set(s.dailyQuests.filter((q: GameState['dailyQuests'][number]) => q.id.startsWith('DQ-')).map((q: GameState['dailyQuests'][number]) => q.category));
       return cats.size >= 8; // discipline, skill, physical, nutrition, saas, mindset, spiritual, health
     },
   },

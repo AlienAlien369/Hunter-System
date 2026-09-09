@@ -38,14 +38,20 @@ export default function TopBar({ onMenuToggle }: TopBarProps) {
   const soundPack = useSoundStore(s => s.soundPack);
   const setSoundPack = useSoundStore(s => s.setSoundPack);
   const [soundMenuOpen, setSoundMenuOpen] = useState(false);
+  const [soundPosition, setSoundPosition] = useState({ top: 0, right: 8 });
   const soundBtnRef = useRef<HTMLButtonElement>(null);
   const pageTitle = location.pathname.replace('/', '') || 'Dashboard';
 
-  // The header's backdrop-blur makes it a containing block for fixed children,
-  // so the popover + click-outside backdrop are portaled to <body>.
-  const soundRect = soundBtnRef.current?.getBoundingClientRect();
-  const soundTop = (soundRect?.bottom ?? 0) + 8;
-  const soundRight = Math.max(8, window.innerWidth - (soundRect?.right ?? window.innerWidth));
+  const toggleSoundMenu = () => {
+    const soundRect = soundBtnRef.current?.getBoundingClientRect();
+    if (soundRect) {
+      setSoundPosition({
+        top: soundRect.bottom + 8,
+        right: Math.max(8, window.innerWidth - soundRect.right),
+      });
+    }
+    setSoundMenuOpen(value => !value);
+  };
 
   return (
     <motion.header
@@ -81,7 +87,7 @@ export default function TopBar({ onMenuToggle }: TopBarProps) {
               ref={soundBtnRef}
               onClick={() => {
                 sfx.click();
-                setSoundMenuOpen(v => !v);
+                toggleSoundMenu();
               }}
               whileTap={{ scale: 0.8 }}
               className="relative p-2 text-gray-400 hover:text-white transition-colors"
@@ -115,7 +121,7 @@ export default function TopBar({ onMenuToggle }: TopBarProps) {
                     animate={{ opacity: 1, y: 0, scale: 1 }}
                     transition={{ duration: 0.15 }}
                     className="fixed z-[61] w-64 bg-[#0d1117]/95 backdrop-blur-xl border border-accent-border rounded-xl p-3 shadow-2xl shadow-accent/10"
-                    style={{ top: soundTop, right: soundRight }}
+                    style={{ top: soundPosition.top, right: soundPosition.right }}
                   >
                     <p className="text-[10px] text-gray-500 font-mono tracking-widest mb-2">SOUND SETTINGS</p>
 

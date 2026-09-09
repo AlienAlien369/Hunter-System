@@ -20,7 +20,7 @@ function getIntensityClass(count: number): string {
 }
 
 export default function StreakCalendar() {
-  const { dailyQuests, freezeCount, freezeDates, buyFreeze, useFreeze, profile } = useGameStore();
+  const { dailyQuests, freezeCount, freezeDates, buyFreeze, useFreeze: freezeStreak, profile } = useGameStore();
   const [viewMonth, setViewMonth] = useState(() => new Date().getMonth());
   const [viewYear, setViewYear] = useState(() => new Date().getFullYear());
   const [showFreezeConfirm, setShowFreezeConfirm] = useState(false);
@@ -61,7 +61,7 @@ export default function StreakCalendar() {
 
   const confirmFreeze = () => {
     if (!freezeTarget) return;
-    useFreeze(freezeTarget);
+    freezeStreak(freezeTarget);
     sfx.complete();
     setShowFreezeConfirm(false);
     setFreezeTarget(null);

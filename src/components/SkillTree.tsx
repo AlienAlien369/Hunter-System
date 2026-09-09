@@ -1,7 +1,6 @@
 import { motion } from 'framer-motion';
 import { useGameStore } from '../store/gameStore';
 import { STAT_CONFIG, getActiveBuffs, getAvailableStatPoints, BASE_STATS, type StatThreshold } from '../utils/xp';
-import { sfx } from '../utils/sounds';
 
 const STAT_META: Record<string, { icon: string; color: string; barFrom: string; barTo: string }> = {
   str: { icon: '💪', color: 'text-red-400',    barFrom: 'from-red-500',    barTo: 'to-orange-500' },
@@ -11,9 +10,8 @@ const STAT_META: Record<string, { icon: string; color: string; barFrom: string; 
   sen: { icon: '👁️', color: 'text-purple-400', barFrom: 'from-purple-500', barTo: 'to-pink-500' },
 } as const;
 
-function TierNode({ stat, threshold, currentValue }: { stat: string; threshold: StatThreshold; currentValue: number }) {
+function TierNode({ stat: _stat, threshold, currentValue }: { stat: string; threshold: StatThreshold; currentValue: number }) {
   const unlocked = currentValue >= threshold.min;
-  const meta = STAT_META[stat];
 
   return (
     <div className={`flex items-center gap-3 px-3 py-2 rounded-lg border transition-all ${

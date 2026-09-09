@@ -1,7 +1,10 @@
 import { motion } from 'framer-motion';
 import { useThemeStore, THEMES, applyTheme } from '../store/themeStore';
 import { useSoundStore } from '../store/soundStore';
+import type { SoundPackId } from '../data/soundPacks';
 import { sfx } from '../utils/sounds';
+
+type ThemeId = keyof typeof THEMES;
 
 export default function Settings() {
   const currentTheme = useThemeStore(s => s.theme);
@@ -15,7 +18,7 @@ export default function Settings() {
   const soundPack = useSoundStore(s => s.soundPack);
   const setSoundPack = useSoundStore(s => s.setSoundPack);
 
-  const handleThemeChange = (themeId: string) => {
+  const handleThemeChange = (themeId: ThemeId) => {
     sfx.click();
     setTheme(themeId);
     applyTheme(themeId, true);
@@ -80,7 +83,7 @@ export default function Settings() {
               return (
                 <button
                   key={theme.id}
-                  onClick={() => handleThemeChange(theme.id)}
+                  onClick={() => handleThemeChange(theme.id as ThemeId)}
                   className={`
                     relative group flex items-center gap-4 p-4 rounded-xl border-2 transition-all text-left
                     ${isSelected
@@ -259,7 +262,7 @@ export default function Settings() {
               <span className="text-sm text-white font-mono">Sound Pack</span>
             </div>
             <div className="grid grid-cols-2 gap-2">
-              {['solo-leveling', 'cyberpunk', 'fantasy'].map(pack => (
+              {(['solo-leveling', 'dark-souls', 'celeste', 'no-sfx'] as SoundPackId[]).map(pack => (
                 <button
                   key={pack}
                   onClick={() => {
@@ -280,7 +283,7 @@ export default function Settings() {
                   `}
                 >
                   <span className="text-lg block">
-                    {pack === 'solo-leveling' ? '⚔️' : pack === 'cyberpunk' ? '🌆' : '🐉'}
+                    {pack === 'solo-leveling' ? '⚔️' : pack === 'dark-souls' ? '💀' : pack === 'celeste' ? '🌌' : '🔇'}
                   </span>
                   <span className="text-xs font-mono block mt-1 capitalize">
                     {pack.replace('-', ' ')}

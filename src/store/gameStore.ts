@@ -144,7 +144,7 @@ const DEFAULT_QUESTS: Omit<DailyQuest, 'completedDates'>[] = [
   { id: 'DQ-15', title: 'Sleep by 10:45 PM', xpReward: 10, category: 'health' },
 ];
 
-interface GameState {
+export interface GameState {
   // Data
   profile: HunterProfile;
   quests: Quest[];

@@ -104,7 +104,7 @@ router.patch('/', authenticateToken, async (req: Request, res: Response) => {
     }
 
     const result = await pool.query('SELECT * FROM users WHERE id = $1', [userId]);
-    const { password_hash, ...user } = result.rows[0];
+    const { password_hash: _passwordHash, ...user } = result.rows[0];
     await logActivity(userId, 'stats_update', 'profile', updates);
     res.json(user);
   } catch (error) {

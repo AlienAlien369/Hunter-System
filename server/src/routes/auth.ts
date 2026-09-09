@@ -169,7 +169,7 @@ router.get('/me', authenticateToken, async (req: Request, res: Response) => {
 
     // Remove password hash from response, and report the live rank/level
     // computed from XP (the stored rank column is only a registration default)
-    const { password_hash, ...userWithoutPassword } = user;
+    const { password_hash: _passwordHash, ...userWithoutPassword } = user;
 
     res.json({
       user: {

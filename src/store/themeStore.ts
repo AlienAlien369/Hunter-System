@@ -47,18 +47,19 @@ const THEMES = {
 };
 
 const THEME_KEY = 'hunter_theme';
+type ThemeId = keyof typeof THEMES;
 
 // Theme store
-const useThemeStore = create((set) => ({
-  theme: localStorage.getItem(THEME_KEY) || 'purple-monarch',
-  setTheme: (theme) => {
+const useThemeStore = create<{ theme: ThemeId; setTheme: (theme: ThemeId) => void }>((set) => ({
+  theme: (localStorage.getItem(THEME_KEY) as ThemeId) || 'purple-monarch',
+  setTheme: (theme: ThemeId) => {
     localStorage.setItem(THEME_KEY, theme);
     set({ theme });
   },
 }));
 
 // Apply theme colors to CSS variables with animation effects
-function applyTheme(themeId, animate = true) {
+function applyTheme(themeId: ThemeId, animate = true) {
   const colors = THEMES[themeId];
   if (!colors) return;
 
@@ -83,7 +84,7 @@ function applyTheme(themeId, animate = true) {
 }
 
 // Create flash and ripple effects for theme changes
-function triggerThemeAnimation(accentGlow) {
+function triggerThemeAnimation(accentGlow: string) {
   // Remove any existing effects
   const existingFlash = document.querySelector('.theme-flash-overlay');
   const existingRipple = document.querySelector('.theme-ripple');

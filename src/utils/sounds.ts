@@ -1,5 +1,5 @@
 import { useSoundStore } from '../store/soundStore';
-import { SOUND_PACKS, type SoundPackId, type SfxParams } from '../data/soundPacks';
+import { SOUND_PACKS, type SfxParams } from '../data/soundPacks';
 
 type OscType = OscillatorType;
 

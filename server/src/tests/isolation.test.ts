@@ -21,18 +21,6 @@ async function register(username: string): Promise<string> {
   return cookie;
 }
 
-async function login(username: string): Promise<string> {
-  const res = await fetch(`${BASE_URL}/api/auth/login`, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ username, password: 'IsolationPass123!' }),
-  });
-  assert.strictEqual(res.status, 200, `login ${username} failed`);
-  const cookie = (res.headers.get('set-cookie') || '').split(';')[0];
-  assert.ok(cookie, 'login should set a cookie');
-  return cookie;
-}
-
 describe('Per-user data isolation', () => {
   const suffix = Date.now();
   let cookieA: string;

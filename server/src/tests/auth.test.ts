@@ -2,7 +2,7 @@
  * Simple auth endpoint tests
  * Run with: node --test src/auth.test.js
  */
-import { describe, it, before, after } from 'node:test';
+import { describe, it } from 'node:test';
 import assert from 'node:assert';
 
 const BASE_URL = 'http://localhost:3000';
@@ -10,8 +10,6 @@ const DEMO_USER = process.env.DEMO_USER || 'demo_user';
 const DEMO_PASS = process.env.DEMO_PASS || 'DemoPass123!';
 
 describe('Authentication API', () => {
-  let authCookie;
-
   it('should register a new user', async () => {
     const res = await fetch(`${BASE_URL}/api/auth/register`, {
       method: 'POST',
