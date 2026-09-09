@@ -2,6 +2,8 @@ import { Router, Request, Response } from 'express';
 import { pool } from '../db.js';
 import { authenticateToken, optionalAuth } from '../middleware/auth.js';
 import { logActivity } from '../activity.js';
+import { calculateLevel } from '../progression.js';
+import { selectTodaysHiddenQuest, scaleHiddenXp, tierForLevel, TIERS } from '../data/hiddenQuests.js';
 
 const router = Router();
 
@@ -20,6 +22,9 @@ router.get('/', optionalAuth, async (req: Request, res: Response) => {
     `;
     const params: any[] = [userId];
     const conditions: string[] = [];
+    // Hidden quests (HQ-*) are served by GET /quests/hidden/today — they are not
+    // part of the quest board listing.
+    conditions.push(`q.category <> 'hidden'`);
 
     if (category) {
       params.push(category);
@@ -52,7 +57,7 @@ router.get('/stats', optionalAuth, async (req: Request, res: Response) => {
     const todayStats = await pool.query(
       `SELECT COUNT(*) as completed FROM quest_completions qc
        JOIN quests q ON qc.quest_id = q.id
-       WHERE qc.completion_date = $1 AND ($2::int IS NULL OR qc.user_id = $2)`,
+       WHERE qc.completion_date = $1 AND q.quest_id NOT LIKE 'HQ-%' AND ($2::int IS NULL OR qc.user_id = $2)`,
       [today, userId]
     );
 
@@ -79,7 +84,7 @@ router.get('/stats', optionalAuth, async (req: Request, res: Response) => {
     res.json({
       today: {
         completed: parseInt(todayStats.rows[0].completed),
-        total: parseInt(await pool.query('SELECT COUNT(*) FROM quests').then((r: any) => r.rows[0].count)),
+        total: parseInt(await pool.query("SELECT COUNT(*) FROM quests WHERE quest_id NOT LIKE 'HQ-%'").then((r: any) => r.rows[0].count)),
         xp: parseInt(todayStats.rows[0].completed) * 10, // rough estimate
       },
       weekly: weekStats.rows[0],
@@ -88,6 +93,53 @@ router.get('/stats', optionalAuth, async (req: Request, res: Response) => {
   } catch (error) {
     console.error('Error fetching quest stats:', error);
     res.status(500).json({ error: 'Failed to fetch quest stats' });
+  }
+});
+
+// GET /api/quests/hidden/today - Today's hidden quest for this hunter, picked
+// from the 200+ tiered pool and scaled to the hunter's level.
+router.get('/hidden/today', authenticateToken, async (req: Request, res: Response) => {
+  try {
+    const userId = req.user?.id;
+    const userRes = await pool.query('SELECT username, xp FROM users WHERE id = $1', [userId]);
+    const user = userRes.rows[0];
+    if (!user) {
+      return res.status(404).json({ error: 'No user found' });
+    }
+
+    const level = calculateLevel(parseInt(user.xp ?? '0'));
+    const def = selectTodaysHiddenQuest(user.username, level);
+    const tier = tierForLevel(level);
+    const today = new Date().toISOString().split('T')[0];
+
+    const done = await pool.query(
+      `SELECT qc.id FROM quest_completions qc
+       JOIN quests q ON qc.quest_id = q.id
+       WHERE qc.user_id = $1 AND q.quest_id = $2 AND qc.completion_date = $3`,
+      [userId, def.id, today]
+    );
+
+    res.json({
+      id: def.id,
+      title: def.title,
+      description: def.description,
+      icon: def.icon,
+      baseXp: def.baseXp,
+      xpReward: scaleHiddenXp(def.baseXp, level),
+      difficulty: def.difficulty,
+      tier: {
+        index: TIERS.indexOf(tier) + 1,
+        name: tier.name,
+        minLevel: tier.minLevel,
+        multiplier: tier.multiplier,
+      },
+      level,
+      date: today,
+      completedToday: done.rows.length > 0,
+    });
+  } catch (error) {
+    console.error('Error fetching today\'s hidden quest:', error);
+    res.status(500).json({ error: 'Failed to fetch hidden quest' });
   }
 });
 
@@ -137,7 +189,8 @@ router.post('/', async (req: Request, res: Response) => {
 });
 
 // PATCH /api/quests/:id/complete - Toggle quest completion
-// Daily quests (DQ-*) reset every day: completion is tracked per date.
+// Daily quests (DQ-*) and hidden quests (HQ-*) reset every day:
+// completion is tracked per date.
 // Permanent tracks (LC-* DSA, SS-* SaaS, AR-* Architecture) stay done
 // until the user explicitly undoes them or uses "redo all" (XP untouched).
 router.patch('/:id/complete', authenticateToken, async (req: Request, res: Response) => {
@@ -154,7 +207,18 @@ router.patch('/:id/complete', authenticateToken, async (req: Request, res: Respo
       return res.status(404).json({ error: 'Quest not found' });
     }
     const q = quest.rows[0];
-    const isDaily = q.quest_id.startsWith('DQ-');
+    // Daily quests (DQ-*) and hidden quests (HQ-*) reset every day.
+    const isDaily = q.quest_id.startsWith('DQ-') || q.quest_id.startsWith('HQ-');
+
+    // Hidden quests award level-scaled XP: the pool's base XP × the hunter's
+    // level-band multiplier. The exact amount is stored on the completion row
+    // so an undo removes precisely what was granted.
+    const isHidden = q.quest_id.startsWith('HQ-');
+    let awardXp = q.xp_reward;
+    if (isHidden) {
+      const lvlRes = await pool.query('SELECT xp FROM users WHERE id = $1', [userId]);
+      awardXp = scaleHiddenXp(q.xp_reward, calculateLevel(parseInt(lvlRes.rows[0]?.xp ?? '0')));
+    }
 
     // Check if already completed by this user (permanent tracks: any date = done; daily: today only)
     const existing = !isDaily
@@ -170,6 +234,15 @@ router.patch('/:id/complete', authenticateToken, async (req: Request, res: Respo
         );
 
     if (existing.rows.length > 0) {
+      // Undo removes exactly what that completion awarded (level-scaled for hidden quests)
+      const awarded = await pool.query(
+        `SELECT xp_awarded FROM quest_completions
+         WHERE user_id = $1 AND quest_id = $2
+         ORDER BY completion_date DESC, id DESC LIMIT 1`,
+        [userId, q.id]
+      );
+      const undoXp = awarded.rows[0]?.xp_awarded ?? q.xp_reward;
+
       // Undo completion (removes every row for DSA so the mark is cleared)
       await pool.query(
         'DELETE FROM quest_completions WHERE user_id = $1 AND quest_id = $2',
@@ -179,9 +252,9 @@ router.patch('/:id/complete', authenticateToken, async (req: Request, res: Respo
       // Reduce XP from user
       await pool.query(
         'UPDATE users SET xp = GREATEST(0, xp - $1), updated_at = NOW() WHERE id = $2',
-        [q.xp_reward, userId]
+        [undoXp, userId]
       );
-      await logActivity(userId, 'quest_undo', id, { title: q.title, xp: q.xp_reward });
+      await logActivity(userId, 'quest_undo', id, { title: q.title, xp: undoXp });
 
       // Decrement lifetime track counters (redo-all intentionally does NOT reset these)
       const track = trackForQuest(q.quest_id);
@@ -198,18 +271,18 @@ router.patch('/:id/complete', authenticateToken, async (req: Request, res: Respo
 
       res.json({ action: 'undone', message: 'Quest uncompleted' });
     } else {
-      // Mark as completed
+      // Mark as completed (store exactly how much XP was awarded)
       await pool.query(
-        'INSERT INTO quest_completions (user_id, quest_id, completion_date) VALUES ($1, $2, $3)',
-        [userId, q.id, today]
+        'INSERT INTO quest_completions (user_id, quest_id, completion_date, xp_awarded) VALUES ($1, $2, $3, $4)',
+        [userId, q.id, today, awardXp]
       );
 
       // Add XP to user
       await pool.query(
         'UPDATE users SET xp = xp + $1, updated_at = NOW() WHERE id = $2',
-        [q.xp_reward, userId]
+        [awardXp, userId]
       );
-      await logActivity(userId, 'quest_complete', id, { title: q.title, xp: q.xp_reward });
+      await logActivity(userId, 'quest_complete', id, { title: q.title, xp: awardXp });
 
       // Accrue lifetime track counters and detect full passes (redo-all keeps these)
       const track = trackForQuest(q.quest_id);
@@ -241,7 +314,7 @@ router.patch('/:id/complete', authenticateToken, async (req: Request, res: Respo
         }
       }
 
-      res.json({ action: 'completed', xpGained: q.xp_reward });
+      res.json({ action: 'completed', xpGained: awardXp });
     }
   } catch (error) {
     console.error('Error toggling quest completion:', error);

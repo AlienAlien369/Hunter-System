@@ -1,0 +1,52 @@
+# Stage 1: Build the backend
+FROM node:20-alpine AS builder
+
+WORKDIR /app
+
+# Copy server package files
+COPY server/package.json server/package-lock.json ./
+
+# Install dependencies
+RUN npm ci
+
+# Copy server source code
+COPY server/ .
+
+# Build TypeScript
+RUN npm run build
+
+# Stage 2: Production
+FROM node:20-alpine AS production
+
+# Install curl for health checks
+RUN apk add --no-cache curl
+
+WORKDIR /app
+
+# Copy package files and install only production dependencies
+COPY server/package.json server/package-lock.json ./
+RUN npm ci --omit=dev
+
+# Copy built JavaScript from builder stage
+COPY --from=builder /app/dist ./dist
+
+# Copy migrations (needed for database initialization)
+COPY server/migrations ./migrations
+
+# Create non-root user
+RUN addgroup -g 1001 -S hunter && \
+    adduser -S hunter -u 1001 -G hunter
+
+# Change ownership
+RUN chown -R hunter:hunter /app
+
+USER hunter
+
+# Expose port 3000
+EXPOSE 3000
+
+# Health check
+HEALTHCHECK --interval=30s --timeout=3s --start-period=10s --retries=3 \
+  CMD curl -f http://localhost:3000/api/health || exit 1
+
+CMD ["node", "dist/index.js"]

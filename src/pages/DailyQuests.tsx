@@ -1,16 +1,18 @@
-import { motion, useMotionValue, animate } from 'framer-motion';
+import { motion } from 'framer-motion';
 import { useEffect, useState } from 'react';
+import { useGameStore } from '../store/gameStore';
+import type { DailyQuest } from '../store/gameStore';
 import { getStreak } from '../utils/xp';
 
 const QUEST_CATEGORIES = {
-  discipline: { name: 'Discipline', color: 'text-red-danger', bg: 'bg-red-danger/10' },
-  skill: { name: 'Skill', color: 'text-blue-info', bg: 'bg-blue-info/10' },
-  physical: { name: 'Physical', color: 'text-green-success', bg: 'bg-green-success/10' },
-  nutrition: { name: 'Nutrition', color: 'text-gold', bg: 'bg-gold/10' },
-  saas: { name: 'SaaS', color: 'text-purple-glow', bg: 'bg-purple-glow/10' },
-  mindset: { name: 'Mindset', color: 'text-purple-monarch', bg: 'bg-purple-monarch/10' },
-  spiritual: { name: 'Spiritual', color: 'text-pink-400', bg: 'bg-pink-400/10' },
-  health: { name: 'Health', color: 'text-teal-400', bg: 'bg-teal-400/10' },
+  discipline: { name: 'Discipline', color: 'text-red-danger', bg: 'bg-red-danger/10', icon: '🌅' },
+  skill: { name: 'Skill', color: 'text-blue-info', bg: 'bg-blue-info/10', icon: '💻' },
+  physical: { name: 'Physical', color: 'text-green-success', bg: 'bg-green-success/10', icon: '🥋' },
+  nutrition: { name: 'Nutrition', color: 'text-gold', bg: 'bg-gold/10', icon: '🥗' },
+  saas: { name: 'SaaS', color: 'text-purple-glow', bg: 'bg-purple-glow/10', icon: '🚀' },
+  mindset: { name: 'Mindset', color: 'text-purple-monarch', bg: 'bg-purple-monarch/10', icon: '🧘' },
+  spiritual: { name: 'Spiritual', color: 'text-pink-400', bg: 'bg-pink-400/10', icon: '🕯️' },
+  health: { name: 'Health', color: 'text-teal-400', bg: 'bg-teal-400/10', icon: '🌙' },
 } as const;
 
 const DEFAULT_QUESTS = [
@@ -29,10 +31,10 @@ const DEFAULT_QUESTS = [
   { id: 'DQ-13', title: 'Satsang Attendance', xpReward: 20, category: 'spiritual', icon: '🕯️' },
   { id: 'DQ-14', title: 'Badminton/TT', xpReward: 25, category: 'physical', icon: '🏓' },
   { id: 'DQ-15', title: 'Sleep by 10:45 PM', xpReward: 10, category: 'health', icon: '🌙' },
-];
+] as const;
 
 export default function DailyQuests() {
-  const { dailyQuests, completeQuest } = useGameStore();
+  const { dailyQuests, completeQuest, freezeDates } = useGameStore();
   const [streak, setStreak] = useState(0);
   const [completedToday, setCompletedToday] = useState<Set<string>>(new Set());
   const [xpFlying, setXpFlying] = useState<{ x: number; y: number; amount: number } | null>(null);
@@ -40,11 +42,9 @@ export default function DailyQuests() {
 
   useEffect(() => {
     if (dailyQuests.length === 0) return;
-    const firstQuest = dailyQuests[0];
-    if (firstQuest) {
-      const calculatedStreak = getStreak(firstQuest.completedDates);
-      setStreak(calculatedStreak);
-    }
+    const allCompletedDates = dailyQuests.filter(q => q.id.startsWith('DQ-')).flatMap(q => q.completedDates);
+    const calculatedStreak = getStreak(allCompletedDates, freezeDates);
+    setStreak(calculatedStreak);
 
     const today = new Date().toISOString().split('T')[0];
     const completed = new Set<string>();
@@ -336,13 +336,6 @@ export default function DailyQuests() {
                 ).length;
 
                 const intensity = questsCompleted / DEFAULT_QUESTS.length;
-                const colors = [
-                  'bg-dungeon/30',
-                  'bg-purple-monarch/30',
-                  'bg-purple-monarch/60',
-                  'bg-purple-monarch',
-                  'bg-purple-glow',
-                ];
 
                 return (
                   <motion.div
@@ -384,17 +377,16 @@ export default function DailyQuests() {
             </h3>
             <div className="space-y-4">
               {Object.entries(QUEST_CATEGORIES).map(([key, category]) => {
-                const categoryQuests = DEFAULT_QUESTS.filter(q => q.category === key);
-                const totalCompleted = categoryQuests.reduce((sum, q) => {
-                  const weekDays = Array.from({ length: 7 }).map((_, i) => {
-                    const date = new Date();
-                    date.setDate(date.getDate() - (6 - i));
-                    return date.toISOString().split('T')[0];
-                  });
-                  return sum + categoryQuests.filter(q =>
-                    q.completedDates.some(d => weekDays.includes(d))
-                  ).length;
-                }, 0);
+                // Only the 15 daily quests count here — permanent tracks (LC/SS/AR)
+                // and hidden quests (HQ) have their own progress elsewhere.
+                const categoryQuests = dailyQuests.filter(q => q.id.startsWith('DQ-') && q.category === key);
+                const weekDays = Array.from({ length: 7 }).map((_, i) => {
+                  const date = new Date();
+                  date.setDate(date.getDate() - (6 - i));
+                  return date.toISOString().split('T')[0];
+                });
+                const totalCompleted = categoryQuests.reduce((sum, q) =>
+                  sum + q.completedDates.filter(d => weekDays.includes(d)).length, 0);
                 const progress = Math.round((totalCompleted / (categoryQuests.length * 7)) * 100);
 
                 return (
@@ -423,9 +415,7 @@ export default function DailyQuests() {
 }
 
 // SVG Weekly XP Chart Component
-function WeeklyXPChart({ dailyQuests }: { dailyQuests: any[] }) {
-  const today = new Date().toISOString().split('T')[0];
-
+function WeeklyXPChart({ dailyQuests }: { dailyQuests: DailyQuest[] }) {
   // Generate mock data for the last 7 days
   const days = Array.from({ length: 7 }).map((_, i) => {
     const date = new Date();
@@ -437,7 +427,7 @@ function WeeklyXPChart({ dailyQuests }: { dailyQuests: any[] }) {
 
   // Calculate cumulative XP
   let cumulativeXP = 0;
-  const data = days.map((date, index) => {
+  const data = days.map(date => {
     const completed = dailyQuests.filter(q =>
       q.completedDates.includes(date)
     ).reduce((sum, q) => sum + q.xpReward, 0);
@@ -446,7 +436,6 @@ function WeeklyXPChart({ dailyQuests }: { dailyQuests: any[] }) {
   });
 
   const maxXP = Math.max(...data.map(d => d.xp), 1);
-  const maxDailyXP = Math.max(...data.map(d => d.dailyXP), 1);
 
   return (
     <div className="relative h-64">
@@ -556,7 +545,7 @@ function WeeklyXPChart({ dailyQuests }: { dailyQuests: any[] }) {
 
       {/* X-axis labels */}
       <div className="flex justify-between mt-[-20px] px-4">
-        {dayLabels.map((label, i) => (
+        {dayLabels.map(label => (
           <text key={label} fill="#8A92B2" fontSize="10" textAnchor="middle">
             {label}
           </text>

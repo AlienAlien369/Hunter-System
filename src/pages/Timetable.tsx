@@ -69,7 +69,7 @@ export default function Timetable() {
           <thead>
             <tr>
               <th className="px-4 py-3 text-left text-xs font-mono text-muted uppercase tracking-wider w-20">Time</th>
-              {DAYS.map((day, index) => (
+              {DAYS.map((_, index) => (
                 <th
                   key={index}
                   className={`px-4 py-3 text-center text-xs font-mono text-muted uppercase tracking-wider ${index === todayIndex ? 'text-purple-glow' : ''}`}
@@ -95,7 +95,7 @@ export default function Timetable() {
                   <td className={`px-4 py-3 text-sm font-mono whitespace-nowrap font-medium ${isCurrent ? 'text-purple-glow' : ''}`}>
                     {slot.time}
                   </td>
-                  {DAYS.map((day, dayIndex) => {
+                  {DAYS.map(day => {
                     const activity = slot.activities[day as keyof typeof slot.activities] || '-';
                     return (
                       <td

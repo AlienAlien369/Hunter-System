@@ -5,6 +5,9 @@ import StatusWindow from '../components/StatusWindow';
 import ActiveQuests from '../components/ActiveQuests';
 import QuickStats from '../components/QuickStats';
 import RankProgress from '../components/RankProgress';
+import StreakCalendar from '../components/StreakCalendar';
+import HiddenQuestCard from '../components/HiddenQuestCard';
+import PenaltyBanner from '../components/PenaltyBanner';
 
 export default function Dashboard() {
   const { profile, loadDashboard } = useGameStore();
@@ -15,6 +18,10 @@ export default function Dashboard() {
 
   return (
     <div className="space-y-6">
+      {/* Hidden quest + missed-quest penalty notices */}
+      <PenaltyBanner />
+      <HiddenQuestCard />
+
       {/* Page Header */}
       <motion.div
         initial={{ opacity: 0, y: -20 }}
@@ -47,6 +54,9 @@ export default function Dashboard() {
           <ActiveQuests />
         </div>
       </div>
+
+      {/* Streak Calendar */}
+      <StreakCalendar />
 
       {/* Bottom Row - Quick Stats & Rank */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">

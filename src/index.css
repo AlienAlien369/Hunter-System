@@ -47,8 +47,14 @@
 }
 
 @keyframes pulse-glow {
-  0%, 100% { box-shadow: 0 0 20px rgba(139, 92, 246, 0.3); }
-  50% { box-shadow: 0 0 40px rgba(139, 92, 246, 0.6); }
+  0%, 100% { box-shadow: 0 0 20px color-mix(in srgb, var(--accent) 30%, transparent); }
+  50% { box-shadow: 0 0 40px color-mix(in srgb, var(--accent) 60%, transparent); }
+}
+
+@keyframes bell-pop {
+  0% { transform: scale(0); opacity: 0; }
+  50% { transform: scale(1.3); }
+  100% { transform: scale(1); opacity: 1; }
 }
 
 @keyframes float {
@@ -72,10 +78,116 @@
   animation: float 3s ease-in-out infinite;
 }
 
+/* Theme-aware CSS Variables (overridden by JS on theme change) */
+:root {
+  --accent: #8E2DE2;
+  --accent-light: #a855f7;
+  --accent-glow: #8E2DE2;
+  --accent-bg: rgba(142, 45, 226, 0.1);
+  --accent-border: rgba(142, 45, 226, 0.4);
+  --text-accent: #D6A2E8;
+  --gradient-start: #7E14FF;
+  --gradient-end: #3b82f6;
+  --scrollbar-color: #8E2DE2;
+
+  /* Sidebar active indicator color */
+  --sidebar-active: #8E2DE2;
+  --sidebar-active-bg: rgba(142, 45, 226, 0.2);
+  --sidebar-active-text: #D6A2E8;
+  --sidebar-active-shadow: rgba(139, 92, 246, 0.1);
+  --sidebar-indicator-shadow: rgba(139, 92, 246, 0.9);
+
+  /* Border colors */
+  --border-color: rgba(142, 45, 226, 0.2);
+  --border-color-hover: rgba(142, 45, 226, 0.4);
+
+  /* Button colors */
+  --btn-primary-bg: rgba(142, 45, 226, 0.15);
+  --btn-primary-border: rgba(142, 45, 226, 0.4);
+  --btn-primary-hover-bg: rgba(142, 45, 226, 0.25);
+  --btn-primary-text: #D6A2E8;
+
+  /* Success/error colors (these stay constant) */
+  --color-green-success: #2ECC71;
+  --color-red-danger: #E74C3C;
+  --color-blue-info: #3498DB;
+  --color-gold: #F1C40F;
+}
+
+/* Apply theme variables when data-theme is set */
+[data-theme="purple-monarch"] {
+  --accent: #8E2DE2;
+  --accent-light: #a855f7;
+  --accent-glow: #8E2DE2;
+  --accent-bg: rgba(142, 45, 226, 0.1);
+  --accent-border: rgba(142, 45, 226, 0.4);
+  --text-accent: #D6A2E8;
+  --gradient-start: #7E14FF;
+  --gradient-end: #3b82f6;
+  --scrollbar-color: #8E2DE2;
+  --sidebar-active: #8E2DE2;
+  --sidebar-active-bg: rgba(142, 45, 226, 0.2);
+  --sidebar-active-text: #D6A2E8;
+  --sidebar-active-shadow: rgba(139, 92, 246, 0.1);
+  --sidebar-indicator-shadow: rgba(139, 92, 246, 0.9);
+  --border-color: rgba(142, 45, 226, 0.2);
+  --border-color-hover: rgba(142, 45, 226, 0.4);
+  --btn-primary-bg: rgba(142, 45, 226, 0.15);
+  --btn-primary-border: rgba(142, 45, 226, 0.4);
+  --btn-primary-hover-bg: rgba(142, 45, 226, 0.25);
+  --btn-primary-text: #D6A2E8;
+}
+
+[data-theme="gold"] {
+  --accent: #F1C40F;
+  --accent-light: #F5D76E;
+  --accent-glow: #F1C40F;
+  --accent-bg: rgba(241, 196, 15, 0.1);
+  --accent-border: rgba(241, 196, 15, 0.4);
+  --text-accent: #F1C40F;
+  --gradient-start: #F1C40F;
+  --gradient-end: #f59e0b;
+  --scrollbar-color: #F1C40F;
+  --sidebar-active: #F1C40F;
+  --sidebar-active-bg: rgba(241, 196, 15, 0.15);
+  --sidebar-active-text: #F1C40F;
+  --sidebar-active-shadow: rgba(241, 196, 15, 0.1);
+  --sidebar-indicator-shadow: rgba(241, 196, 15, 0.9);
+  --border-color: rgba(241, 196, 15, 0.2);
+  --border-color-hover: rgba(241, 196, 15, 0.4);
+  --btn-primary-bg: rgba(241, 196, 15, 0.15);
+  --btn-primary-border: rgba(241, 196, 15, 0.4);
+  --btn-primary-hover-bg: rgba(241, 196, 15, 0.25);
+  --btn-primary-text: #F1C40F;
+}
+
+[data-theme="crimson"] {
+  --accent: #DC143C;
+  --accent-light: #FF4D6D;
+  --accent-glow: #DC143C;
+  --accent-bg: rgba(220, 20, 60, 0.1);
+  --accent-border: rgba(220, 20, 60, 0.4);
+  --text-accent: #FF6B8A;
+  --gradient-start: #DC143C;
+  --gradient-end: #8B0000;
+  --scrollbar-color: #DC143C;
+  --sidebar-active: #DC143C;
+  --sidebar-active-bg: rgba(220, 20, 60, 0.15);
+  --sidebar-active-text: #FF6B8A;
+  --sidebar-active-shadow: rgba(220, 20, 60, 0.1);
+  --sidebar-indicator-shadow: rgba(220, 20, 60, 0.9);
+  --border-color: rgba(220, 20, 60, 0.2);
+  --border-color-hover: rgba(220, 20, 60, 0.4);
+  --btn-primary-bg: rgba(220, 20, 60, 0.15);
+  --btn-primary-border: rgba(220, 20, 60, 0.4);
+  --btn-primary-hover-bg: rgba(220, 20, 60, 0.25);
+  --btn-primary-text: #FF6B8A;
+}
+
 /* Custom Scrollbar */
 .custom-scrollbar {
   scrollbar-width: thin;
-  scrollbar-color: #5D26C1 transparent;
+  scrollbar-color: var(--scrollbar-color) transparent;
 }
 
 .custom-scrollbar::-webkit-scrollbar {
@@ -87,12 +199,12 @@
 }
 
 .custom-scrollbar::-webkit-scrollbar-thumb {
-  background: #5D26C1;
+  background: var(--scrollbar-color);
   border-radius: 9999px;
 }
 
 .custom-scrollbar::-webkit-scrollbar-thumb:hover {
-  background: #8E2DE2;
+  filter: brightness(1.2);
 }
 
 /* Glow Effects */
@@ -106,6 +218,146 @@
 
 .glow-blue {
   box-shadow: 0 0 20px rgba(59, 130, 246, 0.5), 0 0 40px rgba(59, 130, 246, 0.2);
+}
+
+.glow-crimson {
+  box-shadow: 0 0 20px rgba(220, 20, 60, 0.5), 0 0 40px rgba(220, 20, 60, 0.2);
+}
+
+/* Theme accent gradient (for buttons, accents) */
+.accent-gradient {
+  background: linear-gradient(135deg, var(--gradient-start), var(--gradient-end));
+}
+
+.accent-border {
+  border-color: var(--accent-border);
+}
+
+.accent-text {
+  color: var(--text-accent);
+}
+
+.accent-bg {
+  background: var(--accent-bg);
+}
+
+.accent-ring {
+  box-shadow: 0 0 0 2px var(--accent);
+}
+
+/* ========== Theme Transition Animation ========== */
+/* Smooth color transitions for theme changes */
+html {
+  transition: 
+    --accent 0.6s cubic-bezier(0.4, 0, 0.2, 1),
+    --accent-light 0.6s cubic-bezier(0.4, 0, 0.2, 1),
+    --accent-glow 0.6s cubic-bezier(0.4, 0, 0.2, 1),
+    --accent-bg 0.6s cubic-bezier(0.4, 0, 0.2, 1),
+    --accent-border 0.6s cubic-bezier(0.4, 0, 0.2, 1),
+    --text-accent 0.6s cubic-bezier(0.4, 0, 0.2, 1),
+    --gradient-start 0.6s cubic-bezier(0.4, 0, 0.2, 1),
+    --gradient-end 0.6s cubic-bezier(0.4, 0, 0.2, 1),
+    --scrollbar-color 0.6s cubic-bezier(0.4, 0, 0.2, 1),
+    --sidebar-active 0.6s cubic-bezier(0.4, 0, 0.2, 1),
+    --sidebar-active-bg 0.6s cubic-bezier(0.4, 0, 0.2, 1),
+    --sidebar-active-text 0.6s cubic-bezier(0.4, 0, 0.2, 1),
+    --sidebar-active-shadow 0.6s cubic-bezier(0.4, 0, 0.2, 1),
+    --sidebar-indicator-shadow 0.6s cubic-bezier(0.4, 0, 0.2, 1),
+    --border-color 0.6s cubic-bezier(0.4, 0, 0.2, 1),
+    --border-color-hover 0.6s cubic-bezier(0.4, 0, 0.2, 1),
+    --btn-primary-bg 0.6s cubic-bezier(0.4, 0, 0.2, 1),
+    --btn-primary-border 0.6s cubic-bezier(0.4, 0, 0.2, 1),
+    --btn-primary-hover-bg 0.6s cubic-bezier(0.4, 0, 0.2, 1),
+    --btn-primary-text 0.6s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+/* Theme flash overlay - shown briefly during theme change */
+.theme-flash-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 9999;
+  pointer-events: none;
+  opacity: 0;
+  transition: opacity 0.15s ease-out;
+}
+
+.theme-flash-overlay.active {
+  opacity: 1;
+  transition: opacity 0s;
+}
+
+.theme-flash-overlay.fade-out {
+  opacity: 0;
+  transition: opacity 0.6s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+/* Theme change ripple effect */
+.theme-ripple {
+  position: fixed;
+  inset: 0;
+  z-index: 9998;
+  pointer-events: none;
+  background: radial-gradient(
+    circle at center,
+    var(--accent-glow) 0%,
+    transparent 70%
+  );
+  opacity: 0;
+  transition: opacity 0.3s ease-out;
+}
+
+.theme-ripple.active {
+  opacity: 0.15;
+  animation: theme-ripple-expand 0.8s cubic-bezier(0.4, 0, 0.2, 1) forwards;
+}
+
+@keyframes theme-ripple-expand {
+  0% {
+    opacity: 0.2;
+    transform: scale(0.8);
+  }
+  50% {
+    opacity: 0.1;
+    transform: scale(1.1);
+  }
+  100% {
+    opacity: 0;
+    transform: scale(1.2);
+  }
+}
+
+/* Accent color transitions for specific elements */
+.accent-gradient,
+.accent-border,
+.accent-text,
+.accent-bg {
+  transition: 
+    background 0.6s cubic-bezier(0.4, 0, 0.2, 1),
+    border-color 0.6s cubic-bezier(0.4, 0, 0.2, 1),
+    color 0.6s cubic-bezier(0.4, 0, 0.2, 1),
+    box-shadow 0.6s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+/* Sidebar and navigation transitions */
+aside,
+header,
+button,
+.input,
+.card {
+  transition: 
+    border-color 0.6s cubic-bezier(0.4, 0, 0.2, 1),
+    background-color 0.6s cubic-bezier(0.4, 0, 0.2, 1),
+    color 0.6s cubic-bezier(0.4, 0, 0.2, 1),
+    box-shadow 0.6s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+/* Progress bar and indicator transitions */
+.progress-bar,
+.xp-bar,
+.streak-indicator {
+  transition: 
+    background 0.6s cubic-bezier(0.4, 0, 0.2, 1),
+    border-color 0.6s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
 /* ========== Ambient Background Effects ========== */

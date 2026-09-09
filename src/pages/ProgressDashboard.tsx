@@ -5,6 +5,7 @@ import { ComposedChart, Bar, Line, XAxis, YAxis, Tooltip, Legend, ResponsiveCont
 import { api } from '../lib/api';
 import type { ActivityEntry, ProgressPeriod, ProgressReport, TrackStats } from '../lib/api';
 import { RANK_THRESHOLDS } from '../utils/xp';
+import { ACHIEVEMENTS } from '../data/achievements';
 
 const ACTIVITY_META: Record<string, { icon: string; label: string }> = {
   quest_complete: { icon: '✅', label: 'Quest completed' },
@@ -29,20 +30,7 @@ export default function ProgressDashboard() {
   const [progress, setProgress] = useState<ProgressReport | null>(null);
   const [activity, setActivity] = useState<ActivityEntry[]>([]);
   const [tracks, setTracks] = useState<TrackStats[]>([]);
-  const [achievements] = useState([
-    { id: 'ACH-01', title: 'First Steps', earned: true, icon: '👣' },
-    { id: 'ACH-02', title: 'Disciplined Initiate', earned: true, icon: '⚔️' },
-    { id: 'ACH-03', title: 'Skill Seeker', earned: false, icon: '📚' },
-    { id: 'ACH-04', title: 'Physical Prowess', earned: false, icon: '💪' },
-    { id: 'ACH-05', title: 'Nutrition Master', earned: false, icon: '🥗' },
-    { id: 'ACH-06', title: 'SaaS Builder', earned: false, icon: '💻' },
-    { id: 'ACH-07', title: 'Mindset Warrior', earned: false, icon: '🧘' },
-    { id: 'ACH-08', title: 'Spiritual Sage', earned: false, icon: '🕊️' },
-    { id: 'ACH-09', title: 'Health Guardian', earned: false, icon: '❤️' },
-    { id: 'ACH-10', title: 'Elite Hunter', earned: profile.rank === 'B', icon: '🏆' },
-    { id: 'ACH-11', title: 'A-Rank Agent', earned: profile.rank === 'A', icon: '🌟' },
-    { id: 'ACH-12', title: 'S-Rank Legend', earned: profile.rank === 'S', icon: '👑' },
-  ]);
+  const { unlockedAchievements } = useGameStore();
 
   useEffect(() => {
     loadDashboard();
@@ -428,26 +416,29 @@ export default function ProgressDashboard() {
           ACHIEVEMENTS
         </h3>
         <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3">
-          {achievements.map((ach, i) => (
-            <motion.div
-              key={ach.id}
-              initial={{ opacity: 0, scale: 0.8 }}
-              animate={{ opacity: 1, scale: 1 }}
-              transition={{ delay: i * 0.05 }}
-              className={`
-                p-3 rounded-lg border text-center
-                ${ach.earned
-                  ? 'bg-purple-500/10 border-gold/30'
-                  : 'bg-gray-900/30 border-gray-800 opacity-50'
-                }
-              `}
-            >
-              <div className="text-2xl mb-1">{ach.icon}</div>
-              <p className={`text-xs font-mono ${ach.earned ? 'text-gold' : 'text-gray-500'}`}>
-                {ach.title}
-              </p>
-            </motion.div>
-          ))}
+          {ACHIEVEMENTS.slice(0, 12).map((ach, i) => {
+            const earned = unlockedAchievements.includes(ach.id);
+            return (
+              <motion.div
+                key={ach.id}
+                initial={{ opacity: 0, scale: 0.8 }}
+                animate={{ opacity: 1, scale: 1 }}
+                transition={{ delay: i * 0.05 }}
+                className={`
+                  p-3 rounded-lg border text-center
+                  ${earned
+                    ? 'bg-purple-500/10 border-gold/30'
+                    : 'bg-gray-900/30 border-gray-800 opacity-50'
+                  }
+                `}
+              >
+                <div className="text-2xl mb-1">{ach.hidden && !earned ? '❓' : ach.icon}</div>
+                <p className={`text-xs font-mono ${earned ? 'text-gold' : 'text-gray-500'}`}>
+                  {ach.hidden && !earned ? '???' : ach.title}
+                </p>
+              </motion.div>
+            );
+          })}
         </div>
       </motion.div>
     </div>

@@ -1,9 +1,12 @@
 import { create } from 'zustand';
-import type { Quest, Stats, RankProgress, Level } from '../lib/api';
+import type { Quest, Stats, RankProgress, Level, PenaltyInfo, RecoveryInfo } from '../lib/api';
 import { api } from '../lib/api';
 import { useAuthStore } from './authStore';
-import { calculateLevel, calculateRank } from '../utils/xp';
+import { calculateLevel, calculateRank, getAvailableStatPoints, getActiveBuffs, BASE_STATS } from '../utils/xp';
 import { sfx } from '../utils/sounds';
+import { todayKey } from '../data/hiddenQuests';
+import { ITEMS, rollDrop, createInstanceId, type InventoryItem, type EquippedLoadout, DEFAULT_LOADOUT, getScrollXpBonus, getPotionHeal, getStoneXp, getTitleName } from '../data/items';
+import { ACHIEVEMENTS } from '../data/achievements';
 
 export interface HunterProfile {
   name: string;
@@ -153,6 +156,47 @@ interface GameState {
   budgetItems: BudgetItem[];
   archChallenges: ArchChallenge[];
 
+  // Solo Leveling-style hidden quest: one random challenge per day, only
+  // completable that same day. Picked server-side from the 200+ tiered pool,
+  // scaled to the hunter's level. `revealed` flips when the player accepts it.
+  hiddenQuest: {
+    questId: string;
+    date: string;
+    revealed: boolean;
+    title: string;
+    description: string;
+    icon: string;
+    baseXp: number;
+    xpReward: number;
+    difficulty: number;
+    tierName: string;
+    tierIndex: number;
+    tierMinLevel: number;
+    multiplier: number;
+    completedToday: boolean;
+  } | null;
+  // Streak freezes: days that count as active even if no quests were completed.
+  // Consumed automatically when a streak would otherwise break.
+  freezeCount: number;
+  freezeDates: string[]; // dates that were frozen
+
+  // Inventory & loot system
+  inventory: InventoryItem[];
+  equipped: EquippedLoadout;
+  /** Current loot drop to display (null = none). */
+  lootDrop: { itemId: string; instanceId: string } | null;
+  /** Titles unlocked from title scrolls. */
+  unlockedTitles: string[];
+  /** Achievement IDs that have been unlocked. */
+  unlockedAchievements: string[];
+  /** IDs of achievements newly unlocked this session (for notification). */
+  newAchievements: string[];
+
+  // Latest missed-daily-quest penalty info from the server (null = no penalty).
+  penalty: PenaltyInfo | null;
+  // Streak-recovery bonus granted after rebuilding 3 days post-penalty.
+  recovery: RecoveryInfo | null;
+
   // Loading states
   loading: boolean;
   error: string | null;
@@ -178,6 +222,34 @@ interface GameState {
   logNutrition: (date: string, items: NutritionItem[]) => void;
   saveArchDecision: (week: number, data: Partial<ArchChallenge>) => void;
   toggleApiConnection: (connected: boolean) => void;
+  /** Reveal today's hidden quest (once per day). */
+  revealHiddenQuest: () => void;
+  /** Purchase a streak freeze for the given XP cost. */
+  buyFreeze: (cost: number) => void;
+  /** Use a freeze on a specific date to preserve the streak. */
+  useFreeze: (date: string) => void;
+  /** Allocate a stat point (str/agi/vit/int/sen). */
+  allocateStat: (stat: 'str' | 'agi' | 'vit' | 'int' | 'sen') => void;
+  /** Deallocate a stat point (refund). */
+  deallocateStat: (stat: 'str' | 'agi' | 'vit' | 'int' | 'sen') => void;
+  /** Add an item to inventory after a loot drop. */
+  addItem: (itemId: string) => void;
+  /** Use a consumable item from inventory. */
+  useItem: (instanceId: string) => void;
+  /** Equip a title scroll. */
+  equipTitle: (itemId: string) => void;
+  /** Unequip current title. */
+  unequipTitle: () => void;
+  /** Activate an XP boost scroll (lasts N quests). */
+  equipXpBoost: (itemId: string) => void;
+  /** Deactivate the current XP boost. */
+  deactivateXpBoost: () => void;
+  /** Set the current loot drop notification (null to dismiss). */
+  setLootDrop: (drop: { itemId: string; instanceId: string } | null) => void;
+  /** Check all achievements against current state, return newly unlocked. */
+  checkAchievements: () => string[];
+  /** Dismiss the new-achievement notification. */
+  dismissNewAchievements: () => void;
 }
 
 export interface NutritionItem {
@@ -240,10 +312,17 @@ function loadFromLocalStorage(): Partial<GameState> | null {
 
 function saveToLocalStorage(state: Partial<GameState>) {
   try {
-    const { dailyQuests, profile } = state;
+    const { dailyQuests, profile, hiddenQuest, freezeCount, freezeDates, inventory, equipped, unlockedTitles, unlockedAchievements } = state;
     localStorage.setItem(getStorageKey(), JSON.stringify({
       dailyQuests,
       profile,
+      hiddenQuest,
+      freezeCount,
+      freezeDates,
+      inventory,
+      equipped,
+      unlockedTitles,
+      unlockedAchievements,
     }));
   } catch (e) {
     console.error('Failed to save to localStorage:', e);
@@ -272,6 +351,17 @@ export const useGameStore = create<GameState>((set, get) => ({
   nutritionEntries: new Map(),
   budgetItems: [],
   archChallenges: [],
+  freezeCount: 0,
+  freezeDates: [],
+  inventory: [],
+  equipped: { ...DEFAULT_LOADOUT },
+  lootDrop: null,
+  unlockedTitles: [],
+  unlockedAchievements: [],
+  newAchievements: [],
+  hiddenQuest: null,
+  penalty: null,
+  recovery: null,
   loading: false,
   error: null,
   apiConnected: false,
@@ -281,10 +371,11 @@ export const useGameStore = create<GameState>((set, get) => ({
   loadDashboard: async () => {
     set({ loading: true, error: null });
     try {
-      const [statsData, rankData, questsData] = await Promise.all([
+      const [statsData, rankData, questsData, hqToday] = await Promise.all([
         api.getStats(),
         api.getRank(),
         api.getQuests(),
+        api.getTodaysHiddenQuest(),
       ]);
 
       // Update daily quests with API data
@@ -318,11 +409,37 @@ export const useGameStore = create<GameState>((set, get) => ({
         }
       }
 
+      // Keep today's hidden quest stable: same challenge all day, resets tomorrow.
+      // The quest itself comes from the server (level-tiered pool, scaled XP).
+      const storedHq = get().hiddenQuest;
+      const hq = {
+        questId: hqToday.id,
+        date: todayKey(),
+        title: hqToday.title,
+        description: hqToday.description,
+        icon: hqToday.icon,
+        baseXp: hqToday.baseXp,
+        xpReward: hqToday.xpReward,
+        difficulty: hqToday.difficulty,
+        tierName: hqToday.tier.name,
+        tierIndex: hqToday.tier.index,
+        tierMinLevel: hqToday.tier.minLevel,
+        multiplier: hqToday.tier.multiplier,
+        completedToday: hqToday.completedToday,
+      };
+      const hiddenQuest =
+        storedHq && storedHq.date === todayKey() && storedHq.questId === hq.questId
+          ? { ...hq, revealed: storedHq.revealed }
+          : { ...hq, revealed: false };
+
       set({
         stats: statsData,
         rank: rankData,
         quests: questsData,
         dailyQuests: updatedQuests,
+        hiddenQuest,
+        penalty: statsData.penalty ?? null,
+        recovery: statsData.recovery ?? null,
         profile: {
           ...get().profile,
           name: statsData.user.name || get().profile.name,
@@ -346,7 +463,10 @@ export const useGameStore = create<GameState>((set, get) => ({
       });
 
       // Save to localStorage as fallback
-      saveToLocalStorage({ dailyQuests: updatedQuests, profile: get().profile });
+      saveToLocalStorage({ dailyQuests: updatedQuests, profile: get().profile, hiddenQuest, freezeCount: get().freezeCount, freezeDates: get().freezeDates });
+
+      // Check achievements after state is updated
+      get().checkAchievements();
     } catch (error) {
       console.error('Failed to load dashboard:', error);
       // Fallback to localStorage
@@ -355,6 +475,12 @@ export const useGameStore = create<GameState>((set, get) => ({
         set({
           dailyQuests: localData.dailyQuests || get().dailyQuests,
           profile: localData.profile || get().profile,
+          freezeCount: localData.freezeCount || 0,
+          freezeDates: localData.freezeDates || [],
+          inventory: localData.inventory || [],
+          equipped: localData.equipped || { ...DEFAULT_LOADOUT },
+          unlockedTitles: localData.unlockedTitles || [],
+          unlockedAchievements: localData.unlockedAchievements || [],
           apiConnected: false,
           loading: false,
           error: 'Backend unavailable. Using local storage.'
@@ -367,37 +493,76 @@ export const useGameStore = create<GameState>((set, get) => ({
 
   completeQuest: async (questId: string, date: string) => {
     const { dailyQuests } = get();
-    const quest = dailyQuests.find(q => q.id === questId);
+    // Hidden quests are not part of the quest board listing — the store's
+    // `hiddenQuest` carries their (level-scaled) reward.
+    const hq = questId.startsWith('HQ-') ? get().hiddenQuest : null;
+    const quest = hq
+      ? { id: hq.questId, xpReward: hq.xpReward, completedToday: hq.completedToday }
+      : dailyQuests.find(q => q.id === questId);
 
     if (!quest) return;
 
     // Permanent tracks (LC-*, SS-*, AR-*) are done = any completion ever.
-    // Daily quests (DQ-*) reset each day: done = completed today.
-    const isDaily = questId.startsWith('DQ-');
-    const isCompleted = !isDaily
-      ? quest.completedDates.length > 0
-      : quest.completedDates.includes(date);
+    // Daily quests (DQ-*) and hidden quests (HQ-*) reset each day: done = completed today.
+    const isDaily = questId.startsWith('DQ-') || questId.startsWith('HQ-');
+    const isCompleted = hq
+      ? hq.completedToday
+      : !isDaily
+        ? (quest as { completedDates: string[] }).completedDates.length > 0
+        : (quest as { completedDates: string[] }).completedDates.includes(date);
 
     // Sound + floating XP feedback for the toggle direction
     if (isCompleted) sfx.undo();
     else sfx.complete();
-    get().pushXpFloat(isCompleted ? -quest.xpReward : quest.xpReward);
 
-    // Optimistic update
-    const updatedQuests = dailyQuests.map(q => {
-      if (q.id === questId) {
-        const completedDates = isCompleted
-          ? []
-          : !isDaily
-            ? [date]
-            : [...q.completedDates, date];
-        return { ...q, completedDates };
+    // Apply STR/INT XP multiplier for display (server awards base XP separately)
+    const { xpMultiplier } = getActiveBuffs(get().profile.stats);
+    const displayXp = Math.round(quest.xpReward * xpMultiplier);
+    get().pushXpFloat(isCompleted ? -displayXp : displayXp);
+
+    // Optimistic update — skipped for hidden quests, whose state (and reward)
+    // always comes from the server response.
+    if (!hq) {
+      const updatedQuests = dailyQuests.map(q => {
+        if (q.id === questId) {
+          const completedDates = isCompleted
+            ? []
+            : !isDaily
+              ? [date]
+              : [...q.completedDates, date];
+          return { ...q, completedDates };
+        }
+        return q;
+      });
+
+      set({ dailyQuests: updatedQuests });
+    saveToLocalStorage({ dailyQuests: updatedQuests, freezeCount: get().freezeCount, freezeDates: get().freezeDates });
+  }
+
+    // Apply active XP boost if equipped
+    const { equipped } = get();
+    if (equipped.xpBoost > 1 && equipped.xpBoostQuestsLeft > 0 && !isCompleted) {
+      const boostXp = Math.round(quest.xpReward * (equipped.xpBoost - 1));
+      get().pushXpFloat(boostXp);
+      set({ equipped: { ...equipped, xpBoostQuestsLeft: equipped.xpBoostQuestsLeft - 1 } });
+      if (equipped.xpBoostQuestsLeft - 1 <= 0) {
+        set({ equipped: { ...get().equipped, xpBoost: 1, xpBoostQuestsLeft: 0 } });
       }
-      return q;
-    });
+    }
 
-    set({ dailyQuests: updatedQuests });
-    saveToLocalStorage({ dailyQuests: updatedQuests });
+    // Loot drop: roll for item on completion (not on undo)
+    if (!isCompleted) {
+      const isHidden = questId.startsWith('HQ-');
+      const apiQuest = get().quests.find(q => q.quest_id === questId);
+      const difficulty = isHidden ? 3 : (apiQuest?.difficulty ?? 1);
+      const droppedItemId = rollDrop(difficulty, isHidden);
+      if (droppedItemId) {
+        get().addItem(droppedItemId);
+        const instanceId = get().inventory[get().inventory.length - 1].instanceId;
+        get().setLootDrop({ itemId: droppedItemId, instanceId });
+        sfx.notification();
+      }
+    }
 
     // Always try to sync with the server; fall back to local-only on failure
     try {
@@ -494,6 +659,183 @@ export const useGameStore = create<GameState>((set, get) => ({
     set({ apiConnected: connected });
   },
 
+  revealHiddenQuest: () => {
+    const { hiddenQuest } = get();
+    if (!hiddenQuest || hiddenQuest.date !== todayKey() || hiddenQuest.revealed) return;
+    const updated = { ...hiddenQuest, revealed: true };
+    set({ hiddenQuest: updated });
+    saveToLocalStorage({ hiddenQuest: updated });
+    sfx.hiddenQuest();
+  },
+
+  buyFreeze: (cost: number) => {
+    const { profile, freezeCount } = get();
+    if (profile.xp < cost) return;
+    const newProfile = { ...profile, xp: profile.xp - cost };
+    set({ profile: newProfile, freezeCount: freezeCount + 1 });
+    saveToLocalStorage({ profile: newProfile, freezeCount: freezeCount + 1, freezeDates: get().freezeDates });
+    api.updateStats({}).catch(() => {});
+  },
+
+  useFreeze: (date: string) => {
+    const { freezeCount, freezeDates } = get();
+    if (freezeCount <= 0 || freezeDates.includes(date)) return;
+    const newFreezeDates = [...freezeDates, date];
+    set({ freezeCount: freezeCount - 1, freezeDates: newFreezeDates });
+    saveToLocalStorage({ freezeCount: freezeCount - 1, freezeDates: newFreezeDates });
+  },
+
+  allocateStat: (stat) => {
+    const { profile } = get();
+    const available = getAvailableStatPoints(profile.level, profile.stats);
+    if (available <= 0) return;
+    const newStats = { ...profile.stats, [stat]: profile.stats[stat] + 1 };
+    set({ profile: { ...profile, stats: newStats } });
+    saveToLocalStorage({ profile: { ...profile, stats: newStats } });
+    api.updateStats({ [stat]: newStats[stat] }).catch(() => {});
+    sfx.click();
+  },
+
+  deallocateStat: (stat) => {
+    const { profile } = get();
+    if (profile.stats[stat] <= (BASE_STATS as Record<string, number>)[stat]) return;
+    const newStats = { ...profile.stats, [stat]: profile.stats[stat] - 1 };
+    set({ profile: { ...profile, stats: newStats } });
+    saveToLocalStorage({ profile: { ...profile, stats: newStats } });
+    api.updateStats({ [stat]: newStats[stat] }).catch(() => {});
+    sfx.click();
+  },
+
+  addItem: (itemId: string) => {
+    const item = ITEMS[itemId];
+    if (!item) return;
+    const newItem: InventoryItem = {
+      instanceId: createInstanceId(),
+      itemId,
+      obtainedAt: new Date().toISOString(),
+    };
+    set(s => ({ inventory: [...s.inventory, newItem] }));
+    saveToLocalStorage({ inventory: get().inventory });
+  },
+
+  useItem: (instanceId: string) => {
+    const { inventory, profile, equipped } = get();
+    const idx = inventory.findIndex(i => i.instanceId === instanceId);
+    if (idx === -1) return;
+    const invItem = inventory[idx];
+    const def = ITEMS[invItem.itemId];
+    if (!def) return;
+
+    // Apply effect based on category
+    if (def.category === 'consumable') {
+      const heal = getPotionHeal(invItem.itemId);
+      if (heal > 0) {
+        const newHp = Math.min(100, profile.hp + heal);
+        set({ profile: { ...profile, hp: newHp } });
+        saveToLocalStorage({ profile: { ...profile, hp: newHp } });
+        api.updateStats({ hp: newHp }).catch(() => {});
+      }
+    } else if (def.category === 'stone') {
+      const stoneXp = getStoneXp(invItem.itemId);
+      if (stoneXp > 0) {
+        const newXp = profile.xp + stoneXp;
+        const newProfile = { ...profile, xp: newXp, level: calculateLevel(newXp), rank: calculateRank(newXp) };
+        set({ profile: newProfile });
+        saveToLocalStorage({ profile: newProfile });
+        api.updateStats({}).catch(() => {});
+      }
+    } else if (def.category === 'title') {
+      // Title scrolls unlock the title (don't consume, just equip)
+      const titleName = getTitleName(invItem.itemId);
+      if (titleName && !get().unlockedTitles.includes(titleName)) {
+        set(s => ({ unlockedTitles: [...s.unlockedTitles, titleName] }));
+        saveToLocalStorage({ unlockedTitles: get().unlockedTitles });
+      }
+      // Auto-equip the title
+      set({ equipped: { ...equipped, title: titleName } });
+      saveToLocalStorage({ equipped: { ...get().equipped, title: titleName } });
+    } else if (def.category === 'scroll') {
+      const boost = getScrollXpBonus(invItem.itemId);
+      if (boost > 0) {
+        set({ equipped: { ...equipped, xpBoost: 1 + boost, xpBoostQuestsLeft: 3 } });
+        saveToLocalStorage({ equipped: { ...get().equipped, xpBoost: 1 + boost, xpBoostQuestsLeft: 3 } });
+      }
+    }
+
+    // Remove from inventory (consumables/scrolls/stone are consumed; titles stay)
+    if (def.category !== 'title') {
+      const newInventory = inventory.filter(i => i.instanceId !== instanceId);
+      set({ inventory: newInventory });
+      saveToLocalStorage({ inventory: newInventory });
+    }
+    sfx.complete();
+  },
+
+  equipTitle: (itemId: string) => {
+    const titleName = getTitleName(itemId);
+    if (!titleName) return;
+    set(s => ({ equipped: { ...s.equipped, title: titleName } }));
+    saveToLocalStorage({ equipped: get().equipped });
+    sfx.click();
+  },
+
+  unequipTitle: () => {
+    set(s => ({ equipped: { ...s.equipped, title: null } }));
+    saveToLocalStorage({ equipped: get().equipped });
+    sfx.click();
+  },
+
+  equipXpBoost: (itemId: string) => {
+    const boost = getScrollXpBonus(itemId);
+    if (boost <= 0) return;
+    set(s => ({ equipped: { ...s.equipped, xpBoost: 1 + boost, xpBoostQuestsLeft: 3 } }));
+    saveToLocalStorage({ equipped: get().equipped });
+    sfx.click();
+  },
+
+  deactivateXpBoost: () => {
+    set(s => ({ equipped: { ...s.equipped, xpBoost: 1, xpBoostQuestsLeft: 0 } }));
+    saveToLocalStorage({ equipped: get().equipped });
+    sfx.click();
+  },
+
+  setLootDrop: (drop) => {
+    set({ lootDrop: drop });
+  },
+
+  checkAchievements: () => {
+    const state = get();
+    const alreadyUnlocked = new Set(state.unlockedAchievements);
+    const newlyUnlocked: string[] = [];
+
+    for (const ach of ACHIEVEMENTS) {
+      if (alreadyUnlocked.has(ach.id)) continue;
+      try {
+        if (ach.check(state)) {
+          newlyUnlocked.push(ach.id);
+        }
+      } catch {
+        // condition threw — skip
+      }
+    }
+
+    if (newlyUnlocked.length > 0) {
+      const updated = [...state.unlockedAchievements, ...newlyUnlocked];
+      set({
+        unlockedAchievements: updated,
+        newAchievements: [...state.newAchievements, ...newlyUnlocked],
+      });
+      saveToLocalStorage({ unlockedAchievements: updated });
+      sfx.notification();
+    }
+
+    return newlyUnlocked;
+  },
+
+  dismissNewAchievements: () => {
+    set({ newAchievements: [] });
+  },
+
   // Local storage methods
   loadFromStorage: () => {
     const saved = loadFromLocalStorage();
@@ -504,6 +846,6 @@ export const useGameStore = create<GameState>((set, get) => ({
 
   saveToStorage: () => {
     const state = get();
-    saveToLocalStorage({ dailyQuests: state.dailyQuests, profile: state.profile });
+    saveToLocalStorage({ dailyQuests: state.dailyQuests, profile: state.profile, hiddenQuest: state.hiddenQuest, freezeCount: state.freezeCount, freezeDates: state.freezeDates, inventory: state.inventory, equipped: state.equipped, unlockedTitles: state.unlockedTitles, unlockedAchievements: state.unlockedAchievements });
   },
 }));

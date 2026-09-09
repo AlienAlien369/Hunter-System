@@ -1,0 +1,58 @@
+# Dependencies
+node_modules
+server/node_modules
+
+# Build outputs
+dist
+server/dist
+build
+
+# Environment files
+.env
+.env.local
+.env.*.local
+
+# Development files
+.vscode
+.idea
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+lerna-debug.log*
+
+# Git
+.git
+.gitignore
+
+# Docker files (avoid recursive builds)
+Dockerfile*
+docker-compose*.yml
+.dockerignore
+
+# Documentation
+README.md
+PROJECT_CONTEXT.md
+LICENSE
+
+# Testing
+coverage
+.nyc_output
+vitest.config.ts
+
+# Freebuff metadata
+.freebuff
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# Editor files
+*.swp
+*.swo
+*~
+
+# Lock files (npm ci handles these)
+package-lock.json
+server/package-lock.json

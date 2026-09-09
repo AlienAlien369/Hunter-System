@@ -96,8 +96,6 @@ export default function RankProgress() {
       <div className="mt-6 flex items-center justify-between">
         {RANKS.map((rank, index) => {
           const isCompleted = profile.xp >= rank.minXP;
-          const isCurrent = rank.rank === currentRank;
-          const isNext = index === currentRankIndex + 1;
 
           return (
             <div key={rank.rank} className="flex items-center">

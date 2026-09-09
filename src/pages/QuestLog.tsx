@@ -2,6 +2,7 @@ import { motion } from 'framer-motion';
 import { useGameStore } from '../store/gameStore';
 import QuestCard from '../components/QuestCard';
 import TrackReward from '../components/TrackReward';
+import HiddenQuestCard from '../components/HiddenQuestCard';
 
 interface TrackConfig {
   id: string;
@@ -159,6 +160,9 @@ export default function QuestLog() {
 
   return (
     <div className="space-y-6">
+      {/* Solo Leveling-style hidden quest — new challenge every day */}
+      <HiddenQuestCard />
+
       {/* Header */}
       <motion.div
         initial={{ opacity: 0, y: -20 }}

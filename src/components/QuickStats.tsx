@@ -3,7 +3,7 @@ import { useGameStore } from '../store/gameStore';
 import { getStreak } from '../utils/xp';
 
 export default function QuickStats() {
-  const { dailyQuests } = useGameStore();
+  const { dailyQuests, freezeDates } = useGameStore();
   const today = new Date().toISOString().split('T')[0];
 
   // Only daily quests count as "today" — permanent tracks (LC/SS/AR) have their own progress
@@ -16,7 +16,8 @@ export default function QuickStats() {
 
   const completedToday = todayQuests.filter(q => q.completedToday).length;
   const totalToday = todayQuests.length;
-  const streak = getStreak(todayQuests[0]?.completedDates || []);
+  const allCompletedDates = todayQuests.flatMap(q => q.completedDates);
+  const streak = getStreak(allCompletedDates, freezeDates);
 
   const stats = [
     { label: 'Quests Today', value: `${completedToday}/${totalToday}`, icon: '✅', color: 'from-green-500 to-emerald-500' },

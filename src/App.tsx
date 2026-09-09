@@ -2,6 +2,9 @@ import { Routes, Route, useLocation, Navigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useEffect, useState } from 'react';
 import { useAuthStore } from './store/authStore';
+import { useSoundStore } from './store/soundStore';
+import { useThemeStore, applyTheme } from './store/themeStore';
+import { sfx } from './utils/sounds';
 import './index.css';
 
 // Auth Components
@@ -13,7 +16,7 @@ import Login from './pages/Login';
 import Dashboard from './pages/Dashboard';
 import QuestLog from './pages/QuestLog';
 import QuestDetail from './pages/QuestDetail';
-import StatSheet from './pages/StatSheet';
+import SkillTree from './components/SkillTree';
 import Rank from './pages/Rank';
 import ProgressDashboard from './pages/ProgressDashboard';
 import Timetable from './pages/Timetable';
@@ -21,12 +24,17 @@ import NutritionBudget from './pages/NutritionBudget';
 import SaaSRoadmap from './pages/SaaSRoadmap';
 import SystemDesign from './pages/SystemDesign';
 import DSARoadmap from './pages/DSARoadmap';
+import Inventory from './pages/Inventory';
+import AchievementPanel from './components/AchievementPanel';
+import WeeklyReport from './pages/WeeklyReport';
+import Settings from './pages/Settings';
 
 // Layout Components
 import Sidebar from './components/layout/Sidebar';
 import TopBar from './components/layout/TopBar';
 import CelebrationBanner from './components/CelebrationBanner';
 import XpFloat from './components/XpFloat';
+import LootDrop from './components/LootDrop';
 import BackgroundFX from './components/BackgroundFX';
 
 const NAV_ITEMS = [
@@ -40,12 +48,45 @@ const NAV_ITEMS = [
   { path: '/saas', label: 'SaaS', icon: '🚀' },
   { path: '/arch', label: 'Arch', icon: '🧠' },
   { path: '/dsa-roadmap', label: 'DSA Roadmap', icon: '📚' },
+  { path: '/inventory', label: 'Inventory', icon: '🎒' },
+  { path: '/achievements', label: 'Achievements', icon: '🏆' },
+  { path: '/weekly', label: 'Weekly Report', icon: '📊' },
+  { path: '/settings', label: 'Settings', icon: '⚙' },
 ];
+
+const BOOT_EVENTS = ['pointerdown', 'keydown', 'touchstart'] as const;
+
+/**
+ * Starts the Solo Leveling-style theme music and plays the system-window
+ * opening chime on the first user interaction (browsers block audio until
+ * a gesture, so we boot the audio engine lazily on that first click).
+ */
+function useScreenOpenAudio() {
+  useEffect(() => {
+    let booted = false;
+    const boot = () => {
+      if (booted) return;
+      booted = true;
+      const { themeMusic } = useSoundStore.getState();
+      if (themeMusic) sfx.startTheme();
+      sfx.systemWindow();
+      BOOT_EVENTS.forEach(e => window.removeEventListener(e, boot));
+    };
+    BOOT_EVENTS.forEach(e => window.addEventListener(e, boot, { passive: true }));
+    return () => BOOT_EVENTS.forEach(e => window.removeEventListener(e, boot));
+  }, []);
+}
 
 function AppContent() {
   const location = useLocation();
   const { user, logout } = useAuthStore();
+  const theme = useThemeStore(s => s.theme);
   const [sidebarOpen, setSidebarOpen] = useState(false);
+
+  // Apply theme on mount
+  useEffect(() => {
+    applyTheme(theme);
+  }, [theme]);
 
   // Close the mobile drawer whenever the route changes
   useEffect(() => {
@@ -86,7 +127,7 @@ function AppContent() {
                   <Route path="/" element={<ProtectedRoute><Dashboard /></ProtectedRoute>} />
                   <Route path="/quests" element={<ProtectedRoute><QuestLog /></ProtectedRoute>} />
                   <Route path="/quests/:id" element={<ProtectedRoute><QuestDetail /></ProtectedRoute>} />
-                  <Route path="/stats" element={<ProtectedRoute><StatSheet /></ProtectedRoute>} />
+                  <Route path="/stats" element={<ProtectedRoute><SkillTree /></ProtectedRoute>} />
                   <Route path="/rank" element={<ProtectedRoute><Rank /></ProtectedRoute>} />
                   <Route path="/progress" element={<ProtectedRoute><ProgressDashboard /></ProtectedRoute>} />
                   <Route path="/time" element={<ProtectedRoute><Timetable /></ProtectedRoute>} />
@@ -94,6 +135,10 @@ function AppContent() {
                   <Route path="/saas" element={<ProtectedRoute><SaaSRoadmap /></ProtectedRoute>} />
                   <Route path="/arch" element={<ProtectedRoute><SystemDesign /></ProtectedRoute>} />
                   <Route path="/dsa-roadmap" element={<ProtectedRoute><DSARoadmap /></ProtectedRoute>} />
+                  <Route path="/inventory" element={<ProtectedRoute><Inventory /></ProtectedRoute>} />
+                  <Route path="/achievements" element={<ProtectedRoute><AchievementPanel /></ProtectedRoute>} />
+                  <Route path="/weekly" element={<ProtectedRoute><WeeklyReport /></ProtectedRoute>} />
+                  <Route path="/settings" element={<ProtectedRoute><Settings /></ProtectedRoute>} />
                   <Route path="*" element={<Navigate to="/" replace />} />
                 </Routes>
               </motion.div>
@@ -105,11 +150,13 @@ function AppContent() {
       {/* Level-up / rank-up celebration + floating XP toasts */}
       <CelebrationBanner />
       <XpFloat />
+      <LootDrop />
     </div>
   );
 }
 
 function App() {
+  useScreenOpenAudio();
   return (
     <AuthProvider>
       <Routes>

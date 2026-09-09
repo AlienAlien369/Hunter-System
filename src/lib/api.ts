@@ -29,12 +29,29 @@ export interface User {
   updated_at: string;
 }
 
+export interface PenaltyInfo {
+  applied: boolean;
+  missed_days: number;
+  xp_lost: number;
+  hp_lost: number;
+  message: string;
+}
+
+export interface RecoveryInfo {
+  applied: boolean;
+  bonus_xp: number;
+  streak: number;
+  message: string;
+}
+
 export interface Stats {
   user: User;
   daily: { daily_xp: number; quests_completed: number };
   weekly: { weekly_xp: number; active_days: number; total_quests: number };
   streak: number;
   rank: string;
+  penalty?: PenaltyInfo | null;
+  recovery?: RecoveryInfo | null;
 }
 
 export interface RankProgress {
@@ -82,6 +99,21 @@ export interface NutritionItemInput {
   name: string;
   protein: number;
   cost: number;
+}
+
+export interface HiddenQuestToday {
+  id: string;
+  title: string;
+  description: string;
+  icon: string;
+  baseXp: number;
+  /** Level-scaled XP the server will actually award on completion. */
+  xpReward: number;
+  difficulty: 1 | 2 | 3;
+  tier: { index: number; name: string; minLevel: number; multiplier: number };
+  level: number;
+  date: string;
+  completedToday: boolean;
 }
 
 export interface ActivityEntry {
@@ -179,6 +211,8 @@ export const api = {
     request<Quest[]>(`/quests${category ? `?category=${category}&completed=${completed}` : ''}`),
 
   getQuest: (id: string) => request<Quest>(`/quests/${id}`),
+
+  getTodaysHiddenQuest: () => request<HiddenQuestToday>('/quests/hidden/today'),
 
   completeQuest: (id: string) =>
     request<{ action: string; xpGained: number }>(`/quests/${id}/complete`, { method: 'PATCH' }),

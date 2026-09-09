@@ -1,6 +1,6 @@
 import { motion } from 'framer-motion';
 import { useGameStore } from '../store/gameStore';
-import { calculateRank, getLevelInfo } from '../utils/xp';
+import { getLevelInfo, getActiveBuffs } from '../utils/xp';
 
 const RANK_COLORS: Record<string, string> = {
   E: '#8A92B2',
@@ -142,6 +142,28 @@ export default function StatusWindow() {
             </div>
           ))}
         </div>
+
+        {/* Active passive buffs */}
+        {(() => {
+          const { buffs } = getActiveBuffs(stats);
+          if (buffs.length === 0) return null;
+          return (
+            <div className="mt-4 pt-4 border-t border-white/5">
+              <h4 className="font-mono text-xs text-gray-500 uppercase tracking-wider mb-2">
+                Active Passives
+              </h4>
+              <div className="space-y-1.5">
+                {buffs.map(({ stat, threshold }) => (
+                  <div key={`${stat}-${threshold.min}`} className="flex items-center gap-2">
+                    <span className="text-sm">{threshold.icon}</span>
+                    <span className={`text-[10px] font-display font-bold ${threshold.color}`}>{threshold.label}</span>
+                    <span className="text-[10px] font-mono text-gray-600">— {threshold.description}</span>
+                  </div>
+                ))}
+              </div>
+            </div>
+          );
+        })()}
       </div>
 
       {/* Scanline Effect */}

@@ -1,8 +1,13 @@
 import { useLocation } from 'react-router-dom';
-import { motion, AnimatePresence } from 'framer-motion';
-import { useState } from 'react';
+import { motion } from 'framer-motion';
+import { createPortal } from 'react-dom';
+import { useRef, useState } from 'react';
 import { useSoundStore } from '../../store/soundStore';
+import { useThemeStore } from '../../store/themeStore';
 import { sfx } from '../../utils/sounds';
+import { SOUND_PACK_LIST } from '../../data/soundPacks';
+import NotificationBell from '../NotificationBell';
+import { useNavigate } from 'react-router-dom';
 
 interface TopBarProps {
   onMenuToggle?: () => void;
@@ -22,18 +27,31 @@ function Switch({ on }: { on: boolean }) {
 
 export default function TopBar({ onMenuToggle }: TopBarProps) {
   const location = useLocation();
+  const navigate = useNavigate();
+  const currentTheme = useThemeStore(s => s.theme);
   const muted = useSoundStore(s => s.muted);
   const toggleMuted = useSoundStore(s => s.toggleMuted);
   const celebrateSound = useSoundStore(s => s.celebrateSound);
   const toggleCelebrateSound = useSoundStore(s => s.toggleCelebrateSound);
+  const themeMusic = useSoundStore(s => s.themeMusic);
+  const toggleThemeMusic = useSoundStore(s => s.toggleThemeMusic);
+  const soundPack = useSoundStore(s => s.soundPack);
+  const setSoundPack = useSoundStore(s => s.setSoundPack);
   const [soundMenuOpen, setSoundMenuOpen] = useState(false);
+  const soundBtnRef = useRef<HTMLButtonElement>(null);
   const pageTitle = location.pathname.replace('/', '') || 'Dashboard';
+
+  // The header's backdrop-blur makes it a containing block for fixed children,
+  // so the popover + click-outside backdrop are portaled to <body>.
+  const soundRect = soundBtnRef.current?.getBoundingClientRect();
+  const soundTop = (soundRect?.bottom ?? 0) + 8;
+  const soundRight = Math.max(8, window.innerWidth - (soundRect?.right ?? window.innerWidth));
 
   return (
     <motion.header
       initial={{ y: -100 }}
       animate={{ y: 0 }}
-      className="bg-[#0d1117]/95 backdrop-blur-xl border-b border-purple-500/20 px-4 sm:px-6 py-3 sm:py-4"
+      className="relative z-30 bg-[#0d1117]/95 backdrop-blur-xl border-b border-border-color px-4 sm:px-6 py-3 sm:py-4"
     >
       <div className="flex items-center justify-between gap-3">
         {/* Mobile Menu Button */}
@@ -48,10 +66,9 @@ export default function TopBar({ onMenuToggle }: TopBarProps) {
         </button>
 
         {/* Breadcrumb (desktop) / Page title (mobile) */}
-        <nav className="flex items-center min-w-0 flex-1">
-          <span className="hidden md:inline text-gray-500">Home</span>
+        <nav className="flex items-center min-w-0 flex-1">              <span className="hidden md:inline text-gray-500">Home</span>
           <span className="hidden md:inline text-gray-600 mx-2">/</span>
-          <span className="text-purple-400 font-mono uppercase tracking-wider text-sm truncate">
+          <span className="text-accent-text font-mono uppercase tracking-wider text-sm truncate">
             {pageTitle}
           </span>
         </nav>
@@ -61,6 +78,7 @@ export default function TopBar({ onMenuToggle }: TopBarProps) {
           {/* Sound Settings */}
           <div className="relative flex-shrink-0">
             <motion.button
+              ref={soundBtnRef}
               onClick={() => {
                 sfx.click();
                 setSoundMenuOpen(v => !v);
@@ -80,24 +98,24 @@ export default function TopBar({ onMenuToggle }: TopBarProps) {
                 {muted ? '🔇' : '🔊'}
               </motion.span>
               {!muted && (
-                <span className="absolute top-1.5 right-1.5 w-1.5 h-1.5 bg-purple-500 rounded-full animate-pulse" />
+                <span className="absolute top-1.5 right-1.5 w-1.5 h-1.5 rounded-full animate-pulse" style={{ background: 'var(--accent)' }} />
               )}
             </motion.button>
 
-            {/* Popover */}
-            <AnimatePresence>
-              {soundMenuOpen && (
+            {/* Popover (portaled to <body> so the header's backdrop-blur can't trap it) */}
+            {soundMenuOpen &&
+              createPortal(
                 <>
                   <div
-                    className="fixed inset-0 z-40"
+                    className="fixed inset-0 z-[60]"
                     onClick={() => setSoundMenuOpen(false)}
                   />
                   <motion.div
                     initial={{ opacity: 0, y: -6, scale: 0.95 }}
                     animate={{ opacity: 1, y: 0, scale: 1 }}
-                    exit={{ opacity: 0, y: -6, scale: 0.95 }}
                     transition={{ duration: 0.15 }}
-                    className="absolute right-0 top-full mt-2 z-50 w-64 bg-[#0d1117]/95 backdrop-blur-xl border border-purple-500/20 rounded-xl p-3 shadow-2xl shadow-purple-500/10"
+                    className="fixed z-[61] w-64 bg-[#0d1117]/95 backdrop-blur-xl border border-accent-border rounded-xl p-3 shadow-2xl shadow-accent/10"
+                    style={{ top: soundTop, right: soundRight }}
                   >
                     <p className="text-[10px] text-gray-500 font-mono tracking-widest mb-2">SOUND SETTINGS</p>
 
@@ -137,10 +155,71 @@ export default function TopBar({ onMenuToggle }: TopBarProps) {
                       </span>
                       <Switch on={celebrateSound} />
                     </button>
+
+                    {/* Theme music */}
+                    <button
+                      onClick={() => {
+                        sfx.click();
+                        toggleThemeMusic();
+                        if (themeMusic) {
+                          sfx.stopTheme();
+                        } else {
+                          sfx.startTheme();
+                        }
+                      }}
+                      className={`w-full flex items-center justify-between px-3 py-2.5 rounded-lg transition-colors ${
+                        muted ? 'opacity-40 cursor-not-allowed' : 'hover:bg-white/5'
+                      }`}
+                      disabled={muted}
+                    >
+                      <span className="flex items-center space-x-2.5">
+                        <span className="text-base">🎵</span>
+                        <span className="text-left">
+                          <span className="text-sm font-mono text-gray-300 block">Theme music</span>
+                          <span className="text-[10px] font-mono text-gray-500 block">Background soundtrack</span>
+                        </span>
+                      </span>
+                      <Switch on={themeMusic} />
+                    </button>
+
+                    {/* Sound pack selector */}
+                    <div className={`px-3 py-2.5 rounded-lg ${muted ? 'opacity-40' : ''}`}>
+                      <div className="flex items-center space-x-2.5 mb-2">
+                        <span className="text-base">🎶</span>
+                        <span className="text-sm font-mono text-gray-300">Sound Pack</span>
+                      </div>
+                      <div className="grid grid-cols-2 gap-1.5">
+                        {SOUND_PACK_LIST.map(pack => (
+                          <button
+                            key={pack.id}
+                            onClick={() => {
+                              setSoundPack(pack.id);
+                              sfx.click();
+                              // Restart theme if it was playing to apply new pack
+                              if (themeMusic && !muted) {
+                                sfx.stopTheme();
+                                setTimeout(() => sfx.startTheme(), 100);
+                              }
+                            }}
+                            disabled={muted}
+                            className={`
+                              px-2.5 py-2 rounded-lg text-left transition-all border
+                              ${soundPack === pack.id
+                                ? 'bg-accent-bg border-accent-border text-white'
+                                : 'bg-gray-800/30 border-gray-700/20 text-gray-400 hover:bg-gray-800/50'
+                              }
+                            `}
+                          >
+                            <span className="text-sm block">{pack.icon}</span>
+                            <span className="text-[10px] font-mono block mt-0.5">{pack.label}</span>
+                          </button>
+                        ))}
+                      </div>
+                    </div>
                   </motion.div>
-                </>
+                </>,
+                document.body
               )}
-            </AnimatePresence>
           </div>
 
           {/* System Status */}
@@ -155,11 +234,27 @@ export default function TopBar({ onMenuToggle }: TopBarProps) {
           </div>
 
           {/* Notifications */}
-          <button className="relative p-2 text-gray-400 hover:text-white transition-colors">
-            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9" />
-            </svg>
-            <span className="absolute top-1 right-1 w-2 h-2 bg-purple-500 rounded-full" />
+          <NotificationBell />
+
+          {/* Settings Button - shows current theme icon */}
+          <button
+            onClick={() => {
+              sfx.click();
+              navigate('/settings');
+            }}
+            className="relative p-2 text-gray-400 hover:text-white transition-colors"
+            title="Settings"
+            aria-label="Settings"
+          >
+            <motion.span
+              key={currentTheme}
+              initial={{ scale: 0.4, opacity: 0, rotate: -20 }}
+              animate={{ scale: 1, opacity: 1, rotate: 0 }}
+              transition={{ type: 'spring', stiffness: 500, damping: 20 }}
+              className="block text-lg leading-none"
+            >
+              {currentTheme === 'purple-monarch' ? '👑' : currentTheme === 'gold' ? '🏆' : '❤️‍🔥'}
+            </motion.span>
           </button>
         </div>
       </div>

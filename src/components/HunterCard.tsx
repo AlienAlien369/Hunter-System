@@ -1,5 +1,4 @@
-import { useGameStore } from '../store/gameStore';
-import { motion, useTransform } from 'framer-motion';
+import { motion } from 'framer-motion';
 import { getLevelInfo } from '../utils/xp';
 
 interface HunterCardProps {
@@ -57,7 +56,7 @@ export default function HunterCard({
           STATS
         </h3>
         <div className="space-y-3">
-          {[['STR', stats.str], ['AGI', stats.agi], ['VIT', stats.vit], ['INT', stats.int], ['SEN', stats.sen]].map(
+          {([['STR', stats.str], ['AGI', stats.agi], ['VIT', stats.vit], ['INT', stats.int], ['SEN', stats.sen]] as [string, number][]).map(
             ([label, value]) => (
               <motion.div
                 key={label}

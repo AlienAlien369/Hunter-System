@@ -1,4 +1,5 @@
 import { Pool, PoolConfig } from 'pg';
+import { HIDDEN_QUESTS } from './data/hiddenQuests.js';
 
 const poolConfig: PoolConfig = {
   host: process.env.DB_HOST || 'localhost',
@@ -104,6 +105,24 @@ export async function initDatabase() {
         PRIMARY KEY (user_id, track)
       );
 
+      -- Penalties for missing daily quests 2+ days in a row
+      CREATE TABLE IF NOT EXISTS penalties (
+        id SERIAL PRIMARY KEY,
+        user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+        penalty_date DATE NOT NULL,
+        missed_days INTEGER NOT NULL DEFAULT 2,
+        broken_streak INTEGER NOT NULL DEFAULT 0,
+        xp_lost INTEGER NOT NULL DEFAULT 0,
+        hp_lost INTEGER NOT NULL DEFAULT 0,
+        recovered BOOLEAN NOT NULL DEFAULT false,
+        created_at TIMESTAMP NOT NULL DEFAULT NOW(),
+        UNIQUE(user_id, penalty_date)
+      );
+
+      -- Idempotent migration: streak-based penalty scaling + recovery tracking
+      ALTER TABLE penalties ADD COLUMN IF NOT EXISTS broken_streak INTEGER NOT NULL DEFAULT 0;
+      ALTER TABLE penalties ADD COLUMN IF NOT EXISTS recovered BOOLEAN NOT NULL DEFAULT false;
+
       -- Create indexes
       CREATE INDEX IF NOT EXISTS idx_quest_completions_date ON quest_completions(completion_date);
       CREATE INDEX IF NOT EXISTS idx_quest_completions_quest ON quest_completions(quest_id);
@@ -114,6 +133,16 @@ export async function initDatabase() {
       CREATE INDEX IF NOT EXISTS idx_track_progress_user ON track_progress(user_id);
 
     `);
+
+    // Idempotent migration: record exactly how much XP each completion awarded
+    // (level-scaled hidden quests award more than the quest's base xp_reward).
+    await client.query('ALTER TABLE quest_completions ADD COLUMN IF NOT EXISTS xp_awarded INTEGER');
+    await client.query(
+      `UPDATE quest_completions qc
+       SET xp_awarded = q.xp_reward
+       FROM quests q
+       WHERE qc.quest_id = q.id AND qc.xp_awarded IS NULL`
+    );
 
     // Idempotent migration: scope quest completions to a user (existing databases)
     await client.query('ALTER TABLE quest_completions ADD COLUMN IF NOT EXISTS user_id INTEGER REFERENCES users(id) ON DELETE CASCADE');
@@ -239,6 +268,9 @@ export async function initDatabase() {
       { id: 'AR-10', title: 'Search/reporting without hurting transactional DB', xp: 30, category: 'architecture', difficulty: 3 },
       { id: 'AR-11', title: 'Caching strategy and invalidation', xp: 30, category: 'architecture', difficulty: 3 },
       { id: 'AR-12', title: 'Deployment/observability for production SaaS', xp: 30, category: 'architecture', difficulty: 3 },
+      // Hidden quests (HQ-*): one random challenge per day, must be done the same day.
+      // Single source of truth: server/src/data/hiddenQuests.ts (200+ tiered challenges).
+      ...HIDDEN_QUESTS.map(h => ({ id: h.id, title: h.title, xp: h.baseXp, category: 'hidden', difficulty: h.difficulty })),
     ];
 
     for (const q of defaultQuests) {
