@@ -1,5 +1,5 @@
-import { Link, useLocation } from 'react-router-dom';
-import { motion } from 'framer-motion';
+import { Link } from 'react-router-dom';
+import { motion, AnimatePresence } from 'framer-motion';
 import { useAuthStore } from '../../store/authStore';
 
 interface NavItem {
@@ -13,18 +13,15 @@ interface SidebarProps {
   currentPath: string;
   userName?: string;
   onLogout?: () => void;
+  open?: boolean;
+  onClose?: () => void;
 }
 
-export default function Sidebar({ items, currentPath, userName, onLogout }: SidebarProps) {
+function SidebarContent({ items, currentPath, userName, onLogout, layoutIdPrefix = 'desktop' }: Omit<SidebarProps, 'open' | 'onClose'> & { layoutIdPrefix?: string }) {
   const { user } = useAuthStore();
 
   return (
-    <motion.aside
-      initial={{ x: -100, opacity: 0 }}
-      animate={{ x: 0, opacity: 1 }}
-      transition={{ duration: 0.3 }}
-      className="hidden md:flex w-64 bg-[#0d1117]/95 backdrop-blur-xl border-r border-purple-500/20 flex-col"
-    >
+    <div className="flex flex-col h-full">
       {/* Logo */}
       <div className="p-6 border-b border-purple-500/20">
         <motion.div
@@ -68,7 +65,7 @@ export default function Sidebar({ items, currentPath, userName, onLogout }: Side
                 {/* Active indicator */}
                 {isActive && (
                   <motion.div
-                    layoutId="activeIndicator"
+                    layoutId={`${layoutIdPrefix}ActiveIndicator`}
                     className="absolute left-0 w-1 h-8 bg-purple-500 rounded-r-full"
                     initial={{ opacity: 0 }}
                     animate={{ opacity: 1 }}
@@ -122,6 +119,50 @@ export default function Sidebar({ items, currentPath, userName, onLogout }: Side
           </button>
         )}
       </div>
-    </motion.aside>
+    </div>
+  );
+}
+
+export default function Sidebar({ items, currentPath, userName, onLogout, open = false, onClose }: SidebarProps) {
+  const baseProps = { items, currentPath, userName, onLogout };
+
+  return (
+    <>
+      {/* Desktop Sidebar */}
+      <motion.aside
+        initial={{ x: -100, opacity: 0 }}
+        animate={{ x: 0, opacity: 1 }}
+        transition={{ duration: 0.3 }}
+        className="hidden md:flex w-64 bg-[#0d1117]/95 backdrop-blur-xl border-r border-purple-500/20 flex-col"
+      >
+        <SidebarContent {...baseProps} />
+      </motion.aside>
+
+      {/* Mobile Drawer */}
+      <AnimatePresence>
+        {open && (
+          <motion.div
+            key="sidebar-backdrop"
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            onClick={onClose}
+            className="fixed inset-0 z-40 bg-black/60 backdrop-blur-sm md:hidden"
+          />
+        )}
+        {open && (
+          <motion.aside
+            key="sidebar-drawer"
+            initial={{ x: -280 }}
+            animate={{ x: 0 }}
+            exit={{ x: -280 }}
+            transition={{ type: 'tween', duration: 0.25 }}
+            className="fixed inset-y-0 left-0 z-50 w-72 max-w-[85vw] bg-[#0d1117] border-r border-purple-500/20 md:hidden"
+          >
+            <SidebarContent {...baseProps} layoutIdPrefix="drawer" />
+          </motion.aside>
+        )}
+      </AnimatePresence>
+    </>
   );
 }

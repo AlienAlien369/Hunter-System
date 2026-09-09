@@ -53,7 +53,7 @@ export default function Timetable() {
       initial={{ opacity: 0, y: 20 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.6 }}
-      className="min-h-[calc(100vh-64px)] p-6"
+      className="min-h-[calc(100vh-64px)] p-4 sm:p-6"
     >
       <div className="mb-6">
         <h1 className="text-2xl font-display text-purple-monarch flex items-center space-x-3">

@@ -19,18 +19,18 @@ export default function Dashboard() {
       <motion.div
         initial={{ opacity: 0, y: -20 }}
         animate={{ opacity: 1, y: 0 }}
-        className="flex items-center justify-between"
+        className="flex flex-wrap items-center justify-between gap-3"
       >
-        <div>
-          <h1 className="text-3xl font-display text-white font-bold tracking-wider">
+        <div className="min-w-0">
+          <h1 className="text-2xl sm:text-3xl font-display text-white font-bold tracking-wider">
             DASHBOARD
           </h1>
-          <p className="text-gray-400 mt-1 font-mono text-sm">
+          <p className="text-gray-400 mt-1 font-mono text-sm truncate">
             Welcome back, {profile.name}
           </p>
         </div>
         <div className="text-right">
-          <p className="text-purple-400 font-mono text-sm">{new Date().toLocaleDateString('en-US', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })}</p>
+          <p className="text-purple-400 font-mono text-xs sm:text-sm">{new Date().toLocaleDateString('en-US', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })}</p>
           <p className="text-gray-500 font-mono text-xs mt-1">SYSTEM STATUS: ONLINE</p>
         </div>
       </motion.div>

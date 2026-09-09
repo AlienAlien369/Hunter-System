@@ -152,10 +152,10 @@ export default function QuestLog() {
       <motion.div
         initial={{ opacity: 0, y: -20 }}
         animate={{ opacity: 1, y: 0 }}
-        className="flex items-center justify-between"
+        className="flex flex-wrap items-center justify-between gap-3"
       >
-        <div>
-          <h1 className="text-3xl font-display text-white font-bold tracking-wider">
+        <div className="min-w-0">
+          <h1 className="text-2xl sm:text-3xl font-display text-white font-bold tracking-wider">
             QUEST LOG
           </h1>
           <p className="text-gray-400 mt-1 font-mono text-sm">
@@ -164,20 +164,20 @@ export default function QuestLog() {
         </div>
 
         {/* Stats Card (daily quests only) */}
-        <div className="flex items-center space-x-4 bg-[#0d1117]/80 backdrop-blur-sm rounded-lg p-4 border border-purple-500/20">
-          <div className="text-center">
-            <p className="text-2xl font-display text-gold">{todaysCompleted}</p>
-            <p className="text-xs text-gray-500 font-mono">COMPLETED</p>
+        <div className="flex items-center space-x-3 sm:space-x-4 bg-[#0d1117]/80 backdrop-blur-sm rounded-lg px-3 sm:px-4 py-3 sm:py-4 border border-purple-500/20">
+          <div className="text-center min-w-[3rem]">
+            <p className="text-xl sm:text-2xl font-display text-gold">{todaysCompleted}</p>
+            <p className="text-[10px] sm:text-xs text-gray-500 font-mono">DONE</p>
           </div>
           <div className="w-px h-8 bg-purple-500/20" />
-          <div className="text-center">
-            <p className="text-2xl font-display text-purple-400">{todaysXP}</p>
-            <p className="text-xs text-gray-500 font-mono">XP EARNED</p>
+          <div className="text-center min-w-[3rem]">
+            <p className="text-xl sm:text-2xl font-display text-purple-400">{todaysXP}</p>
+            <p className="text-[10px] sm:text-xs text-gray-500 font-mono">XP EARNED</p>
           </div>
           <div className="w-px h-8 bg-purple-500/20" />
-          <div className="text-center">
-            <p className="text-2xl font-display text-blue-400">{dailyQuestsList.length - todaysCompleted}</p>
-            <p className="text-xs text-gray-500 font-mono">REMAINING</p>
+          <div className="text-center min-w-[3rem]">
+            <p className="text-xl sm:text-2xl font-display text-blue-400">{dailyQuestsList.length - todaysCompleted}</p>
+            <p className="text-[10px] sm:text-xs text-gray-500 font-mono">LEFT</p>
           </div>
         </div>
       </motion.div>

@@ -83,10 +83,10 @@ export default function DSARoadmap() {
       <motion.div
         initial={{ opacity: 0, y: -20 }}
         animate={{ opacity: 1, y: 0 }}
-        className="flex items-center justify-between"
+        className="flex flex-wrap items-center justify-between gap-3"
       >
-        <div>
-          <h1 className="text-3xl font-display text-white font-bold tracking-wider">
+        <div className="min-w-0">
+          <h1 className="text-2xl sm:text-3xl font-display text-white font-bold tracking-wider">
             DSA ROADMAP
           </h1>
           <p className="text-gray-400 mt-1 font-mono text-sm">

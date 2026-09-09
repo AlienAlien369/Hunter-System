@@ -1,5 +1,6 @@
-import { Routes, Route, Link, useLocation, Navigate } from 'react-router-dom';
+import { Routes, Route, useLocation, Navigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
+import { useEffect, useState } from 'react';
 import { useAuthStore } from './store/authStore';
 import './index.css';
 
@@ -41,6 +42,12 @@ const NAV_ITEMS = [
 function AppContent() {
   const location = useLocation();
   const { user, logout } = useAuthStore();
+  const [sidebarOpen, setSidebarOpen] = useState(false);
+
+  // Close the mobile drawer whenever the route changes
+  useEffect(() => {
+    setSidebarOpen(false);
+  }, [location.pathname]);
 
   return (
     <div className="min-h-screen bg-[#0a0e1a] text-white overflow-hidden">
@@ -60,11 +67,13 @@ function AppContent() {
           currentPath={location.pathname}
           userName={user?.name || user?.username || 'Hunter'}
           onLogout={() => logout()}
+          open={sidebarOpen}
+          onClose={() => setSidebarOpen(false)}
         />
 
         {/* Main Content */}
         <div className="flex-1 flex flex-col min-w-0">
-          <TopBar />
+          <TopBar onMenuToggle={() => setSidebarOpen(v => !v)} />
 
           <main className="flex-1 overflow-y-auto custom-scrollbar">
             <AnimatePresence mode="wait">
@@ -74,7 +83,7 @@ function AppContent() {
                 animate={{ opacity: 1, y: 0 }}
                 exit={{ opacity: 0, y: -20 }}
                 transition={{ duration: 0.2 }}
-                className="p-6"
+                className="p-4 sm:p-6"
               >
                 <Routes>
                   <Route path="/" element={<ProtectedRoute><Dashboard /></ProtectedRoute>} />
