@@ -156,7 +156,7 @@ router.get('/me', authenticateToken, async (req: Request, res: Response) => {
     const userId = req.user?.id;
 
     const result = await pool.query(
-      `SELECT id, username, name, rank, xp, hp, mp, str, agi, vit, int, sen, created_at
+      `SELECT id, username, name, name_set, rank, xp, hp, mp, str, agi, vit, int, sen, created_at
        FROM users WHERE id = $1`,
       [userId]
     );
@@ -181,6 +181,60 @@ router.get('/me', authenticateToken, async (req: Request, res: Response) => {
   } catch (error) {
     console.error('Get me error:', error);
     res.status(500).json({ error: 'Failed to get user info' });
+  }
+});
+
+/**
+ * POST /api/auth/set-name
+ * Set hunter name once (cannot be changed after)
+ */
+router.post('/set-name', authenticateToken, async (req: Request, res: Response) => {
+  try {
+    const userId = req.user?.id;
+    const { name } = req.body;
+
+    if (!name || name.trim().length < 2) {
+      return res.status(400).json({ error: 'Name must be at least 2 characters' });
+    }
+
+    if (name.trim().length > 30) {
+      return res.status(400).json({ error: 'Name must be 30 characters or less' });
+    }
+
+    // Check if name is already set
+    const existing = await pool.query('SELECT name_set FROM users WHERE id = $1', [userId]);
+    if (existing.rows.length === 0) {
+      return res.status(404).json({ error: 'User not found' });
+    }
+
+    if (existing.rows[0].name_set) {
+      return res.status(403).json({ error: 'Hunter name has already been set and cannot be changed' });
+    }
+
+    // Check if name is already taken by another user
+    const nameCheck = await pool.query(
+      'SELECT id FROM users WHERE LOWER(name) = LOWER($1) AND id != $2',
+      [name.trim(), userId]
+    );
+    if (nameCheck.rows.length > 0) {
+      return res.status(409).json({ error: 'This hunter name is already taken' });
+    }
+
+    // Set the name
+    await pool.query(
+      'UPDATE users SET name = $1, name_set = true, updated_at = NOW() WHERE id = $2',
+      [name.trim(), userId]
+    );
+
+    await logActivity(userId, 'set_name', name.trim());
+
+    res.json({
+      message: 'Hunter name set successfully',
+      name: name.trim(),
+    });
+  } catch (error) {
+    console.error('Set name error:', error);
+    res.status(500).json({ error: 'Failed to set hunter name' });
   }
 });
 

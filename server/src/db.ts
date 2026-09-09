@@ -132,7 +132,8 @@ export async function initDatabase() {
       CREATE INDEX IF NOT EXISTS idx_activity_user_time ON activity_log(user_id, created_at DESC);
       CREATE INDEX IF NOT EXISTS idx_track_progress_user ON track_progress(user_id);
 
-    `);
+    `);      // Idempotent migration: track whether hunter name has been set (one-time only)
+    await client.query('ALTER TABLE users ADD COLUMN IF NOT EXISTS name_set BOOLEAN NOT NULL DEFAULT false');
 
     // Idempotent migration: record exactly how much XP each completion awarded
     // (level-scaled hidden quests award more than the quest's base xp_reward).

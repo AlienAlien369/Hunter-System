@@ -53,6 +53,4 @@ Thumbs.db
 *.swo
 *~
 
-# Lock files (npm ci handles these)
-package-lock.json
-server/package-lock.json
+# NOTE: package-lock.json is NOT excluded - Docker needs it for npm ci

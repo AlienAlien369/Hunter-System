@@ -16,6 +16,7 @@ export interface User {
   id: number;
   username: string;
   name: string;
+  name_set?: boolean;
   rank: string;
   xp: number;
   hp: number;
@@ -160,12 +161,17 @@ export interface TrackStats {
 
 export interface AuthResponse {
   message: string;
-  user: { id: number; username: string; name: string };
+  user: { id: number; username: string; name: string; name_set?: boolean };
 }
 
 export interface LoginResponse {
   message: string;
-  user: { id: number; username: string; name: string };
+  user: { id: number; username: string; name: string; name_set?: boolean };
+}
+
+export interface SetNameResponse {
+  message: string;
+  name: string;
 }
 
 // API Client with auth support
@@ -204,7 +210,13 @@ export const api = {
     }),
 
   getMe: () =>
-    request<{ user: User }>('/auth/me'),
+    request<{ user: User & { name_set?: boolean } }>('/auth/me'),
+
+  setHunterName: (name: string) =>
+    request<SetNameResponse>('/auth/set-name', {
+      method: 'POST',
+      body: JSON.stringify({ name }),
+    }),
 
   // Quests
   getQuests: (category?: string, completed?: boolean) =>

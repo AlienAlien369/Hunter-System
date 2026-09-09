@@ -3,7 +3,7 @@ import type { User } from '../lib/api';
 import { api } from '../lib/api';
 
 interface AuthState {
-  user: User | null;
+  user: (User & { name_set?: boolean }) | null;
   isAuthenticated: boolean;
   loading: boolean;
   error: string | null;
@@ -13,6 +13,7 @@ interface AuthState {
   logout: () => Promise<void>;
   checkAuth: () => Promise<void>;
   clearError: () => void;
+  setHunterName: (name: string) => void;
 }
 
 export const useAuthStore = create<AuthState>(set => ({
@@ -38,6 +39,7 @@ export const useAuthStore = create<AuthState>(set => ({
           id: userData.id,
           username: userData.username,
           name: userData.name,
+          name_set: false,
           rank: 'E',
           xp: 0,
           hp: 80,
@@ -92,4 +94,8 @@ export const useAuthStore = create<AuthState>(set => ({
   },
 
   clearError: () => set({ error: null }),
+
+  setHunterName: (name: string) => set(state => ({
+    user: state.user ? { ...state.user, name, name_set: true } : null,
+  })),
 }));

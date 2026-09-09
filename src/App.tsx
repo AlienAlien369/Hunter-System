@@ -36,6 +36,7 @@ import CelebrationBanner from './components/CelebrationBanner';
 import XpFloat from './components/XpFloat';
 import LootDrop from './components/LootDrop';
 import BackgroundFX from './components/BackgroundFX';
+import HunterNameEntry from './components/HunterNameEntry';
 
 const NAV_ITEMS = [
   { path: '/', label: 'Dashboard', icon: '⚔' },
@@ -79,7 +80,7 @@ function useScreenOpenAudio() {
 
 function AppContent() {
   const location = useLocation();
-  const { user, logout } = useAuthStore();
+  const { user, logout, setHunterName } = useAuthStore();
   const theme = useThemeStore(s => s.theme);
   const [sidebarOpen, setSidebarOpen] = useState(false);
 
@@ -87,6 +88,9 @@ function AppContent() {
   useEffect(() => {
     applyTheme(theme);
   }, [theme]);
+
+  // Check if hunter name needs to be set
+  const needsNameEntry = user && !user.name_set;
 
   // Close the mobile drawer whenever the route changes
   useEffect(() => {
@@ -146,6 +150,16 @@ function AppContent() {
           </main>
         </div>
       </div>
+
+      {/* Hunter Name Entry (one-time) */}
+      {needsNameEntry && (
+        <HunterNameEntry
+          onComplete={(name) => {
+            setHunterName(name);
+            sfx.levelUp();
+          }}
+        />
+      )}
 
       {/* Level-up / rank-up celebration + floating XP toasts */}
       <CelebrationBanner />
