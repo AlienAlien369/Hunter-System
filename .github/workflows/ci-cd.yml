@@ -8,7 +8,6 @@ on:
 
 env:
   REGISTRY: ghcr.io
-  IMAGE_NAME: ${{ github.repository }}
 
 jobs:
   # Job 1: Lint and Type Check
@@ -68,6 +67,9 @@ jobs:
         with:
           node-version: '22'
           cache: 'npm'
+          cache-dependency-path: |
+            package-lock.json
+            server/package-lock.json
 
       - name: Install frontend dependencies
         run: npm ci
@@ -85,6 +87,36 @@ jobs:
           DB_NAME: hunter_test
           JWT_SECRET: test-secret-key
 
+      # The backend tests are integration tests: they call the REST API on
+      # localhost:3000, so the server must be running (with its database
+      # initialized) before they execute. Start it in the background and
+      # wait until /api/health responds.
+      - name: Start backend server
+        run: |
+          cd server
+          DB_HOST=localhost \
+          DB_PORT=5432 \
+          DB_USER=test_user \
+          DB_PASSWORD=test_pass \
+          DB_NAME=hunter_test \
+          JWT_SECRET=test-secret-key \
+          DEMO_USER=demo_user \
+          DEMO_PASS=DemoPass123! \
+          nohup npx tsx src/index.ts > /tmp/server.log 2>&1 &
+          for i in $(seq 1 30); do
+            if curl -sf http://localhost:3000/api/health > /dev/null; then
+              echo "Backend is healthy"
+              exit 0
+            fi
+            echo "Waiting for backend... ($i/30)"
+            sleep 2
+            # Surface server logs if it crashed during startup
+            tail -5 /tmp/server.log
+          done
+          echo "Backend did not become healthy in time"
+          cat /tmp/server.log
+          exit 1
+
       - name: Run backend tests
         run: cd server && npm test
         env:
@@ -94,6 +126,12 @@ jobs:
           DB_PASSWORD: test_pass
           DB_NAME: hunter_test
           JWT_SECRET: test-secret-key
+          DEMO_USER: demo_user
+          DEMO_PASS: DemoPass123!
+
+      - name: Print backend server logs on failure
+        if: failure()
+        run: cat /tmp/server.log || true
 
   # Job 3: Build Frontend
   build-frontend:
@@ -177,14 +215,17 @@ jobs:
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
 
-      - name: Extract metadata for Docker
-        id: meta
-        uses: docker/metadata-action@v5
-        with:
-          images: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}
-          tags: |
-            type=ref,event=branch
-            type=sha,prefix=
+      - name: Compute lowercase image name
+        id: image
+        env:
+          REGISTRY: ghcr.io
+        run: |
+          # GHCR rejects uppercase characters in image paths; repository names
+          # may contain them, so force lowercase (e.g. AlienAlien369/Hunter-System
+          # → ghcr.io/alienalien369/hunter-system).
+          IMAGE="${REGISTRY}/${GITHUB_REPOSITORY,,}"
+          echo "name=${IMAGE}" >> "$GITHUB_OUTPUT"
+          echo "Image name: ${IMAGE}"
 
       - name: Build and push Frontend image
         uses: docker/build-push-action@v5
@@ -193,8 +234,8 @@ jobs:
           file: Dockerfile.frontend
           push: true
           tags: |
-            ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}/frontend:latest
-            ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}/frontend:${{ github.sha }}
+            ${{ steps.image.outputs.name }}/frontend:latest
+            ${{ steps.image.outputs.name }}/frontend:${{ github.sha }}
           cache-from: type=gha
           cache-to: type=gha,mode=max
 
@@ -205,8 +246,8 @@ jobs:
           file: Dockerfile.backend
           push: true
           tags: |
-            ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}/backend:latest
-            ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}/backend:${{ github.sha }}
+            ${{ steps.image.outputs.name }}/backend:latest
+            ${{ steps.image.outputs.name }}/backend:${{ github.sha }}
           cache-from: type=gha
           cache-to: type=gha,mode=max
 
@@ -223,7 +264,20 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v4
 
+      # Only attempt SSH deployment when the required secrets exist; without
+      # this the job would always fail on repos without server secrets.
+      - name: Check deploy secrets
+        id: secrets
+        run: |
+          if [ -n "${{ secrets.SERVER_HOST }}" ] && [ -n "${{ secrets.SERVER_SSH_KEY }}" ]; then
+            echo "configured=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "configured=false" >> "$GITHUB_OUTPUT"
+            echo "SERVER_HOST/SERVER_SSH_KEY not set — skipping SSH deployment"
+          fi
+
       - name: Deploy to server via SSH
+        if: steps.secrets.outputs.configured == 'true'
         uses: appleboy/ssh-action@v1.0.0
         with:
           host: ${{ secrets.SERVER_HOST }}
@@ -240,6 +294,6 @@ jobs:
       - name: Notify deployment
         if: success()
         run: |
-          echo "✅ Deployment successful!"
+          echo "✅ Pipeline successful!"
           echo "Frontend: ${{ vars.DEPLOY_URL }}"
           echo "Backend: ${{ vars.DEPLOY_URL }}/api/health"
