@@ -30,7 +30,7 @@ COPY server/migrations ./server/migrations
 
 # Copy frontend to nginx
 COPY --from=frontend-builder /app/dist /usr/share/nginx/html
-COPY nginx.conf /etc/nginx/conf.d/default.conf
+COPY nginx.conf /etc/nginx/nginx.conf
 
 # Create non-root user and nginx dirs
 RUN mkdir -p /var/cache/nginx /var/log/nginx /var/run && \
