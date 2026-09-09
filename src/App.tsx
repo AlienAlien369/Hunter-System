@@ -25,6 +25,7 @@ import DSARoadmap from './pages/DSARoadmap';
 // Layout Components
 import Sidebar from './components/layout/Sidebar';
 import TopBar from './components/layout/TopBar';
+import CelebrationBanner from './components/CelebrationBanner';
 
 const NAV_ITEMS = [
   { path: '/', label: 'Dashboard', icon: '⚔' },
@@ -104,6 +105,9 @@ function AppContent() {
           </main>
         </div>
       </div>
+
+      {/* Level-up / rank-up celebration */}
+      <CelebrationBanner />
     </div>
   );
 }

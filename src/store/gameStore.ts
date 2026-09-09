@@ -2,6 +2,7 @@ import { create } from 'zustand';
 import type { Quest, Stats, RankProgress, Level } from '../lib/api';
 import { api } from '../lib/api';
 import { useAuthStore } from './authStore';
+import { calculateLevel, calculateRank } from '../utils/xp';
 
 export interface HunterProfile {
   name: string;
@@ -156,10 +157,14 @@ interface GameState {
   error: string | null;
   apiConnected: boolean;
 
+  // Celebration shown when XP crosses a level or rank milestone
+  celebration: Celebration | null;
+
   // Actions
   loadDashboard: () => Promise<void>;
   completeQuest: (questId: string, date: string) => Promise<void>;
   redoTrack: (track: 'dsa' | 'saas' | 'arch') => Promise<void>;
+  dismissCelebration: () => void;
   updateProfile: (updates: Partial<HunterProfile>) => void;
   loadNutrition: (month: string) => Promise<void>;
   logNutrition: (date: string, items: NutritionItem[]) => void;
@@ -188,6 +193,13 @@ export interface ArchChallenge {
   why: string;
   tradeoffs: string;
   done: boolean;
+}
+
+export interface Celebration {
+  type: 'level' | 'rank' | 'both';
+  level: number;
+  rank: string;
+  newXp: number;
 }
 
 // Local storage keys (scoped per user so accounts never see each other's data)
@@ -245,6 +257,7 @@ export const useGameStore = create<GameState>((set, get) => ({
   loading: false,
   error: null,
   apiConnected: false,
+  celebration: null,
 
   loadDashboard: async () => {
     set({ loading: true, error: null });
@@ -264,6 +277,26 @@ export const useGameStore = create<GameState>((set, get) => ({
         completedDates: q.completions?.map(c => c.completion_date) || [],
       }));
 
+      // Detect level/rank milestones crossed by this XP gain (skip initial load: prevXp 0)
+      const prevXp = get().profile.xp;
+      const newXp = statsData.user.xp;
+      let celebration: Celebration | null = null;
+      if (prevXp > 0 && newXp > prevXp) {
+        const newLevel = calculateLevel(newXp);
+        const prevRank = calculateRank(prevXp);
+        const newRank = calculateRank(newXp);
+        const levelUp = newLevel > calculateLevel(prevXp);
+        const rankUp = newRank !== prevRank;
+        if (levelUp || rankUp) {
+          celebration = {
+            type: levelUp && rankUp ? 'both' : levelUp ? 'level' : 'rank',
+            level: newLevel,
+            rank: newRank,
+            newXp,
+          };
+        }
+      }
+
       set({
         stats: statsData,
         rank: rankData,
@@ -272,9 +305,9 @@ export const useGameStore = create<GameState>((set, get) => ({
         profile: {
           ...get().profile,
           name: statsData.user.name || get().profile.name,
-          xp: statsData.user.xp,
+          xp: newXp,
           rank: statsData.user.rank as HunterProfile['rank'],
-          level: statsData.user.xp >= 1750 ? 2 : Math.floor(statsData.user.xp / 1000) + 1,
+          level: calculateLevel(newXp),
           hp: statsData.user.hp,
           mp: statsData.user.mp,
           stats: {
@@ -285,6 +318,8 @@ export const useGameStore = create<GameState>((set, get) => ({
             sen: statsData.user.sen,
           },
         },
+        // Keep an active celebration until the banner dismisses it
+        celebration: celebration ?? get().celebration,
         apiConnected: true,
         loading: false,
       });
@@ -357,6 +392,8 @@ export const useGameStore = create<GameState>((set, get) => ({
       set({ error: `Failed to reset ${track} track.` });
     }
   },
+
+  dismissCelebration: () => set({ celebration: null }),
 
   updateProfile: (updates: Partial<HunterProfile>) => {
     set(state => {
