@@ -26,6 +26,7 @@ import DSARoadmap from './pages/DSARoadmap';
 import Sidebar from './components/layout/Sidebar';
 import TopBar from './components/layout/TopBar';
 import CelebrationBanner from './components/CelebrationBanner';
+import XpFloat from './components/XpFloat';
 import BackgroundFX from './components/BackgroundFX';
 
 const NAV_ITEMS = [
@@ -101,8 +102,9 @@ function AppContent() {
         </div>
       </div>
 
-      {/* Level-up / rank-up celebration */}
+      {/* Level-up / rank-up celebration + floating XP toasts */}
       <CelebrationBanner />
+      <XpFloat />
     </div>
   );
 }

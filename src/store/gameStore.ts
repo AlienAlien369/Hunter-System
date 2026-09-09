@@ -163,11 +163,16 @@ interface GameState {
   // overwrite each other's fanfare.
   celebrations: Celebration[];
 
+  // Floating XP notifications for every quest completion (not just milestones)
+  xpFloats: XpFloat[];
+
   // Actions
   loadDashboard: () => Promise<void>;
   completeQuest: (questId: string, date: string) => Promise<void>;
   redoTrack: (track: 'dsa' | 'saas' | 'arch') => Promise<void>;
   dismissCelebration: () => void;
+  pushXpFloat: (amount: number) => void;
+  removeXpFloat: (id: number) => void;
   updateProfile: (updates: Partial<HunterProfile>) => void;
   loadNutrition: (month: string) => Promise<void>;
   logNutrition: (date: string, items: NutritionItem[]) => void;
@@ -207,6 +212,12 @@ export interface Celebration {
   big: boolean;
 }
 
+/** Transient floating XP notification (positive = gain, negative = undo). */
+export interface XpFloat {
+  id: number;
+  amount: number;
+}
+
 // Local storage keys (scoped per user so accounts never see each other's data)
 const STORAGE_KEY = 'hunter_system_v1';
 
@@ -239,6 +250,8 @@ function saveToLocalStorage(state: Partial<GameState>) {
   }
 }
 
+let floatId = 0;
+
 export const useGameStore = create<GameState>((set, get) => ({
   profile: {
     name: 'Hunter',
@@ -263,6 +276,7 @@ export const useGameStore = create<GameState>((set, get) => ({
   error: null,
   apiConnected: false,
   celebrations: [],
+  xpFloats: [],
 
   loadDashboard: async () => {
     set({ loading: true, error: null });
@@ -364,9 +378,10 @@ export const useGameStore = create<GameState>((set, get) => ({
       ? quest.completedDates.length > 0
       : quest.completedDates.includes(date);
 
-    // Sound feedback for the toggle direction
+    // Sound + floating XP feedback for the toggle direction
     if (isCompleted) sfx.undo();
     else sfx.complete();
+    get().pushXpFloat(isCompleted ? -quest.xpReward : quest.xpReward);
 
     // Optimistic update
     const updatedQuests = dailyQuests.map(q => {
@@ -406,6 +421,14 @@ export const useGameStore = create<GameState>((set, get) => ({
   },
 
   dismissCelebration: () => set(s => ({ celebrations: s.celebrations.slice(1) })),
+
+  pushXpFloat: (amount: number) => {
+    floatId += 1;
+    set(s => ({ xpFloats: [...s.xpFloats, { id: floatId, amount }] }));
+  },
+
+  removeXpFloat: (id: number) =>
+    set(s => ({ xpFloats: s.xpFloats.filter(f => f.id !== id) })),
 
   updateProfile: (updates: Partial<HunterProfile>) => {
     set(state => {
