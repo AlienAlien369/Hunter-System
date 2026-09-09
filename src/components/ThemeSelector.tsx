@@ -1,14 +1,14 @@
-import { motion } from 'framer-motion';
-import { useEffect, useRef, useState } from 'react';
-import { useThemeStore, THEMES, applyTheme } from '../store/themeStore';
+import { motion } from "framer-motion";
+import { useEffect, useRef, useState } from "react";
+import { useThemeStore, THEMES, applyTheme } from "../store/themeStore";
 
-type ThemeId = 'purple-monarch' | 'gold' | 'crimson';
-import { sfx } from '../utils/sounds';
-import { createPortal } from 'react-dom';
+type ThemeId = "purple-monarch" | "gold" | "crimson";
+import { sfx } from "../utils/sounds";
+import { createPortal } from "react-dom";
 
 export default function ThemeSelector() {
-  const currentTheme = useThemeStore(s => s.theme);
-  const setTheme = useThemeStore(s => s.setTheme);
+  const currentTheme = useThemeStore((s) => s.theme);
+  const setTheme = useThemeStore((s) => s.setTheme);
   const [open, setOpen] = useState(false);
   const btnRef = useRef<HTMLButtonElement>(null);
 
@@ -29,7 +29,10 @@ export default function ThemeSelector() {
 
   const btnRect = btnRef.current?.getBoundingClientRect();
   const popoverTop = (btnRect?.bottom ?? 0) + 8;
-  const popoverRight = Math.max(8, window.innerWidth - (btnRect?.right ?? window.innerWidth));
+  const popoverRight = Math.max(
+    8,
+    window.innerWidth - (btnRect?.right ?? window.innerWidth),
+  );
 
   return (
     <>
@@ -37,7 +40,7 @@ export default function ThemeSelector() {
         ref={btnRef}
         onClick={() => {
           sfx.click();
-          setOpen(v => !v);
+          setOpen((v) => !v);
         }}
         className="relative p-2 text-gray-400 hover:text-white transition-colors"
         title="Theme settings"
@@ -47,7 +50,7 @@ export default function ThemeSelector() {
           key={currentTheme}
           initial={{ scale: 0.4, opacity: 0, rotate: -30 }}
           animate={{ scale: 1, opacity: 1, rotate: 0 }}
-          transition={{ type: 'spring', stiffness: 500, damping: 20 }}
+          transition={{ type: "spring", stiffness: 500, damping: 20 }}
           className="block text-lg leading-none"
         >
           {currentColors.icon}
@@ -60,7 +63,10 @@ export default function ThemeSelector() {
       {open &&
         createPortal(
           <>
-            <div className="fixed inset-0 z-[70]" onClick={() => setOpen(false)} />
+            <div
+              className="fixed inset-0 z-[70]"
+              onClick={() => setOpen(false)}
+            />
             <motion.div
               initial={{ opacity: 0, y: -6, scale: 0.95 }}
               animate={{ opacity: 1, y: 0, scale: 1 }}
@@ -73,12 +79,17 @@ export default function ThemeSelector() {
               </p>
 
               {/* Current theme preview bar */}
-              <div className="h-10 rounded-lg mb-3 flex items-center justify-center text-lg opacity-80" style={{ background: `linear-gradient(135deg, ${currentColors.gradientStart}, ${currentColors.gradientEnd})` }}>
+              <div
+                className="h-10 rounded-lg mb-3 flex items-center justify-center text-lg opacity-80"
+                style={{
+                  background: `linear-gradient(135deg, ${currentColors.gradientStart}, ${currentColors.gradientEnd})`,
+                }}
+              >
                 {currentColors.icon}
               </div>
 
               <div className="space-y-1.5">
-                {themeList.map(theme => {
+                {themeList.map((theme) => {
                   const isSelected = theme.id === currentTheme;
                   return (
                     <button
@@ -86,18 +97,21 @@ export default function ThemeSelector() {
                       onClick={() => handleSelect(theme.id as ThemeId)}
                       className={`
                         w-full flex items-center gap-3 px-3 py-2.5 rounded-lg transition-all border text-left
-                        ${isSelected
-                          ? 'bg-accent-bg border-accent-border shadow-[0_0_15px_var(--accent-glow)/20]'
-                          : 'bg-transparent border-transparent hover:bg-white/5'
+                        ${
+                          isSelected
+                            ? "bg-accent-bg border-accent-border shadow-[0_0_15px_var(--accent-glow)/20]"
+                            : "bg-transparent border-transparent hover:bg-white/5"
                         }
                       `}
                     >
                       {/* Theme preview dot */}
                       <div
-                        className={`w-8 h-8 rounded-lg flex items-center justify-center text-base transition-transform ${isSelected ? 'scale-110' : ''}`}
+                        className={`w-8 h-8 rounded-lg flex items-center justify-center text-base transition-transform ${isSelected ? "scale-110" : ""}`}
                         style={{
                           background: `linear-gradient(135deg, ${theme.gradientStart}, ${theme.gradientEnd})`,
-                          boxShadow: isSelected ? `0 0 15px ${theme.accentGlow}` : 'none',
+                          boxShadow: isSelected
+                            ? `0 0 15px ${theme.accentGlow}`
+                            : "none",
                         }}
                       >
                         {theme.icon}
@@ -106,7 +120,9 @@ export default function ThemeSelector() {
                       {/* Theme info */}
                       <div className="flex-1 min-w-0">
                         <div className="flex items-center gap-2">
-                          <span className={`text-sm font-mono ${isSelected ? 'text-white font-bold' : 'text-gray-300'}`}>
+                          <span
+                            className={`text-sm font-mono ${isSelected ? "text-white font-bold" : "text-gray-300"}`}
+                          >
                             {theme.name}
                           </span>
                           {isSelected && (
@@ -156,7 +172,7 @@ export default function ThemeSelector() {
               </p>
             </motion.div>
           </>,
-          document.body
+          document.body,
         )}
     </>
   );

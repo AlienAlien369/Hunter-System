@@ -1,11 +1,22 @@
-import { useState } from 'react';
-import { motion, AnimatePresence } from 'framer-motion';
-import { useGameStore } from '../store/gameStore';
-import { ITEMS, RARITY_CONFIG, type Rarity, type InventoryItem } from '../data/items';
+import { useState } from "react";
+import { motion, AnimatePresence } from "framer-motion";
+import { useGameStore } from "../store/gameStore";
+import {
+  ITEMS,
+  RARITY_CONFIG,
+  type Rarity,
+  type InventoryItem,
+} from "../data/items";
 
-const RARITY_ORDER: Rarity[] = ['legendary', 'epic', 'rare', 'common'];
+const RARITY_ORDER: Rarity[] = ["legendary", "epic", "rare", "common"];
 
-function ItemCard({ invItem, onUse }: { invItem: InventoryItem; onUse: (instanceId: string) => void }) {
+function ItemCard({
+  invItem,
+  onUse,
+}: {
+  invItem: InventoryItem;
+  onUse: (instanceId: string) => void;
+}) {
   const def = ITEMS[invItem.itemId];
   if (!def) return null;
   const rarity = RARITY_CONFIG[def.rarity as Rarity];
@@ -25,10 +36,14 @@ function ItemCard({ invItem, onUse }: { invItem: InventoryItem; onUse: (instance
       <div
         className="absolute top-0 left-0 right-0 h-0.5 rounded-t-xl"
         style={{
-          background: def.rarity === 'legendary' ? '#facc15'
-            : def.rarity === 'epic' ? '#a855f7'
-              : def.rarity === 'rare' ? '#3b82f6'
-                : '#6b7280',
+          background:
+            def.rarity === "legendary"
+              ? "#facc15"
+              : def.rarity === "epic"
+                ? "#a855f7"
+                : def.rarity === "rare"
+                  ? "#3b82f6"
+                  : "#6b7280",
         }}
       />
 
@@ -36,12 +51,16 @@ function ItemCard({ invItem, onUse }: { invItem: InventoryItem; onUse: (instance
       <span className="text-3xl block mb-2">{def.icon}</span>
 
       {/* Name */}
-      <p className={`font-display font-bold text-sm leading-tight ${rarity.color}`}>
+      <p
+        className={`font-display font-bold text-sm leading-tight ${rarity.color}`}
+      >
         {def.name}
       </p>
 
       {/* Rarity badge */}
-      <span className={`inline-block mt-1 px-1.5 py-0.5 rounded text-[9px] font-mono ${rarity.color} ${rarity.bg} border ${rarity.borderColor}`}>
+      <span
+        className={`inline-block mt-1 px-1.5 py-0.5 rounded text-[9px] font-mono ${rarity.color} ${rarity.bg} border ${rarity.borderColor}`}
+      >
         {rarity.label}
       </span>
 
@@ -51,14 +70,17 @@ function ItemCard({ invItem, onUse }: { invItem: InventoryItem; onUse: (instance
       </p>
 
       {/* Use hint */}
-      <p className="text-[9px] font-mono text-purple-400/60 mt-2">
-        TAP TO USE
-      </p>
+      <p className="text-[9px] font-mono text-purple-400/60 mt-2">TAP TO USE</p>
     </motion.button>
   );
 }
 
-function TitleCard({ title, isActive, onEquip, onUnequip }: {
+function TitleCard({
+  title,
+  isActive,
+  onEquip,
+  onUnequip,
+}: {
   title: string;
   isActive: boolean;
   onEquip: () => void;
@@ -69,16 +91,19 @@ function TitleCard({ title, isActive, onEquip, onUnequip }: {
       whileHover={{ scale: 1.02 }}
       className={`
         flex items-center justify-between p-3 rounded-xl border transition-all
-        ${isActive
-          ? 'bg-purple-500/15 border-purple-500/40'
-          : 'bg-gray-800/30 border-gray-700/30 hover:border-gray-600/40'
+        ${
+          isActive
+            ? "bg-purple-500/15 border-purple-500/40"
+            : "bg-gray-800/30 border-gray-700/30 hover:border-gray-600/40"
         }
       `}
     >
       <div className="flex items-center gap-3">
         <span className="text-xl">🏷️</span>
         <div>
-          <p className={`font-display text-sm font-bold ${isActive ? 'text-purple-400' : 'text-gray-300'}`}>
+          <p
+            className={`font-display text-sm font-bold ${isActive ? "text-purple-400" : "text-gray-300"}`}
+          >
             {title}
           </p>
           {isActive && (
@@ -90,24 +115,36 @@ function TitleCard({ title, isActive, onEquip, onUnequip }: {
         onClick={isActive ? onUnequip : onEquip}
         className={`px-3 py-1 rounded-lg font-mono text-xs border transition-all ${
           isActive
-            ? 'bg-gray-800/60 text-gray-400 border-gray-700/50 hover:text-white'
-            : 'bg-purple-500/10 text-purple-400 border-purple-500/30 hover:bg-purple-500/20'
+            ? "bg-gray-800/60 text-gray-400 border-gray-700/50 hover:text-white"
+            : "bg-purple-500/10 text-purple-400 border-purple-500/30 hover:bg-purple-500/20"
         }`}
       >
-        {isActive ? 'UNEQUIP' : 'EQUIP'}
+        {isActive ? "UNEQUIP" : "EQUIP"}
       </button>
     </motion.div>
   );
 }
 
 export default function Inventory() {
-  const { inventory, equipped, unlockedTitles, useItem: consumeItem, equipTitle, unequipTitle, deactivateXpBoost } = useGameStore();
-  const [activeTab, setActiveTab] = useState<'items' | 'titles' | 'boost'>('items');
-  const [filterRarity, setFilterRarity] = useState<Rarity | 'all'>('all');
+  const {
+    inventory,
+    equipped,
+    unlockedTitles,
+    useItem: consumeItem,
+    equipTitle,
+    unequipTitle,
+    deactivateXpBoost,
+  } = useGameStore();
+  const [activeTab, setActiveTab] = useState<"items" | "titles" | "boost">(
+    "items",
+  );
+  const [filterRarity, setFilterRarity] = useState<Rarity | "all">("all");
   const [confirmUse, setConfirmUse] = useState<InventoryItem | null>(null);
 
   // Group inventory by item ID and count
-  const grouped = inventory.reduce<Record<string, { item: InventoryItem; count: number }>>((acc, inv) => {
+  const grouped = inventory.reduce<
+    Record<string, { item: InventoryItem; count: number }>
+  >((acc, inv) => {
     if (!acc[inv.itemId]) acc[inv.itemId] = { item: inv, count: 0 };
     acc[inv.itemId].count++;
     return acc;
@@ -118,18 +155,25 @@ export default function Inventory() {
     const idxA = RARITY_ORDER.indexOf(ITEMS[a.item.itemId]?.rarity as Rarity);
     const idxB = RARITY_ORDER.indexOf(ITEMS[b.item.itemId]?.rarity as Rarity);
     if (idxA !== idxB) return idxA - idxB;
-    return (ITEMS[a.item.itemId]?.name ?? '').localeCompare(ITEMS[b.item.itemId]?.name ?? '');
+    return (ITEMS[a.item.itemId]?.name ?? "").localeCompare(
+      ITEMS[b.item.itemId]?.name ?? "",
+    );
   });
 
-  const filteredEntries = filterRarity === 'all'
-    ? sortedEntries
-    : sortedEntries.filter(e => ITEMS[e.item.itemId]?.rarity === filterRarity);
+  const filteredEntries =
+    filterRarity === "all"
+      ? sortedEntries
+      : sortedEntries.filter(
+          (e) => ITEMS[e.item.itemId]?.rarity === filterRarity,
+        );
 
   const handleUse = (item: InventoryItem) => {
     const def = ITEMS[item.itemId];
-    if (def?.category === 'title') {
+    if (def?.category === "title") {
       // Title scrolls: equip/unequip
-      const titleName = unlockedTitles.find(t => t === (def.name.replace('Title: ', '')));
+      const titleName = unlockedTitles.find(
+        (t) => t === def.name.replace("Title: ", ""),
+      );
       if (equipped.title === titleName) {
         unequipTitle();
       } else if (titleName) {
@@ -163,7 +207,7 @@ export default function Inventory() {
             INVENTORY
           </h1>
           <p className="text-gray-400 mt-1 font-mono text-sm">
-            {inventory.length} item{inventory.length !== 1 ? 's' : ''} collected
+            {inventory.length} item{inventory.length !== 1 ? "s" : ""} collected
           </p>
         </div>
 
@@ -174,7 +218,14 @@ export default function Inventory() {
             animate={{ scale: 1, opacity: 1 }}
             className="px-4 py-2 rounded-xl border bg-yellow-500/10 border-yellow-500/30 text-yellow-400 font-mono text-sm"
           >
-            ⚡ {equipped.xpBoost > 2 ? '+200%' : equipped.xpBoost > 1.5 ? '+100%' : '+50%'} XP • {equipped.xpBoostQuestsLeft} quest{equipped.xpBoostQuestsLeft !== 1 ? 's' : ''} left
+            ⚡{" "}
+            {equipped.xpBoost > 2
+              ? "+200%"
+              : equipped.xpBoost > 1.5
+                ? "+100%"
+                : "+50%"}{" "}
+            XP • {equipped.xpBoostQuestsLeft} quest
+            {equipped.xpBoostQuestsLeft !== 1 ? "s" : ""} left
             <button
               onClick={deactivateXpBoost}
               className="ml-2 text-xs text-gray-500 hover:text-white transition-colors"
@@ -187,18 +238,18 @@ export default function Inventory() {
 
       {/* Tabs */}
       <div className="flex gap-1 bg-gray-900/60 rounded-lg p-1 w-fit">
-        {([
-          { id: 'items' as const, label: 'ITEMS', icon: '🎒' },
-          { id: 'titles' as const, label: 'TITLES', icon: '🏷️' },
-          { id: 'boost' as const, label: 'EQUIPPED', icon: '⚡' },
-        ]).map(tab => (
+        {[
+          { id: "items" as const, label: "ITEMS", icon: "🎒" },
+          { id: "titles" as const, label: "TITLES", icon: "🏷️" },
+          { id: "boost" as const, label: "EQUIPPED", icon: "⚡" },
+        ].map((tab) => (
           <button
             key={tab.id}
             onClick={() => setActiveTab(tab.id)}
             className={`px-4 py-2 rounded-md font-display text-xs transition-all ${
               activeTab === tab.id
-                ? 'bg-purple-500/20 text-purple-400 border border-purple-500/30'
-                : 'text-gray-500 hover:text-gray-300 border border-transparent'
+                ? "bg-purple-500/20 text-purple-400 border border-purple-500/30"
+                : "text-gray-500 hover:text-gray-300 border border-transparent"
             }`}
           >
             {tab.icon} {tab.label}
@@ -207,7 +258,7 @@ export default function Inventory() {
       </div>
 
       {/* Items Tab */}
-      {activeTab === 'items' && (
+      {activeTab === "items" && (
         <motion.div
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
@@ -216,22 +267,28 @@ export default function Inventory() {
           {/* Rarity filter */}
           <div className="flex gap-2 flex-wrap">
             <button
-              onClick={() => setFilterRarity('all')}
+              onClick={() => setFilterRarity("all")}
               className={`px-3 py-1 rounded-lg text-xs font-mono transition-all ${
-                filterRarity === 'all' ? 'bg-gray-700/60 text-white' : 'text-gray-500 hover:text-gray-300'
+                filterRarity === "all"
+                  ? "bg-gray-700/60 text-white"
+                  : "text-gray-500 hover:text-gray-300"
               }`}
             >
               All ({inventory.length})
             </button>
-            {RARITY_ORDER.map(r => {
-              const count = inventory.filter(i => ITEMS[i.itemId]?.rarity === r).length;
+            {RARITY_ORDER.map((r) => {
+              const count = inventory.filter(
+                (i) => ITEMS[i.itemId]?.rarity === r,
+              ).length;
               if (count === 0) return null;
               return (
                 <button
                   key={r}
                   onClick={() => setFilterRarity(r)}
                   className={`px-3 py-1 rounded-lg text-xs font-mono transition-all ${
-                    filterRarity === r ? `${RARITY_CONFIG[r].bg} ${RARITY_CONFIG[r].color}` : 'text-gray-500 hover:text-gray-300'
+                    filterRarity === r
+                      ? `${RARITY_CONFIG[r].bg} ${RARITY_CONFIG[r].color}`
+                      : "text-gray-500 hover:text-gray-300"
                   }`}
                 >
                   {RARITY_CONFIG[r].label} ({count})
@@ -245,7 +302,9 @@ export default function Inventory() {
             <div className="text-center py-16">
               <span className="text-4xl block mb-3">🎒</span>
               <p className="text-gray-400 font-mono text-sm">
-                {inventory.length === 0 ? 'No items yet — complete quests to find loot!' : 'No items match this filter.'}
+                {inventory.length === 0
+                  ? "No items yet — complete quests to find loot!"
+                  : "No items match this filter."}
               </p>
             </div>
           ) : (
@@ -266,7 +325,7 @@ export default function Inventory() {
       )}
 
       {/* Titles Tab */}
-      {activeTab === 'titles' && (
+      {activeTab === "titles" && (
         <motion.div
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
@@ -281,13 +340,17 @@ export default function Inventory() {
             </div>
           ) : (
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-              {unlockedTitles.map(title => (
+              {unlockedTitles.map((title) => (
                 <TitleCard
                   key={title}
                   title={title}
                   isActive={equipped.title === title}
                   onEquip={() => {
-                    const scrollId = Object.keys(ITEMS).find(k => ITEMS[k].category === 'title' && ITEMS[k].name === `Title: ${title}`);
+                    const scrollId = Object.keys(ITEMS).find(
+                      (k) =>
+                        ITEMS[k].category === "title" &&
+                        ITEMS[k].name === `Title: ${title}`,
+                    );
                     if (scrollId) equipTitle(scrollId);
                   }}
                   onUnequip={unequipTitle}
@@ -299,24 +362,30 @@ export default function Inventory() {
       )}
 
       {/* Equipped Tab */}
-      {activeTab === 'boost' && (
+      {activeTab === "boost" && (
         <motion.div
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
           className="space-y-4"
         >
           <div className="bg-[#0d1117]/80 backdrop-blur-sm rounded-xl border border-purple-500/20 p-6">
-            <h3 className="font-display text-white font-bold tracking-wider text-sm mb-4">ACTIVE LOADOUT</h3>
+            <h3 className="font-display text-white font-bold tracking-wider text-sm mb-4">
+              ACTIVE LOADOUT
+            </h3>
 
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               {/* Title slot */}
               <div className="p-4 rounded-xl border border-gray-700/30 bg-gray-800/20">
-                <p className="text-[10px] font-mono text-gray-500 tracking-wider mb-2">TITLE</p>
+                <p className="text-[10px] font-mono text-gray-500 tracking-wider mb-2">
+                  TITLE
+                </p>
                 {equipped.title ? (
                   <div className="flex items-center justify-between">
                     <div className="flex items-center gap-2">
                       <span className="text-xl">🏷️</span>
-                      <p className="font-display text-sm font-bold text-purple-400">{equipped.title}</p>
+                      <p className="font-display text-sm font-bold text-purple-400">
+                        {equipped.title}
+                      </p>
                     </div>
                     <button
                       onClick={unequipTitle}
@@ -326,13 +395,17 @@ export default function Inventory() {
                     </button>
                   </div>
                 ) : (
-                  <p className="text-xs text-gray-600 font-mono">No title equipped</p>
+                  <p className="text-xs text-gray-600 font-mono">
+                    No title equipped
+                  </p>
                 )}
               </div>
 
               {/* XP Boost slot */}
               <div className="p-4 rounded-xl border border-gray-700/30 bg-gray-800/20">
-                <p className="text-[10px] font-mono text-gray-500 tracking-wider mb-2">XP BOOST</p>
+                <p className="text-[10px] font-mono text-gray-500 tracking-wider mb-2">
+                  XP BOOST
+                </p>
                 {equipped.xpBoost > 1 && equipped.xpBoostQuestsLeft > 0 ? (
                   <div className="flex items-center justify-between">
                     <div className="flex items-center gap-2">
@@ -342,7 +415,9 @@ export default function Inventory() {
                           +{Math.round((equipped.xpBoost - 1) * 100)}% XP
                         </p>
                         <p className="text-[10px] font-mono text-gray-500">
-                          {equipped.xpBoostQuestsLeft} quest{equipped.xpBoostQuestsLeft !== 1 ? 's' : ''} remaining
+                          {equipped.xpBoostQuestsLeft} quest
+                          {equipped.xpBoostQuestsLeft !== 1 ? "s" : ""}{" "}
+                          remaining
                         </p>
                       </div>
                     </div>
@@ -354,7 +429,9 @@ export default function Inventory() {
                     </button>
                   </div>
                 ) : (
-                  <p className="text-xs text-gray-600 font-mono">No boost active</p>
+                  <p className="text-xs text-gray-600 font-mono">
+                    No boost active
+                  </p>
                 )}
               </div>
             </div>
@@ -388,12 +465,20 @@ export default function Inventory() {
                     return (
                       <>
                         <span className="text-5xl block mb-3">{def.icon}</span>
-                        <p className={`text-[10px] font-mono tracking-widest ${rarity.color} mb-1`}>
+                        <p
+                          className={`text-[10px] font-mono tracking-widest ${rarity.color} mb-1`}
+                        >
                           {rarity.label.toUpperCase()}
                         </p>
-                        <h3 className="text-lg font-display text-white font-bold mb-2">{def.name}</h3>
-                        <p className="text-sm text-gray-400 mb-1">{def.description}</p>
-                        <p className="text-xs text-purple-400 font-mono mb-4">Effect: {def.effect}</p>
+                        <h3 className="text-lg font-display text-white font-bold mb-2">
+                          {def.name}
+                        </h3>
+                        <p className="text-sm text-gray-400 mb-1">
+                          {def.description}
+                        </p>
+                        <p className="text-xs text-purple-400 font-mono mb-4">
+                          Effect: {def.effect}
+                        </p>
                       </>
                     );
                   })()}

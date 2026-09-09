@@ -1,22 +1,22 @@
-import { motion } from 'framer-motion';
-import { useThemeStore, THEMES, applyTheme } from '../store/themeStore';
-import { useSoundStore } from '../store/soundStore';
-import type { SoundPackId } from '../data/soundPacks';
-import { sfx } from '../utils/sounds';
+import { motion } from "framer-motion";
+import { useThemeStore, THEMES, applyTheme } from "../store/themeStore";
+import { useSoundStore } from "../store/soundStore";
+import type { SoundPackId } from "../data/soundPacks";
+import { sfx } from "../utils/sounds";
 
 type ThemeId = keyof typeof THEMES;
 
 export default function Settings() {
-  const currentTheme = useThemeStore(s => s.theme);
-  const setTheme = useThemeStore(s => s.setTheme);
-  const muted = useSoundStore(s => s.muted);
-  const toggleMuted = useSoundStore(s => s.toggleMuted);
-  const celebrateSound = useSoundStore(s => s.celebrateSound);
-  const toggleCelebrateSound = useSoundStore(s => s.toggleCelebrateSound);
-  const themeMusic = useSoundStore(s => s.themeMusic);
-  const toggleThemeMusic = useSoundStore(s => s.toggleThemeMusic);
-  const soundPack = useSoundStore(s => s.soundPack);
-  const setSoundPack = useSoundStore(s => s.setSoundPack);
+  const currentTheme = useThemeStore((s) => s.theme);
+  const setTheme = useThemeStore((s) => s.setTheme);
+  const muted = useSoundStore((s) => s.muted);
+  const toggleMuted = useSoundStore((s) => s.toggleMuted);
+  const celebrateSound = useSoundStore((s) => s.celebrateSound);
+  const toggleCelebrateSound = useSoundStore((s) => s.toggleCelebrateSound);
+  const themeMusic = useSoundStore((s) => s.themeMusic);
+  const toggleThemeMusic = useSoundStore((s) => s.toggleThemeMusic);
+  const soundPack = useSoundStore((s) => s.soundPack);
+  const setSoundPack = useSoundStore((s) => s.setSoundPack);
 
   const handleThemeChange = (themeId: ThemeId) => {
     sfx.click();
@@ -78,7 +78,7 @@ export default function Settings() {
           </div>
 
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-            {Object.values(THEMES).map(theme => {
+            {Object.values(THEMES).map((theme) => {
               const isSelected = theme.id === currentTheme;
               return (
                 <button
@@ -86,18 +86,21 @@ export default function Settings() {
                   onClick={() => handleThemeChange(theme.id as ThemeId)}
                   className={`
                     relative group flex items-center gap-4 p-4 rounded-xl border-2 transition-all text-left
-                    ${isSelected
-                      ? 'border-accent bg-accent-bg/30 shadow-[0_0_20px_var(--accent-glow)/20]'
-                      : 'border-transparent bg-[#1a1f2e]/50 hover:bg-[#1a1f2e]/80 hover:border-gray-700'
+                    ${
+                      isSelected
+                        ? "border-accent bg-accent-bg/30 shadow-[0_0_20px_var(--accent-glow)/20]"
+                        : "border-transparent bg-[#1a1f2e]/50 hover:bg-[#1a1f2e]/80 hover:border-gray-700"
                     }
                   `}
                 >
                   {/* Theme preview */}
                   <div
-                    className={`w-12 h-12 rounded-xl flex items-center justify-center text-2xl transition-transform ${isSelected ? 'scale-110' : 'group-hover:scale-105'}`}
+                    className={`w-12 h-12 rounded-xl flex items-center justify-center text-2xl transition-transform ${isSelected ? "scale-110" : "group-hover:scale-105"}`}
                     style={{
                       background: `linear-gradient(135deg, ${theme.gradientStart}, ${theme.gradientEnd})`,
-                      boxShadow: isSelected ? `0 0 20px ${theme.accentGlow}` : 'none',
+                      boxShadow: isSelected
+                        ? `0 0 20px ${theme.accentGlow}`
+                        : "none",
                     }}
                   >
                     {theme.icon}
@@ -106,7 +109,9 @@ export default function Settings() {
                   {/* Theme info */}
                   <div className="flex-1 min-w-0">
                     <div className="flex items-center justify-between">
-                      <span className={`text-sm font-display font-bold ${isSelected ? 'text-white' : 'text-gray-300'}`}>
+                      <span
+                        className={`text-sm font-display font-bold ${isSelected ? "text-white" : "text-gray-300"}`}
+                      >
                         {theme.name}
                       </span>
                       {isSelected && (
@@ -137,19 +142,20 @@ export default function Settings() {
                   </div>
 
                   {/* Checkmark */}
-                  {isSelected && (
-                    <div className="text-accent text-lg">✓</div>
-                  )}
+                  {isSelected && <div className="text-accent text-lg">✓</div>}
                 </button>
               );
             })}
           </div>
 
           {/* Theme preview bar */}
-          <div className="mt-4 p-3 rounded-lg" style={{ 
-            background: `linear-gradient(135deg, ${currentColors.gradientStart}, ${currentColors.gradientEnd})`,
-            opacity: 0.3
-          }}>
+          <div
+            className="mt-4 p-3 rounded-lg"
+            style={{
+              background: `linear-gradient(135deg, ${currentColors.gradientStart}, ${currentColors.gradientEnd})`,
+              opacity: 0.3,
+            }}
+          >
             <div className="flex items-center justify-between text-xs font-mono">
               <span className="text-white/70">CURRENT ACCENT</span>
               <span className="text-white font-bold">{currentColors.name}</span>
@@ -173,9 +179,7 @@ export default function Settings() {
             <h2 className="text-white font-display font-bold tracking-wider">
               SOUND
             </h2>
-            <p className="text-xs text-gray-500 font-mono">
-              Audio preferences
-            </p>
+            <p className="text-xs text-gray-500 font-mono">Audio preferences</p>
           </div>
         </div>
 
@@ -189,20 +193,22 @@ export default function Settings() {
             className="w-full flex items-center justify-between px-4 py-3 rounded-lg hover:bg-white/5 transition-colors group"
           >
             <div className="flex items-center space-x-3">
-              <span className="text-xl">{muted ? '🔇' : '🔊'}</span>
+              <span className="text-xl">{muted ? "🔇" : "🔊"}</span>
               <div>
                 <span className="text-sm text-white font-mono">All Sounds</span>
-                <p className="text-xs text-gray-500 font-mono">Master volume toggle</p>
+                <p className="text-xs text-gray-500 font-mono">
+                  Master volume toggle
+                </p>
               </div>
             </div>
             <motion.span
-              key={muted ? 'off' : 'on'}
+              key={muted ? "off" : "on"}
               initial={{ scale: 0 }}
               animate={{ scale: 1 }}
-              className={`w-10 h-5 rounded-full transition-colors ${muted ? 'bg-gray-700' : 'bg-accent'}`}
+              className={`w-10 h-5 rounded-full transition-colors ${muted ? "bg-gray-700" : "bg-accent"}`}
             >
               <motion.span
-                key={muted ? 'off' : 'on'}
+                key={muted ? "off" : "on"}
                 initial={{ x: muted ? 0 : 16 }}
                 animate={{ x: muted ? 0 : 16 }}
                 className="absolute top-0.5 w-4 h-4 rounded-full bg-white shadow"
@@ -218,17 +224,25 @@ export default function Settings() {
               if (!celebrateSound && !muted) sfx.levelUp();
             }}
             disabled={muted}
-            className={`w-full flex items-center justify-between px-4 py-3 rounded-lg transition-colors group ${muted ? 'opacity-50 cursor-not-allowed' : 'hover:bg-white/5'}`}
+            className={`w-full flex items-center justify-between px-4 py-3 rounded-lg transition-colors group ${muted ? "opacity-50 cursor-not-allowed" : "hover:bg-white/5"}`}
           >
             <div className="flex items-center space-x-3">
               <span className="text-xl">🎺</span>
               <div>
-                <span className="text-sm text-white font-mono">Milestone Chime</span>
-                <p className="text-xs text-gray-500 font-mono">Level-up / rank-up fanfare</p>
+                <span className="text-sm text-white font-mono">
+                  Milestone Chime
+                </span>
+                <p className="text-xs text-gray-500 font-mono">
+                  Level-up / rank-up fanfare
+                </p>
               </div>
             </div>
-            <div className={`w-10 h-5 rounded-full transition-colors ${celebrateSound && !muted ? 'bg-accent' : 'bg-gray-700'}`}>
-              <div className={`absolute top-0.5 w-4 h-4 rounded-full bg-white shadow transition-all ${celebrateSound && !muted ? 'left-[16px]' : 'left-0.5'}`} />
+            <div
+              className={`w-10 h-5 rounded-full transition-colors ${celebrateSound && !muted ? "bg-accent" : "bg-gray-700"}`}
+            >
+              <div
+                className={`absolute top-0.5 w-4 h-4 rounded-full bg-white shadow transition-all ${celebrateSound && !muted ? "left-[16px]" : "left-0.5"}`}
+              />
             </div>
           </button>
 
@@ -241,28 +255,45 @@ export default function Settings() {
               else if (!muted) sfx.startTheme();
             }}
             disabled={muted}
-            className={`w-full flex items-center justify-between px-4 py-3 rounded-lg transition-colors group ${muted ? 'opacity-50 cursor-not-allowed' : 'hover:bg-white/5'}`}
+            className={`w-full flex items-center justify-between px-4 py-3 rounded-lg transition-colors group ${muted ? "opacity-50 cursor-not-allowed" : "hover:bg-white/5"}`}
           >
             <div className="flex items-center space-x-3">
               <span className="text-xl">🎵</span>
               <div>
-                <span className="text-sm text-white font-mono">Theme Music</span>
-                <p className="text-xs text-gray-500 font-mono">Background soundtrack</p>
+                <span className="text-sm text-white font-mono">
+                  Theme Music
+                </span>
+                <p className="text-xs text-gray-500 font-mono">
+                  Background soundtrack
+                </p>
               </div>
             </div>
-            <div className={`w-10 h-5 rounded-full transition-colors ${themeMusic && !muted ? 'bg-accent' : 'bg-gray-700'}`}>
-              <div className={`absolute top-0.5 w-4 h-4 rounded-full bg-white shadow transition-all ${themeMusic && !muted ? 'left-[16px]' : 'left-0.5'}`} />
+            <div
+              className={`w-10 h-5 rounded-full transition-colors ${themeMusic && !muted ? "bg-accent" : "bg-gray-700"}`}
+            >
+              <div
+                className={`absolute top-0.5 w-4 h-4 rounded-full bg-white shadow transition-all ${themeMusic && !muted ? "left-[16px]" : "left-0.5"}`}
+              />
             </div>
           </button>
 
           {/* Sound Pack Selector */}
-          <div className={`pt-3 border-t border-gray-800 ${muted ? 'opacity-50' : ''}`}>
+          <div
+            className={`pt-3 border-t border-gray-800 ${muted ? "opacity-50" : ""}`}
+          >
             <div className="flex items-center space-x-3 mb-3">
               <span className="text-xl">🎶</span>
               <span className="text-sm text-white font-mono">Sound Pack</span>
             </div>
             <div className="grid grid-cols-2 gap-2">
-              {(['solo-leveling', 'dark-souls', 'celeste', 'no-sfx'] as SoundPackId[]).map(pack => (
+              {(
+                [
+                  "solo-leveling",
+                  "dark-souls",
+                  "celeste",
+                  "no-sfx",
+                ] as SoundPackId[]
+              ).map((pack) => (
                 <button
                   key={pack}
                   onClick={() => {
@@ -276,17 +307,24 @@ export default function Settings() {
                   disabled={muted}
                   className={`
                     px-4 py-3 rounded-lg text-left transition-all border
-                    ${soundPack === pack
-                      ? 'bg-accent-bg border-accent border-accent-border text-white'
-                      : 'bg-[#1a1f2e]/50 border-gray-800 text-gray-400 hover:bg-[#1a1f2e]/80'
+                    ${
+                      soundPack === pack
+                        ? "bg-accent-bg border-accent border-accent-border text-white"
+                        : "bg-[#1a1f2e]/50 border-gray-800 text-gray-400 hover:bg-[#1a1f2e]/80"
                     }
                   `}
                 >
                   <span className="text-lg block">
-                    {pack === 'solo-leveling' ? '⚔️' : pack === 'dark-souls' ? '💀' : pack === 'celeste' ? '🌌' : '🔇'}
+                    {pack === "solo-leveling"
+                      ? "⚔️"
+                      : pack === "dark-souls"
+                        ? "💀"
+                        : pack === "celeste"
+                          ? "🌌"
+                          : "🔇"}
                   </span>
                   <span className="text-xs font-mono block mt-1 capitalize">
-                    {pack.replace('-', ' ')}
+                    {pack.replace("-", " ")}
                   </span>
                 </button>
               ))}
@@ -323,16 +361,22 @@ export default function Settings() {
           </div>
           <div className="flex justify-between">
             <span className="text-gray-400 font-mono">Theme</span>
-            <span className="text-accent-text font-mono">{currentColors.name}</span>
+            <span className="text-accent-text font-mono">
+              {currentColors.name}
+            </span>
           </div>
           <div className="flex justify-between">
             <span className="text-gray-400 font-mono">Sound Pack</span>
-            <span className="text-white font-mono capitalize">{soundPack.replace('-', ' ')}</span>
+            <span className="text-white font-mono capitalize">
+              {soundPack.replace("-", " ")}
+            </span>
           </div>
           <div className="flex justify-between">
             <span className="text-gray-400 font-mono">Audio Status</span>
-            <span className={`font-mono ${muted ? 'text-red-400' : 'text-green-400'}`}>
-              {muted ? 'Muted' : 'Enabled'}
+            <span
+              className={`font-mono ${muted ? "text-red-400" : "text-green-400"}`}
+            >
+              {muted ? "Muted" : "Enabled"}
             </span>
           </div>
         </div>

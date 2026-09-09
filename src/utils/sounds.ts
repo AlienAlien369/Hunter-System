@@ -1,5 +1,5 @@
-import { useSoundStore } from '../store/soundStore';
-import { SOUND_PACKS, type SfxParams } from '../data/soundPacks';
+import { useSoundStore } from "../store/soundStore";
+import { SOUND_PACKS, type SfxParams } from "../data/soundPacks";
 
 type OscType = OscillatorType;
 
@@ -20,22 +20,32 @@ class SFXEngine {
 
   /** Get the currently active sound pack config. */
   private getPack() {
-    return SOUND_PACKS[useSoundStore.getState().soundPack] || SOUND_PACKS['solo-leveling'];
+    return (
+      SOUND_PACKS[useSoundStore.getState().soundPack] ||
+      SOUND_PACKS["solo-leveling"]
+    );
   }
 
   /** Play a list of SFX params from the current pack. */
   private playPackSfx(params: SfxParams[]) {
     const pack = this.getPack();
     if (pack.sfxDisabled) return;
-    params.forEach(p => {
-      this.tone(p.freq, p.delay ?? 0, p.dur, { type: p.type, vol: p.vol, glideTo: p.glideTo });
+    params.forEach((p) => {
+      this.tone(p.freq, p.delay ?? 0, p.dur, {
+        type: p.type,
+        vol: p.vol,
+        glideTo: p.glideTo,
+      });
     });
   }
 
   /** Create (and resume) the AudioContext, ignoring the mute toggle. */
   private rawCtx(): AudioContext | null {
     if (!this.ctx) {
-      const Ctx = window.AudioContext || (window as unknown as { webkitAudioContext?: typeof AudioContext }).webkitAudioContext;
+      const Ctx =
+        window.AudioContext ||
+        (window as unknown as { webkitAudioContext?: typeof AudioContext })
+          .webkitAudioContext;
       if (!Ctx) return null;
       this.ctx = new Ctx();
       this.master = this.ctx.createGain();
@@ -48,12 +58,16 @@ class SFXEngine {
       this.themeGain.connect(this.master);
 
       // 1s of white noise, reused for percussion + the system-window whoosh.
-      const buf = this.ctx.createBuffer(1, this.ctx.sampleRate, this.ctx.sampleRate);
+      const buf = this.ctx.createBuffer(
+        1,
+        this.ctx.sampleRate,
+        this.ctx.sampleRate,
+      );
       const data = buf.getChannelData(0);
       for (let i = 0; i < data.length; i++) data[i] = Math.random() * 2 - 1;
       this.noiseBuffer = buf;
     }
-    if (this.ctx.state === 'suspended') {
+    if (this.ctx.state === "suspended") {
       this.ctx.resume().catch(() => {});
     }
     return this.ctx;
@@ -72,7 +86,7 @@ class SFXEngine {
   ) {
     const ctx = this.ensure();
     if (!ctx || !this.master) return;
-    const { type = 'sine', vol = 1, glideTo } = opts;
+    const { type = "sine", vol = 1, glideTo } = opts;
     const osc = ctx.createOscillator();
     const gain = ctx.createGain();
     const t = ctx.currentTime + startAt;
@@ -90,25 +104,40 @@ class SFXEngine {
   }
 
   /** Subtle UI tick for navigation and button presses. */
-  click() { this.playPackSfx(this.getPack().click); }
+  click() {
+    this.playPackSfx(this.getPack().click);
+  }
 
   /** Quest completed. */
-  complete() { this.playPackSfx(this.getPack().complete); }
+  complete() {
+    this.playPackSfx(this.getPack().complete);
+  }
 
   /** Quest un-marked. */
-  undo() { this.playPackSfx(this.getPack().undo); }
+  undo() {
+    this.playPackSfx(this.getPack().undo);
+  }
 
   /** Level up. */
-  levelUp() { this.playPackSfx(this.getPack().levelUp); }
+  levelUp() {
+    this.playPackSfx(this.getPack().levelUp);
+  }
 
   /** Rank up. */
-  rankUp() { this.playPackSfx(this.getPack().rankUp); }
+  rankUp() {
+    this.playPackSfx(this.getPack().rankUp);
+  }
 
   /** Level + rank at once — plays both rankUp and levelUp. */
-  doubleUp() { this.rankUp(); setTimeout(() => this.levelUp(), 300); }
+  doubleUp() {
+    this.rankUp();
+    setTimeout(() => this.levelUp(), 300);
+  }
 
   /** Track reset. */
-  redo() { this.playPackSfx(this.getPack().redo); }
+  redo() {
+    this.playPackSfx(this.getPack().redo);
+  }
 
   /** Successful login. */
   login() {
@@ -117,7 +146,9 @@ class SFXEngine {
   }
 
   /** Logout. */
-  logout() { this.playPackSfx(this.getPack().logout); }
+  logout() {
+    this.playPackSfx(this.getPack().logout);
+  }
 
   /** Hidden quest reveal. */
   hiddenQuest() {
@@ -127,13 +158,19 @@ class SFXEngine {
   }
 
   /** Penalty. */
-  penalty() { this.playPackSfx(this.getPack().penalty); }
+  penalty() {
+    this.playPackSfx(this.getPack().penalty);
+  }
 
   /** Penalty recovered. */
-  recovery() { this.playPackSfx(this.getPack().recovery); }
+  recovery() {
+    this.playPackSfx(this.getPack().recovery);
+  }
 
   /** New notification. */
-  notification() { this.playPackSfx(this.getPack().notification); }
+  notification() {
+    this.playPackSfx(this.getPack().notification);
+  }
 
   /**
    * Solo Leveling-style "system window" opening — a soft airy whoosh that
@@ -149,7 +186,7 @@ class SFXEngine {
       const src = ctx.createBufferSource();
       src.buffer = this.noiseBuffer;
       const f = ctx.createBiquadFilter();
-      f.type = 'bandpass';
+      f.type = "bandpass";
       f.Q.value = 1.2;
       f.frequency.setValueAtTime(350, t);
       f.frequency.exponentialRampToValueAtTime(2600, t + 0.3);
@@ -173,7 +210,7 @@ class SFXEngine {
     if (!ctx || !out) return;
     partials.forEach((ratio, i) => {
       const osc = ctx.createOscillator();
-      osc.type = 'sine';
+      osc.type = "sine";
       osc.frequency.value = base * ratio;
       const g = ctx.createGain();
       const pVol = vol / (1 + i * 0.55);
@@ -204,7 +241,10 @@ class SFXEngine {
     if (this.themeGain) {
       this.themeGain.gain.cancelScheduledValues(ctx.currentTime);
       this.themeGain.gain.setValueAtTime(0.0001, ctx.currentTime);
-      this.themeGain.gain.exponentialRampToValueAtTime(0.6, ctx.currentTime + 2.5);
+      this.themeGain.gain.exponentialRampToValueAtTime(
+        0.6,
+        ctx.currentTime + 2.5,
+      );
     }
     this.scheduleThemeBar();
   }
@@ -218,8 +258,14 @@ class SFXEngine {
     const ctx = this.ctx;
     if (ctx && this.themeGain) {
       this.themeGain.gain.cancelScheduledValues(ctx.currentTime);
-      this.themeGain.gain.setValueAtTime(Math.max(this.themeGain.gain.value, 0.0001), ctx.currentTime);
-      this.themeGain.gain.exponentialRampToValueAtTime(0.0001, ctx.currentTime + 0.8);
+      this.themeGain.gain.setValueAtTime(
+        Math.max(this.themeGain.gain.value, 0.0001),
+        ctx.currentTime,
+      );
+      this.themeGain.gain.exponentialRampToValueAtTime(
+        0.0001,
+        ctx.currentTime + 0.8,
+      );
     }
   }
 
@@ -238,7 +284,10 @@ class SFXEngine {
     const barDur = (60 / pack.themeBpm) * 4;
     this.themeNextBarTime += barDur;
     this.themeChordIndex += 1;
-    const delay = Math.max(0, (this.themeNextBarTime - 0.35 - this.ctx.currentTime) * 1000);
+    const delay = Math.max(
+      0,
+      (this.themeNextBarTime - 0.35 - this.ctx.currentTime) * 1000,
+    );
     this.themeTimer = window.setTimeout(this.scheduleThemeBar, delay);
   };
 
@@ -252,8 +301,8 @@ class SFXEngine {
     // Harmony: deep drone, bass, string pads and choral "ahh".
     this.themeDrone(chord.drone, t, twoBars + 0.4);
     this.themeBass(chord.root, t, twoBars);
-    chord.pad.forEach(f => this.themePad(f, t, twoBars));
-    chord.choir.forEach(f => this.themeChoir(f, t, twoBars));
+    chord.pad.forEach((f) => this.themePad(f, t, twoBars));
+    chord.choir.forEach((f) => this.themeChoir(f, t, twoBars));
 
     // Orchestral hit on every harmony change.
     this.themeHit(t);
@@ -277,7 +326,7 @@ class SFXEngine {
     const out = this.themeGain;
     if (!ctx || !out) return;
     const osc = ctx.createOscillator();
-    osc.type = 'sine';
+    osc.type = "sine";
     osc.frequency.value = freq;
     const g = ctx.createGain();
     g.gain.setValueAtTime(0.0001, t);
@@ -294,10 +343,10 @@ class SFXEngine {
     const out = this.themeGain;
     if (!ctx || !out) return;
     const osc = ctx.createOscillator();
-    osc.type = 'sawtooth';
+    osc.type = "sawtooth";
     osc.frequency.value = freq;
     const f = ctx.createBiquadFilter();
-    f.type = 'lowpass';
+    f.type = "lowpass";
     f.frequency.value = 320;
     const g = ctx.createGain();
     g.gain.setValueAtTime(0.0001, t);
@@ -314,7 +363,7 @@ class SFXEngine {
     const out = this.themeGain;
     if (!ctx || !out) return;
     const f = ctx.createBiquadFilter();
-    f.type = 'lowpass';
+    f.type = "lowpass";
     f.frequency.value = Math.min(1400, freq * 5);
     f.Q.value = 0.5;
     const g = ctx.createGain();
@@ -322,9 +371,9 @@ class SFXEngine {
     g.gain.exponentialRampToValueAtTime(0.16, t + 0.9);
     g.gain.setValueAtTime(0.16, t + dur - 0.7);
     g.gain.exponentialRampToValueAtTime(0.0001, t + dur);
-    [1.003, 0.997].forEach(det => {
+    [1.003, 0.997].forEach((det) => {
       const osc = ctx.createOscillator();
-      osc.type = 'sawtooth';
+      osc.type = "sawtooth";
       osc.frequency.value = freq * det;
       osc.connect(f);
       osc.start(t);
@@ -338,7 +387,7 @@ class SFXEngine {
     const out = this.themeGain;
     if (!ctx || !out) return;
     const osc = ctx.createOscillator();
-    osc.type = 'sawtooth';
+    osc.type = "sawtooth";
     osc.frequency.value = freq;
     const lfo = ctx.createOscillator();
     lfo.frequency.value = 5.2;
@@ -346,7 +395,7 @@ class SFXEngine {
     lfoGain.gain.value = 3.5;
     lfo.connect(lfoGain).connect(osc.frequency);
     const f = ctx.createBiquadFilter();
-    f.type = 'bandpass';
+    f.type = "bandpass";
     f.frequency.value = freq * 2.2;
     f.Q.value = 0.7;
     const g = ctx.createGain();
@@ -366,11 +415,11 @@ class SFXEngine {
     const out = this.themeGain;
     if (!ctx || !out) return;
     const osc = ctx.createOscillator();
-    osc.type = 'sawtooth';
+    osc.type = "sawtooth";
     osc.frequency.setValueAtTime(160, t);
     osc.frequency.exponentialRampToValueAtTime(55, t + 0.5);
     const f = ctx.createBiquadFilter();
-    f.type = 'lowpass';
+    f.type = "lowpass";
     f.frequency.value = 500;
     const g = ctx.createGain();
     g.gain.setValueAtTime(0.0001, t);
@@ -386,7 +435,7 @@ class SFXEngine {
     const out = this.themeGain;
     if (!ctx || !out) return;
     const osc = ctx.createOscillator();
-    osc.type = 'sine';
+    osc.type = "sine";
     osc.frequency.setValueAtTime(150, t);
     osc.frequency.exponentialRampToValueAtTime(48, t + 0.12);
     const g = ctx.createGain();
@@ -404,7 +453,7 @@ class SFXEngine {
     const src = ctx.createBufferSource();
     src.buffer = this.noiseBuffer;
     const f = ctx.createBiquadFilter();
-    f.type = 'bandpass';
+    f.type = "bandpass";
     f.frequency.value = 1800;
     f.Q.value = 0.8;
     const g = ctx.createGain();
@@ -422,7 +471,7 @@ class SFXEngine {
     const src = ctx.createBufferSource();
     src.buffer = this.noiseBuffer;
     const f = ctx.createBiquadFilter();
-    f.type = 'highpass';
+    f.type = "highpass";
     f.frequency.value = 6000;
     const g = ctx.createGain();
     g.gain.setValueAtTime(0.05, t);
