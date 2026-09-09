@@ -2,6 +2,7 @@ import { useEffect, useMemo, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useGameStore } from '../store/gameStore';
 import type { Celebration } from '../store/gameStore';
+import { useSoundStore } from '../store/soundStore';
 import { sfx } from '../utils/sounds';
 
 const RANK_NAMES: Record<string, string> = {
@@ -300,21 +301,23 @@ function BigCelebrationOverlay({ celebration, pending, onDismiss }: { celebratio
 export default function CelebrationBanner() {
   const celebrations = useGameStore(s => s.celebrations);
   const dismissCelebration = useGameStore(s => s.dismissCelebration);
+  const celebrateSound = useSoundStore(s => s.celebrateSound);
   const lastPlayed = useRef<Celebration | null>(null);
   const current = celebrations[0];
   const pending = Math.max(celebrations.length - 1, 0);
 
   // Play the fanfare once per celebration that reaches the front of the queue
-  // (ref guards against StrictMode double-fire)
+  // (ref guards against StrictMode double-fire; gated by the milestone-chime toggle)
   useEffect(() => {
     if (!current) return;
     if (lastPlayed.current === current) return;
     lastPlayed.current = current;
+    if (!celebrateSound) return;
 
     if (current.type === 'level') sfx.levelUp();
     else if (current.type === 'rank') sfx.rankUp();
     else sfx.doubleUp();
-  }, [current]);
+  }, [current, celebrateSound]);
 
   // Auto-dismiss the front of the queue after 5 seconds
   useEffect(() => {
