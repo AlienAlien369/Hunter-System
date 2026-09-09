@@ -49,10 +49,11 @@ export async function initDatabase() {
 
       CREATE TABLE IF NOT EXISTS quest_completions (
         id SERIAL PRIMARY KEY,
+        user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
         quest_id INTEGER NOT NULL REFERENCES quests(id) ON DELETE CASCADE,
         completion_date DATE NOT NULL,
         completed_at TIMESTAMP NOT NULL DEFAULT NOW(),
-        UNIQUE(quest_id, completion_date)
+        UNIQUE(user_id, quest_id, completion_date)
       );
 
       CREATE TABLE IF NOT EXISTS rank_history (
@@ -79,7 +80,18 @@ export async function initDatabase() {
       CREATE INDEX IF NOT EXISTS idx_quest_completions_quest ON quest_completions(quest_id);
       CREATE INDEX IF NOT EXISTS idx_rank_history_user ON rank_history(user_id);
       CREATE INDEX IF NOT EXISTS idx_users_username ON users(username);
+
     `);
+
+    // Idempotent migration: scope quest completions to a user (existing databases)
+    await client.query('ALTER TABLE quest_completions ADD COLUMN IF NOT EXISTS user_id INTEGER REFERENCES users(id) ON DELETE CASCADE');
+    const demoUser = await client.query('SELECT id FROM users WHERE username = $1 LIMIT 1', ['demo_user']);
+    await client.query('UPDATE quest_completions SET user_id = $1 WHERE user_id IS NULL', [demoUser.rows[0]?.id ?? 1]);
+    await client.query('ALTER TABLE quest_completions ALTER COLUMN user_id SET NOT NULL');
+    await client.query('ALTER TABLE quest_completions DROP CONSTRAINT IF EXISTS quest_completions_quest_id_completion_date_key');
+    await client.query('ALTER TABLE quest_completions DROP CONSTRAINT IF EXISTS quest_completions_user_quest_date_key');
+    await client.query('ALTER TABLE quest_completions ADD CONSTRAINT quest_completions_user_quest_date_key UNIQUE (user_id, quest_id, completion_date)');
+    await client.query('CREATE INDEX IF NOT EXISTS idx_quest_completions_user ON quest_completions(user_id)');
 
     // Seed default quests (idempotent: fills in any missing quests on every boot)
     const defaultQuests = [

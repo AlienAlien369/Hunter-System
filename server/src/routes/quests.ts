@@ -1,22 +1,23 @@
 import { Router, Request, Response } from 'express';
 import { pool } from '../db.js';
-import { authenticateToken } from '../middleware/auth.js';
+import { authenticateToken, optionalAuth } from '../middleware/auth.js';
 
 const router = Router();
 
-// GET /api/quests - List all quests (with completion history)
-router.get('/', async (req: Request, res: Response) => {
+// GET /api/quests - List all quests (with the current user's completion history)
+router.get('/', optionalAuth, async (req: Request, res: Response) => {
   try {
     const { category, completed } = req.query;
+    const userId = req.user?.id ?? null;
     let query = `
       SELECT q.*, COALESCE(
         json_agg(json_build_object('completion_date', qc.completion_date) ORDER BY qc.completion_date)
           FILTER (WHERE qc.id IS NOT NULL), '[]'
       ) AS completions
       FROM quests q
-      LEFT JOIN quest_completions qc ON qc.quest_id = q.id
+      LEFT JOIN quest_completions qc ON qc.quest_id = q.id AND qc.user_id = $1
     `;
-    const params: any[] = [];
+    const params: any[] = [userId];
     const conditions: string[] = [];
 
     if (category) {
@@ -39,10 +40,11 @@ router.get('/', async (req: Request, res: Response) => {
   }
 });
 
-// GET /api/quests/:id - Get single quest with completion status
-router.get('/:id', async (req: Request, res: Response) => {
+// GET /api/quests/:id - Get single quest with the current user's completion status
+router.get('/:id', optionalAuth, async (req: Request, res: Response) => {
   try {
     const { id } = req.params;
+    const userId = req.user?.id ?? null;
     const result = await pool.query('SELECT * FROM quests WHERE quest_id = $1', [id]);
 
     if (result.rows.length === 0) {
@@ -51,13 +53,13 @@ router.get('/:id', async (req: Request, res: Response) => {
 
     const quest = result.rows[0];
 
-    // Get completions for the last 30 days
+    // Get completions for the last 30 days (scoped to the current user)
     const thirtyDaysAgo = new Date();
     thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
     const completions = await pool.query(
       `SELECT completion_date FROM quest_completions
-       WHERE quest_id = $1 AND completion_date >= $2`,
-      [quest.id, thirtyDaysAgo]
+       WHERE quest_id = $1 AND completion_date >= $2 AND ($3::int IS NULL OR user_id = $3)`,
+      [quest.id, thirtyDaysAgo, userId]
     );
 
     res.json({ ...quest, completions: completions.rows });
@@ -90,10 +92,12 @@ router.patch('/:id/complete', authenticateToken, async (req: Request, res: Respo
     const userId = req.user?.id;
     const today = new Date().toISOString().split('T')[0];
 
-    // Check if already completed
+    // Check if already completed by this user
     const existing = await pool.query(
-      'SELECT id FROM quest_completions WHERE quest_id = (SELECT id FROM quests WHERE quest_id = $1) AND completion_date = $2',
-      [id, today]
+      `SELECT qc.id FROM quest_completions qc
+       JOIN quests q ON qc.quest_id = q.id
+       WHERE qc.user_id = $1 AND q.quest_id = $2 AND qc.completion_date = $3`,
+      [userId, id, today]
     );
 
     if (existing.rows.length > 0) {
@@ -116,8 +120,8 @@ router.patch('/:id/complete', authenticateToken, async (req: Request, res: Respo
       }
 
       await pool.query(
-        'INSERT INTO quest_completions (quest_id, completion_date) VALUES ($1, $2)',
-        [quest.rows[0].id, today]
+        'INSERT INTO quest_completions (user_id, quest_id, completion_date) VALUES ($1, $2, $3)',
+        [userId, quest.rows[0].id, today]
       );
 
       // Add XP to user

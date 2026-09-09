@@ -31,13 +31,14 @@ CREATE TABLE IF NOT EXISTS quests (
   created_at TIMESTAMP NOT NULL DEFAULT NOW()
 );
 
--- Quest completions table
+-- Quest completions table (per-user: each user has their own completions)
 CREATE TABLE IF NOT EXISTS quest_completions (
   id SERIAL PRIMARY KEY,
+  user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
   quest_id INTEGER NOT NULL REFERENCES quests(id) ON DELETE CASCADE,
   completion_date DATE NOT NULL,
   completed_at TIMESTAMP NOT NULL DEFAULT NOW(),
-  UNIQUE(quest_id, completion_date)
+  UNIQUE(user_id, quest_id, completion_date)
 );
 
 -- Rank history table
@@ -64,6 +65,7 @@ CREATE TABLE IF NOT EXISTS daily_stats (
 -- Create indexes
 CREATE INDEX IF NOT EXISTS idx_quest_completions_date ON quest_completions(completion_date);
 CREATE INDEX IF NOT EXISTS idx_quest_completions_quest ON quest_completions(quest_id);
+CREATE INDEX IF NOT EXISTS idx_quest_completions_user ON quest_completions(user_id);
 CREATE INDEX IF NOT EXISTS idx_rank_history_user ON rank_history(user_id);
 CREATE INDEX IF NOT EXISTS idx_users_username ON users(username);
 

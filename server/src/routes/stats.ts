@@ -25,8 +25,8 @@ router.get('/', authenticateToken, async (req: Request, res: Response) => {
               COUNT(qc.id) as quests_completed
        FROM quest_completions qc
        JOIN quests q ON qc.quest_id = q.id
-       WHERE qc.completion_date = $1`,
-      [today]
+       WHERE qc.completion_date = $1 AND qc.user_id = $2`,
+      [today, userId]
     );
 
     // Get weekly stats
@@ -38,28 +38,29 @@ router.get('/', authenticateToken, async (req: Request, res: Response) => {
               COUNT(qc.id) as total_quests
        FROM quest_completions qc
        JOIN quests q ON qc.quest_id = q.id
-       WHERE qc.completion_date >= $1`,
-      [weekAgo.toISOString().split('T')[0]]
+       WHERE qc.completion_date >= $1 AND qc.user_id = $2`,
+      [weekAgo.toISOString().split('T')[0], userId]
     );
 
-    // Get streak
-    const streakResult = await pool.query(`
-      WITH date_series AS (
+    // Get streak (scoped to this user)
+    const streakResult = await pool.query(
+      `WITH date_series AS (
         SELECT generate_series(
-          COALESCE((SELECT MAX(completion_date) FROM quest_completions), CURRENT_DATE),
+          COALESCE((SELECT MAX(completion_date) FROM quest_completions WHERE user_id = $1), CURRENT_DATE),
           CURRENT_DATE,
           INTERVAL '1 day'
         )::date AS date
       ),
       completed_dates AS (
-        SELECT DISTINCT completion_date FROM quest_completions
+        SELECT DISTINCT completion_date FROM quest_completions WHERE user_id = $1
       )
       SELECT COUNT(*) as streak
       FROM date_series ds
-      JOIN completed_dates cd ON ds.date = cd.completion_date
-    `);
+      JOIN completed_dates cd ON ds.date = cd.completion_date`,
+      [userId]
+    );
 
-    const streak = streakResult.rows.length > 0 ? streakResult.rows.length : 0;
+    const streak = streakResult.rows[0] ? parseInt(streakResult.rows[0].streak) : 0;
 
     res.json({
       user,
@@ -110,15 +111,15 @@ router.get('/history', async (req: Request, res: Response) => {
     startDate.setDate(startDate.getDate() - days);
 
     const result = await pool.query(
-      `SELECT completion_date,
-              COUNT(id) as quests_completed,
+      `SELECT qc.completion_date,
+              COUNT(qc.id) as quests_completed,
               COALESCE(SUM(q.xp_reward), 0) as xp_gained
        FROM quest_completions qc
        JOIN quests q ON qc.quest_id = q.id
-       WHERE completion_date >= $1
-       GROUP BY completion_date
-       ORDER BY completion_date ASC`,
-      [startDate.toISOString().split('T')[0]]
+       WHERE qc.completion_date >= $1 AND qc.user_id = $2
+       GROUP BY qc.completion_date
+       ORDER BY qc.completion_date ASC`,
+      [startDate.toISOString().split('T')[0], req.user?.id ?? null]
     );
 
     res.json(result.rows);

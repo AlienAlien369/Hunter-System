@@ -34,9 +34,10 @@ router.get('/', authenticateToken, async (req: Request, res: Response) => {
       progress = 100;
     }
 
-    // Get rank history
+    // Get rank history (scoped to this user)
     const history = await pool.query(
-      'SELECT * FROM rank_history ORDER BY achieved_at DESC LIMIT 10'
+      'SELECT * FROM rank_history WHERE user_id = $1 ORDER BY achieved_at DESC LIMIT 10',
+      [req.user?.id]
     );
 
     res.json({

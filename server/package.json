@@ -7,7 +7,7 @@
     "build": "tsc",
     "start": "node dist/index.js",
     "migrate": "node-pg-migrate up",
-    "test": "node --test src/tests/auth.test.ts"
+    "test": "node --test src/tests/auth.test.ts src/tests/isolation.test.ts"
   },
   "dependencies": {
     "bcrypt": "^6.0.0",

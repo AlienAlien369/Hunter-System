@@ -1,6 +1,7 @@
 import { create } from 'zustand';
 import type { Quest, Stats, RankProgress, Level } from '../lib/api';
 import { api } from '../lib/api';
+import { useAuthStore } from './authStore';
 
 export interface HunterProfile {
   name: string;
@@ -187,12 +188,17 @@ export interface ArchChallenge {
   done: boolean;
 }
 
-// Local storage keys
+// Local storage keys (scoped per user so accounts never see each other's data)
 const STORAGE_KEY = 'hunter_system_v1';
+
+function getStorageKey(): string {
+  const username = useAuthStore.getState().user?.username;
+  return username ? `${STORAGE_KEY}_${username}` : STORAGE_KEY;
+}
 
 function loadFromLocalStorage(): Partial<GameState> | null {
   try {
-    const data = localStorage.getItem(STORAGE_KEY);
+    const data = localStorage.getItem(getStorageKey());
     if (data) {
       return JSON.parse(data);
     }
@@ -205,7 +211,7 @@ function loadFromLocalStorage(): Partial<GameState> | null {
 function saveToLocalStorage(state: Partial<GameState>) {
   try {
     const { dailyQuests, profile } = state;
-    localStorage.setItem(STORAGE_KEY, JSON.stringify({
+    localStorage.setItem(getStorageKey(), JSON.stringify({
       dailyQuests,
       profile,
     }));
