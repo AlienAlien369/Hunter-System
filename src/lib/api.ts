@@ -114,6 +114,18 @@ export interface ProgressReport {
   };
 }
 
+export interface TrackStats {
+  track: 'dsa' | 'saas' | 'arch';
+  label: string;
+  icon: string;
+  total_quests: number;
+  quests_done: number;
+  completions: number;
+  passes: number;
+  xp_earned: number;
+  last_completed_at: string | null;
+}
+
 export interface AuthResponse {
   message: string;
   user: { id: number; username: string; name: string };
@@ -200,6 +212,8 @@ export const api = {
 
   getProgress: (period: ProgressPeriod = 'month') =>
     request<ProgressReport>(`/stats/progress?period=${period}`),
+
+  getTracks: () => request<{ tracks: TrackStats[] }>('/stats/tracks'),
 
   // Rank
   getRank: () => request<RankProgress>('/rank'),

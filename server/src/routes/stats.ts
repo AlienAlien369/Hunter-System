@@ -226,6 +226,61 @@ router.get('/progress', authenticateToken, async (req: Request, res: Response) =
   }
 });
 
+// GET /api/stats/tracks - Leaderboard-style lifetime stats per permanent track
+// (DSA/SaaS/Arch). Counters accrue across redo-alls; quests_done reflects
+// the current completion state.
+const TRACK_META: { track: string; label: string; icon: string; prefix: string }[] = [
+  { track: 'dsa', label: 'DSA', icon: '💻', prefix: 'LC-%' },
+  { track: 'saas', label: 'SaaS', icon: '🚀', prefix: 'SS-%' },
+  { track: 'arch', label: 'Architecture', icon: '📐', prefix: 'AR-%' },
+];
+
+router.get('/tracks', authenticateToken, async (req: Request, res: Response) => {
+  try {
+    const userId = req.user?.id;
+
+    const progressRows = await pool.query(
+      'SELECT track, total_completions, total_xp, passes FROM track_progress WHERE user_id = $1',
+      [userId]
+    );
+    const progressByTrack = new Map<string, any>();
+    for (const r of progressRows.rows) progressByTrack.set(r.track, r);
+
+    const tracks: any[] = [];
+    for (const meta of TRACK_META) {
+      const total = await pool.query(
+        'SELECT COUNT(*)::int AS total FROM quests WHERE quest_id LIKE $1',
+        [meta.prefix]
+      );
+      const done = await pool.query(
+        `SELECT COUNT(DISTINCT qc.quest_id)::int AS done,
+                MAX(qc.completed_at) AS last
+         FROM quest_completions qc
+         JOIN quests q ON qc.quest_id = q.id
+         WHERE qc.user_id = $1 AND q.quest_id LIKE $2`,
+        [userId, meta.prefix]
+      );
+      const progress = progressByTrack.get(meta.track);
+      tracks.push({
+        track: meta.track,
+        label: meta.label,
+        icon: meta.icon,
+        total_quests: total.rows[0].total,
+        quests_done: done.rows[0].done,
+        completions: progress ? parseInt(progress.total_completions) : 0,
+        passes: progress ? parseInt(progress.passes) : 0,
+        xp_earned: progress ? parseInt(progress.total_xp) : 0,
+        last_completed_at: done.rows[0].last ? new Date(done.rows[0].last).toISOString() : null,
+      });
+    }
+
+    res.json({ tracks });
+  } catch (error) {
+    console.error('Error fetching track stats:', error);
+    res.status(500).json({ error: 'Failed to fetch track stats' });
+  }
+});
+
 // GET /api/stats/history - Get stat history for charts
 router.get('/history', async (req: Request, res: Response) => {
   try {

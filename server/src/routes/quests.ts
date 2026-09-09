@@ -183,6 +183,19 @@ router.patch('/:id/complete', authenticateToken, async (req: Request, res: Respo
       );
       await logActivity(userId, 'quest_undo', id, { title: q.title, xp: q.xp_reward });
 
+      // Decrement lifetime track counters (redo-all intentionally does NOT reset these)
+      const track = trackForQuest(q.quest_id);
+      if (track) {
+        await pool.query(
+          `UPDATE track_progress
+           SET total_completions = GREATEST(0, total_completions - 1),
+               total_xp = GREATEST(0, total_xp - $3),
+               updated_at = NOW()
+           WHERE user_id = $1 AND track = $2`,
+          [userId, track, q.xp_reward]
+        );
+      }
+
       res.json({ action: 'undone', message: 'Quest uncompleted' });
     } else {
       // Mark as completed
@@ -197,6 +210,36 @@ router.patch('/:id/complete', authenticateToken, async (req: Request, res: Respo
         [q.xp_reward, userId]
       );
       await logActivity(userId, 'quest_complete', id, { title: q.title, xp: q.xp_reward });
+
+      // Accrue lifetime track counters and detect full passes (redo-all keeps these)
+      const track = trackForQuest(q.quest_id);
+      if (track) {
+        await pool.query(
+          `INSERT INTO track_progress (user_id, track, total_completions, total_xp)
+           VALUES ($1, $2, 1, $3)
+           ON CONFLICT (user_id, track) DO UPDATE SET
+             total_completions = track_progress.total_completions + 1,
+             total_xp = track_progress.total_xp + $3,
+             updated_at = NOW()`,
+          [userId, track, q.xp_reward]
+        );
+
+        // A pass completes when every quest in the track has a current completion
+        const done = await pool.query(
+          `SELECT COUNT(DISTINCT qc.quest_id)::int AS done,
+                  (SELECT COUNT(*)::int FROM quests WHERE quest_id LIKE $2) AS total
+           FROM quest_completions qc
+           JOIN quests q ON qc.quest_id = q.id
+           WHERE qc.user_id = $1 AND q.quest_id LIKE $2`,
+          [userId, TRACK_PREFIXES[track]]
+        );
+        if (done.rows[0].done >= done.rows[0].total) {
+          await pool.query(
+            'UPDATE track_progress SET passes = passes + 1, updated_at = NOW() WHERE user_id = $1 AND track = $2',
+            [userId, track]
+          );
+        }
+      }
 
       res.json({ action: 'completed', xpGained: q.xp_reward });
     }
@@ -213,6 +256,13 @@ const TRACK_PREFIXES: Record<string, string> = {
   saas: 'SS-%',
   arch: 'AR-%',
 };
+
+function trackForQuest(questId: string): string | null {
+  for (const [track, prefix] of Object.entries(TRACK_PREFIXES)) {
+    if (questId.startsWith(prefix.replace('-%', ''))) return track;
+  }
+  return null;
+}
 
 router.post('/redo/:track', authenticateToken, async (req: Request, res: Response) => {
   try {

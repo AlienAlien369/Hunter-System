@@ -3,7 +3,7 @@ import { useGameStore } from '../store/gameStore';
 import { useEffect, useState } from 'react';
 import { ComposedChart, Bar, Line, XAxis, YAxis, Tooltip, Legend, ResponsiveContainer, CartesianGrid } from 'recharts';
 import { api } from '../lib/api';
-import type { ActivityEntry, ProgressPeriod, ProgressReport } from '../lib/api';
+import type { ActivityEntry, ProgressPeriod, ProgressReport, TrackStats } from '../lib/api';
 
 const ACTIVITY_META: Record<string, { icon: string; label: string }> = {
   quest_complete: { icon: '✅', label: 'Quest completed' },
@@ -27,6 +27,7 @@ export default function ProgressDashboard() {
   const [period, setPeriod] = useState<ProgressPeriod>('month');
   const [progress, setProgress] = useState<ProgressReport | null>(null);
   const [activity, setActivity] = useState<ActivityEntry[]>([]);
+  const [tracks, setTracks] = useState<TrackStats[]>([]);
   const [achievements] = useState([
     { id: 'ACH-01', title: 'First Steps', earned: true, icon: '👣' },
     { id: 'ACH-02', title: 'Disciplined Initiate', earned: true, icon: '⚔️' },
@@ -51,6 +52,21 @@ export default function ProgressDashboard() {
       .then(setActivity)
       .catch(err => console.error('Failed to load activity:', err));
   }, []);
+
+  useEffect(() => {
+    api.getTracks()
+      .then(data => setTracks(data.tracks))
+      .catch(err => console.error('Failed to load track stats:', err));
+  }, []);
+
+  const rankedTracks = [...tracks].sort((a, b) => b.xp_earned - a.xp_earned);
+  const MEDALS = ['🥇', '🥈', '🥉'];
+  const trackColors: Record<string, string> = {
+    dsa: 'from-gold to-yellow-500',
+    saas: 'from-purple-monarch to-purple-glow',
+    arch: 'from-red-danger to-orange-400',
+  };
+  const maxTrackXp = Math.max(...rankedTracks.map(t => t.xp_earned), 1);
 
   useEffect(() => {
     api.getProgress(period)
@@ -263,6 +279,88 @@ export default function ProgressDashboard() {
               </div>
             );
           })}
+        </div>
+      </motion.div>
+
+      {/* Track Leaderboard */}
+      <motion.div
+        initial={{ opacity: 0, y: 20 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ delay: 0.3 }}
+        className="bg-[#161b22]/80 backdrop-blur-sm rounded-xl border border-purple-500/20 p-6"
+      >
+        <div className="flex items-center justify-between mb-4">
+          <h3 className="font-display text-white font-bold tracking-wider">
+            TRACK LEADERBOARD
+          </h3>
+          <span className="text-gray-500 font-mono text-xs">
+            LIFETIME • SURVIVES REDO ALL
+          </span>
+        </div>
+
+        <div className="space-y-3">
+          {rankedTracks.map((track, index) => {
+            const progressPct = track.total_quests > 0 ? (track.quests_done / track.total_quests) * 100 : 0;
+            return (
+              <motion.div
+                key={track.track}
+                initial={{ opacity: 0, x: -20 }}
+                animate={{ opacity: 1, x: 0 }}
+                transition={{ delay: index * 0.08 }}
+                className={`flex items-center gap-3 sm:gap-4 p-3 sm:p-4 rounded-xl border border-gray-800 bg-gray-900/40 ${
+                  index === 0 ? 'border-gold/30 shadow-lg shadow-gold/5' : ''
+                }`}
+              >
+                {/* Rank Medal */}
+                <div className="w-8 sm:w-9 flex items-center justify-center text-xl flex-shrink-0">
+                  {MEDALS[index] || <span className="text-gray-500 font-mono text-sm">{index + 1}</span>}
+                </div>
+
+                {/* Icon + Name */}
+                <div className="flex items-center space-x-2 sm:space-x-3 w-28 sm:w-44 flex-shrink-0 min-w-0">
+                  <span className="text-xl">{track.icon}</span>
+                  <div className="min-w-0">
+                    <p className="font-display text-sm text-white truncate">{track.label}</p>
+                    <p className="text-xs text-gray-500 font-mono">
+                      {track.quests_done}/{track.total_quests} • 🔄 {track.passes}x
+                    </p>
+                  </div>
+                </div>
+
+                {/* Progress Bar */}
+                <div className="flex-1 min-w-[3rem]">
+                  <div className="h-2 bg-gray-800 rounded-full overflow-hidden">
+                    <motion.div
+                      className={`h-full bg-gradient-to-r ${trackColors[track.track] || 'from-purple-500 to-blue-500'}`}
+                      initial={{ width: 0 }}
+                      animate={{ width: `${progressPct}%` }}
+                      transition={{ duration: 1, delay: index * 0.1 }}
+                    />
+                  </div>
+                </div>
+
+                {/* XP Earned */}
+                <div className="text-right flex-shrink-0">
+                  <p className="text-gold font-display font-bold">+{track.xp_earned}</p>
+                  <p className="text-[10px] text-gray-500 font-mono">XP EARNED</p>
+                </div>
+              </motion.div>
+            );
+          })}
+        </div>
+
+        {/* Mini ranking bar */}
+        <div className="mt-5 flex items-end justify-center gap-4 pt-4 border-t border-purple-500/10">
+          {rankedTracks.map(track => (
+            <div key={track.track} className="flex flex-col items-center gap-1">
+              <span className="text-gold font-mono text-xs font-bold">+{track.xp_earned}</span>
+              <div
+                className={`w-8 sm:w-10 rounded-t bg-gradient-to-t ${trackColors[track.track] || 'from-purple-500 to-blue-500'} transition-all duration-700`}
+                style={{ height: `${Math.max((track.xp_earned / maxTrackXp) * 56, 4)}px` }}
+              />
+              <span className="text-xs">{track.icon}</span>
+            </div>
+          ))}
         </div>
       </motion.div>
 

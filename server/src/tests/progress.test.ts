@@ -230,6 +230,66 @@ describe('Progress semantics (daily reset, DSA permanence, nutrition months)', (
     assert.strictEqual(bad.status, 400);
   });
 
+  it('track leaderboard stats: lifetime counts survive redo-all, per user', async () => {
+    const cookie2 = await register('prog_track_' + suffix);
+
+    // Fresh user: all tracks at zero
+    let tracks = (await (await fetch(`${BASE_URL}/api/stats/tracks`, { headers: { Cookie: cookie2 } })).json()).tracks;
+    for (const t of tracks) {
+      assert.strictEqual(t.passes, 0);
+      assert.strictEqual(t.completions, 0);
+      assert.strictEqual(t.xp_earned, 0);
+    }
+
+    // Complete all 6 SaaS milestones → one full pass, 330 XP
+    for (const id of ['SS-01', 'SS-02', 'SS-03', 'SS-04', 'SS-05', 'SS-06']) {
+      await fetch(`${BASE_URL}/api/quests/${id}/complete`, { method: 'PATCH', headers: { Cookie: cookie2 } });
+    }
+    tracks = (await (await fetch(`${BASE_URL}/api/stats/tracks`, { headers: { Cookie: cookie2 } })).json()).tracks;
+    const saas = tracks.find((t: any) => t.track === 'saas');
+    assert.strictEqual(saas.passes, 1);
+    assert.strictEqual(saas.completions, 6);
+    assert.strictEqual(saas.xp_earned, 330);
+    assert.strictEqual(saas.quests_done, 6);
+
+    // Redo-all keeps the lifetime counters (marks reset, history stays)
+    await fetch(`${BASE_URL}/api/quests/redo/saas`, { method: 'POST', headers: { Cookie: cookie2 } });
+    tracks = (await (await fetch(`${BASE_URL}/api/stats/tracks`, { headers: { Cookie: cookie2 } })).json()).tracks;
+    const saasAfterRedo = tracks.find((t: any) => t.track === 'saas');
+    assert.strictEqual(saasAfterRedo.passes, 1);
+    assert.strictEqual(saasAfterRedo.completions, 6);
+    assert.strictEqual(saasAfterRedo.xp_earned, 330);
+    assert.strictEqual(saasAfterRedo.quests_done, 0);
+
+    // Partial re-completion accrues more
+    for (const id of ['SS-01', 'SS-02', 'SS-03']) {
+      await fetch(`${BASE_URL}/api/quests/${id}/complete`, { method: 'PATCH', headers: { Cookie: cookie2 } });
+    }
+    tracks = (await (await fetch(`${BASE_URL}/api/stats/tracks`, { headers: { Cookie: cookie2 } })).json()).tracks;
+    const saas3 = tracks.find((t: any) => t.track === 'saas');
+    assert.strictEqual(saas3.completions, 9);
+    assert.strictEqual(saas3.xp_earned, 470);
+    assert.strictEqual(saas3.passes, 1);
+    assert.strictEqual(saas3.quests_done, 3);
+
+    // DSA track accumulates independently
+    await fetch(`${BASE_URL}/api/quests/LC-01/complete`, { method: 'PATCH', headers: { Cookie: cookie2 } });
+    await fetch(`${BASE_URL}/api/quests/LC-02/complete`, { method: 'PATCH', headers: { Cookie: cookie2 } });
+    tracks = (await (await fetch(`${BASE_URL}/api/stats/tracks`, { headers: { Cookie: cookie2 } })).json()).tracks;
+    const dsa = tracks.find((t: any) => t.track === 'dsa');
+    assert.strictEqual(dsa.completions, 2);
+    assert.strictEqual(dsa.xp_earned, 30);
+    assert.strictEqual(dsa.passes, 0);
+
+    // Isolation: another fresh user still sees zeros
+    const cookie3 = await register('prog_track_b_' + suffix);
+    tracks = (await (await fetch(`${BASE_URL}/api/stats/tracks`, { headers: { Cookie: cookie3 } })).json()).tracks;
+    for (const t of tracks) {
+      assert.strictEqual(t.completions, 0);
+      assert.strictEqual(t.xp_earned, 0);
+    }
+  });
+
   it('everything is logged in the activity log', async () => {
     const res = await fetch(`${BASE_URL}/api/activity`, { headers: { Cookie: cookie } });
     assert.strictEqual(res.status, 200);

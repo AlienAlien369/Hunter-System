@@ -94,6 +94,16 @@ export async function initDatabase() {
         created_at TIMESTAMP NOT NULL DEFAULT NOW()
       );
 
+      CREATE TABLE IF NOT EXISTS track_progress (
+        user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+        track VARCHAR(10) NOT NULL,
+        total_completions INTEGER NOT NULL DEFAULT 0,
+        total_xp INTEGER NOT NULL DEFAULT 0,
+        passes INTEGER NOT NULL DEFAULT 0,
+        updated_at TIMESTAMP NOT NULL DEFAULT NOW(),
+        PRIMARY KEY (user_id, track)
+      );
+
       -- Create indexes
       CREATE INDEX IF NOT EXISTS idx_quest_completions_date ON quest_completions(completion_date);
       CREATE INDEX IF NOT EXISTS idx_quest_completions_quest ON quest_completions(quest_id);
@@ -101,6 +111,7 @@ export async function initDatabase() {
       CREATE INDEX IF NOT EXISTS idx_users_username ON users(username);
       CREATE INDEX IF NOT EXISTS idx_nutrition_user_date ON nutrition_logs(user_id, log_date);
       CREATE INDEX IF NOT EXISTS idx_activity_user_time ON activity_log(user_id, created_at DESC);
+      CREATE INDEX IF NOT EXISTS idx_track_progress_user ON track_progress(user_id);
 
     `);
 
@@ -236,6 +247,62 @@ export async function initDatabase() {
          VALUES ($1, $2, $3, $4, $5)
          ON CONFLICT (quest_id) DO NOTHING`,
         [q.id, q.title, q.xp, q.category, q.difficulty]
+      );
+    }
+
+    // Backfill track_progress from the activity log (idempotent: only fills missing rows).
+    // The activity log is the full audit trail, so lifetime totals survive redo-alls
+    // that deleted quest_completion rows.
+    const TRACK_PREFIXES: Record<string, string> = { dsa: 'LC-%', saas: 'SS-%', arch: 'AR-%' };
+    const trackTotals: Record<string, number> = {};
+    for (const [track, prefix] of Object.entries(TRACK_PREFIXES)) {
+      const res = await client.query('SELECT COUNT(*) AS total FROM quests WHERE quest_id LIKE $1', [prefix]);
+      trackTotals[track] = parseInt(res.rows[0].total);
+    }
+    const history = await client.query(
+      `SELECT al.user_id, al.action, al.entity,
+              COALESCE((al.details->>'xp')::int, 0) AS xp,
+              al.created_at
+       FROM activity_log al
+       WHERE al.action IN ('quest_complete', 'quest_undo')
+       ORDER BY al.created_at ASC, al.id ASC`
+    );
+    type TrackEntry = { completions: number; xp: number; done: Set<string>; passes: number; total: number };
+    const byUserTrack = new Map<string, TrackEntry>();
+    const getEntry = (userId: string, track: string): TrackEntry => {
+      const key = `${userId}:${track}`;
+      let entry = byUserTrack.get(key);
+      if (!entry) {
+        entry = { completions: 0, xp: 0, done: new Set(), passes: 0, total: trackTotals[track] };
+        byUserTrack.set(key, entry);
+      }
+      return entry;
+    };
+    for (const row of history.rows) {
+      const questId = String(row.entity || '');
+      const track = Object.keys(TRACK_PREFIXES).find(t => questId.startsWith(TRACK_PREFIXES[t].replace('-%', '')));
+      if (!track || !questId) continue;
+      const entry = getEntry(String(row.user_id), track);
+      if (row.action === 'quest_complete') {
+        entry.completions += 1;
+        entry.xp += row.xp;
+        entry.done.add(questId);
+        if (entry.done.size === entry.total) {
+          entry.passes += 1;
+          entry.done = new Set();
+        }
+      } else {
+        entry.completions = Math.max(0, entry.completions - 1);
+        entry.xp = Math.max(0, entry.xp - row.xp);
+      }
+    }
+    for (const [key, entry] of byUserTrack) {
+      const [userId, track] = key.split(':');
+      await client.query(
+        `INSERT INTO track_progress (user_id, track, total_completions, total_xp, passes)
+         VALUES ($1, $2, $3, $4, $5)
+         ON CONFLICT (user_id, track) DO NOTHING`,
+        [userId, track, entry.completions, entry.xp, entry.passes]
       );
     }
 
