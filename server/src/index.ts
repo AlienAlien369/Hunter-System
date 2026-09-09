@@ -2,6 +2,9 @@ import express from 'express';
 import cors from 'cors';
 import dotenv from 'dotenv';
 import cookieParser from 'cookie-parser';
+import { fileURLToPath } from 'url';
+import { dirname, join } from 'path';
+import { existsSync } from 'fs';
 import questRoutes from './routes/quests.js';
 import statsRoutes from './routes/stats.js';
 import rankRoutes from './routes/rank.js';
@@ -11,7 +14,9 @@ import activityRoutes from './routes/activity.js';
 import { initDatabase } from './db.js';
 
 // Load the project root .env (works regardless of CWD)
-dotenv.config({ path: new URL('../../.env', import.meta.url).pathname });
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = dirname(__filename);
+dotenv.config({ path: join(__dirname, '../../.env') });
 
 const app = express();
 const PORT = process.env.BACKEND_PORT || 3000;
@@ -24,7 +29,7 @@ app.use(cors({
 app.use(cookieParser());
 app.use(express.json());
 
-// Routes
+// API Routes
 app.use('/api/auth', authRoutes);
 app.use('/api/quests', questRoutes);
 app.use('/api/stats', statsRoutes);
@@ -32,6 +37,22 @@ app.use('/api/rank', rankRoutes);
 app.use('/api/nutrition', nutritionRoutes);
 app.use('/api/activity', activityRoutes);
 app.get('/api/health', (req, res) => res.json({ status: 'ok', timestamp: new Date().toISOString() }));
+
+// Serve frontend static files in production
+const possibleFrontendPaths = [
+  '/usr/share/nginx/html',                        // Docker production
+  join(__dirname, '../../dist'),                    // Local dev (repo root dist/)
+  join(__dirname, '../../../dist'),                  // Alternate path
+];
+const frontendPath = possibleFrontendPaths.find(p => existsSync(join(p, 'index.html')));
+if (frontendPath) {
+  app.use(express.static(frontendPath));
+  // SPA fallback: serve index.html for all non-API routes
+  app.get('*', (req, res) => {
+    res.sendFile(join(frontendPath, 'index.html'));
+  });
+  console.log(`Serving frontend from ${frontendPath}`);
+}
 
 async function main() {
   try {
