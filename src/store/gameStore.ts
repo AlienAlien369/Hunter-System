@@ -158,8 +158,10 @@ interface GameState {
   error: string | null;
   apiConnected: boolean;
 
-  // Celebration shown when XP crosses a level or rank milestone
-  celebration: Celebration | null;
+  // Queue of celebrations: each level/rank crossing enqueues, the banner
+  // plays them one at a time in order so rapid quest completions never
+  // overwrite each other's fanfare.
+  celebrations: Celebration[];
 
   // Actions
   loadDashboard: () => Promise<void>;
@@ -258,7 +260,7 @@ export const useGameStore = create<GameState>((set, get) => ({
   loading: false,
   error: null,
   apiConnected: false,
-  celebration: null,
+  celebrations: [],
 
   loadDashboard: async () => {
     set({ loading: true, error: null });
@@ -319,8 +321,8 @@ export const useGameStore = create<GameState>((set, get) => ({
             sen: statsData.user.sen,
           },
         },
-        // Keep an active celebration until the banner dismisses it
-        celebration: celebration ?? get().celebration,
+        // Enqueue any newly crossed milestone; the banner plays the queue in order
+        celebrations: celebration ? [...get().celebrations, celebration] : get().celebrations,
         apiConnected: true,
         loading: false,
       });
@@ -399,7 +401,7 @@ export const useGameStore = create<GameState>((set, get) => ({
     }
   },
 
-  dismissCelebration: () => set({ celebration: null }),
+  dismissCelebration: () => set(s => ({ celebrations: s.celebrations.slice(1) })),
 
   updateProfile: (updates: Partial<HunterProfile>) => {
     set(state => {

@@ -61,7 +61,24 @@ function ConfettiBurst() {
   );
 }
 
-function Banner({ celebration, onDismiss }: { celebration: Celebration; onDismiss: () => void }) {
+/** Wrapper for a single confetti burst — motion child so AnimatePresence tracks its exit. */
+function ConfettiBurstMotion({ index }: { index: number }) {
+  return (
+    <motion.div
+      key={`confetti-${index}`}
+      className="fixed inset-0 z-[70] pointer-events-none overflow-hidden"
+      aria-hidden
+      initial={{ opacity: 0 }}
+      animate={{ opacity: 1 }}
+      exit={{ opacity: 0 }}
+      transition={{ duration: 0.4 }}
+    >
+      <ConfettiBurst />
+    </motion.div>
+  );
+}
+
+function BannerContent({ celebration, pending }: { celebration: Celebration; pending: number }) {
   const isLevel = celebration.type !== 'rank';
   const isRank = celebration.type !== 'level';
   const title =
@@ -76,92 +93,108 @@ function Banner({ celebration, onDismiss }: { celebration: Celebration; onDismis
   if (isRank) lines.push(`${celebration.rank}-Rank unlocked — ${RANK_NAMES[celebration.rank] || celebration.rank}`);
 
   return (
+    <div className="relative">
+      {/* Glow */}
+      <div className="absolute -inset-1 rounded-2xl bg-gold/40 blur-lg animate-pulse" />
+      <div className="absolute -inset-3 rounded-3xl bg-purple-500/30 blur-2xl animate-pulse" />
+
+      {/* Banner */}
+      <div className="relative bg-gradient-to-r from-purple-900 via-[#1b1140] to-purple-900 border-2 border-gold/70 rounded-2xl px-6 sm:px-12 py-4 sm:py-5 text-center shadow-2xl w-[92vw] max-w-md">
+        {/* Sparkle particles */}
+        {[0, 1, 2, 3, 4].map(i => (
+          <motion.span
+            key={i}
+            initial={{ opacity: 1, x: 0, y: 0, scale: 1 }}
+            animate={{ opacity: 0, x: (i % 2 === 0 ? -1 : 1) * (60 + i * 15), y: -40 - i * 12, scale: 0.4 }}
+            transition={{ duration: 1.4, delay: 0.15 * i, ease: 'easeOut' }}
+            className="absolute text-gold text-lg"
+            style={{ left: `${15 + i * 18}%`, top: '-10px' }}
+          >
+            ✦
+          </motion.span>
+        ))}
+
+        <p className="text-gold font-display text-xl sm:text-2xl font-bold tracking-wider drop-shadow-[0_0_12px_rgba(241,196,15,0.6)]">
+          {title}
+        </p>
+        {lines.map(line => (
+          <motion.p
+            key={line}
+            initial={{ opacity: 0, y: 6 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.25 }}
+            className="text-white font-mono text-sm sm:text-base mt-1.5"
+          >
+            {line}
+          </motion.p>
+        ))}
+        <p className="text-gray-400 text-[10px] font-mono mt-2.5 tracking-widest">
+          {pending > 0 ? `⏳ ${pending} MORE CELEBRATION${pending > 1 ? 'S' : ''} QUEUED • TAP TO DISMISS` : 'TAP TO DISMISS'}
+        </p>
+      </div>
+    </div>
+  );
+}
+
+/** Single banner — motion child of AnimatePresence so exits are tracked reliably. */
+function Banner({ celebration, pending, onDismiss }: { celebration: Celebration; pending: number; onDismiss: () => void }) {
+  return (
     <motion.div
-      key="celebration"
       className="fixed top-16 sm:top-20 left-1/2 z-[60] pointer-events-none"
-      style={{ transform: 'translateX(-50%)' }}
+      style={{ x: '-50%' }}
+      initial={{ opacity: 0, y: -60, scale: 0.7, rotate: -2 }}
+      animate={{ opacity: 1, y: 0, scale: 1, rotate: 0 }}
+      exit={{ opacity: 0, y: -40, scale: 0.9 }}
+      transition={{ type: 'spring', stiffness: 300, damping: 18 }}
+      onClick={onDismiss}
     >
-      <motion.div
-        initial={{ opacity: 0, y: -60, scale: 0.7, rotate: -2 }}
-        animate={{ opacity: 1, y: 0, scale: 1, rotate: 0 }}
-        exit={{ opacity: 0, y: -40, scale: 0.9 }}
-        transition={{ type: 'spring', stiffness: 300, damping: 18 }}
-        onClick={onDismiss}
-        className="pointer-events-auto cursor-pointer relative"
-      >
-        {/* Glow */}
-        <div className="absolute -inset-1 rounded-2xl bg-gold/40 blur-lg animate-pulse" />
-        <div className="absolute -inset-3 rounded-3xl bg-purple-500/30 blur-2xl animate-pulse" />
-
-        {/* Banner */}
-        <div className="relative bg-gradient-to-r from-purple-900 via-[#1b1140] to-purple-900 border-2 border-gold/70 rounded-2xl px-6 sm:px-12 py-4 sm:py-5 text-center shadow-2xl w-[92vw] max-w-md">
-          {/* Sparkle particles */}
-          {[0, 1, 2, 3, 4].map(i => (
-            <motion.span
-              key={i}
-              initial={{ opacity: 1, x: 0, y: 0, scale: 1 }}
-              animate={{ opacity: 0, x: (i % 2 === 0 ? -1 : 1) * (60 + i * 15), y: -40 - i * 12, scale: 0.4 }}
-              transition={{ duration: 1.4, delay: 0.15 * i, ease: 'easeOut' }}
-              className="absolute text-gold text-lg"
-              style={{ left: `${15 + i * 18}%`, top: '-10px' }}
-            >
-              ✦
-            </motion.span>
-          ))}
-
-          <p className="text-gold font-display text-xl sm:text-2xl font-bold tracking-wider drop-shadow-[0_0_12px_rgba(241,196,15,0.6)]">
-            {title}
-          </p>
-          {lines.map(line => (
-            <motion.p
-              key={line}
-              initial={{ opacity: 0, y: 6 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: 0.25 }}
-              className="text-white font-mono text-sm sm:text-base mt-1.5"
-            >
-              {line}
-            </motion.p>
-          ))}
-          <p className="text-gray-400 text-[10px] font-mono mt-2.5 tracking-widest">
-            TAP TO DISMISS
-          </p>
-        </div>
-      </motion.div>
+      <div className="pointer-events-auto cursor-pointer relative">
+        <BannerContent celebration={celebration} pending={pending} />
+      </div>
     </motion.div>
   );
 }
 
 export default function CelebrationBanner() {
-  const celebration = useGameStore(s => s.celebration);
+  const celebrations = useGameStore(s => s.celebrations);
   const dismissCelebration = useGameStore(s => s.dismissCelebration);
   const lastPlayed = useRef<Celebration | null>(null);
+  const current = celebrations[0];
+  const pending = Math.max(celebrations.length - 1, 0);
 
-  // Play the fanfare once per new celebration (ref guards against StrictMode double-fire)
+  // Play the fanfare once per celebration that reaches the front of the queue
+  // (ref guards against StrictMode double-fire)
   useEffect(() => {
-    if (!celebration) return;
-    if (lastPlayed.current === celebration) return;
-    lastPlayed.current = celebration;
+    if (!current) return;
+    if (lastPlayed.current === current) return;
+    lastPlayed.current = current;
 
-    if (celebration.type === 'level') sfx.levelUp();
-    else if (celebration.type === 'rank') sfx.rankUp();
+    if (current.type === 'level') sfx.levelUp();
+    else if (current.type === 'rank') sfx.rankUp();
     else sfx.doubleUp();
-  }, [celebration]);
+  }, [current]);
 
-  // Auto-dismiss after 5 seconds
+  // Auto-dismiss the front of the queue after 5 seconds
   useEffect(() => {
-    if (!celebration) return;
+    if (!current) return;
     const timer = setTimeout(dismissCelebration, 5000);
     return () => clearTimeout(timer);
-  }, [celebration, dismissCelebration]);
+  }, [current, dismissCelebration]);
 
   return (
     <>
-      <AnimatePresence>
-        {celebration && <ConfettiBurst />}
+      <AnimatePresence mode="wait">
+        {current && <ConfettiBurstMotion index={current.newXp} />}
       </AnimatePresence>
-      <AnimatePresence>
-        {celebration && <Banner celebration={celebration} onDismiss={dismissCelebration} />}
+      <AnimatePresence mode="wait">
+        {current && (
+          <Banner
+            key={`banner-${current.type}-${current.newXp}`}
+            celebration={current}
+            pending={pending}
+            onDismiss={dismissCelebration}
+          />
+        )}
       </AnimatePresence>
     </>
   );
