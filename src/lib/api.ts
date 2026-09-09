@@ -1,4 +1,21 @@
-const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:3000/api';
+// Auto-detect API URL based on environment
+const getApiUrl = (): string => {
+  // Explicit env var (set in Docker/CI)
+  if (import.meta.env.VITE_API_URL) return import.meta.env.VITE_API_URL;
+
+  const host = window.location.hostname;
+
+  // On Render deployment (same origin serves both frontend + backend)
+  if (host.includes('onrender.com')) return '/api';
+
+  // On Vercel — proxy to the Render backend
+  if (host.includes('vercel.app')) return 'https://hunter-system-kss0.onrender.com/api';
+
+  // Local development
+  return 'http://localhost:3000/api';
+};
+
+const API_URL = getApiUrl();
 
 // Type Definitions
 export interface Quest {

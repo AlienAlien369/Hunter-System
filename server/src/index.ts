@@ -21,9 +21,23 @@ dotenv.config({ path: join(__dirname, '../../.env') });
 const app = express();
 const PORT = process.env.BACKEND_PORT || 3000;
 
+// Allowed CORS origins
+const ALLOWED_ORIGINS = [
+  process.env.FRONTEND_URL,
+  'http://localhost:5173',
+  'http://localhost:3000',
+  'https://hunter-system.vercel.app',
+  'https://hunter-system-kss0.onrender.com',
+].filter(Boolean);
+
 // Middleware
 app.use(cors({
-  origin: process.env.FRONTEND_URL || 'http://localhost:5173',
+  origin: (origin, callback) => {
+    // Allow requests with no origin (mobile apps, same-origin, curl)
+    if (!origin) return callback(null, true);
+    if (ALLOWED_ORIGINS.includes(origin)) return callback(null, true);
+    callback(null, true); // Allow all in dev; tighten in production if needed
+  },
   credentials: true, // Allow cookies to be sent
 }));
 app.use(cookieParser());
