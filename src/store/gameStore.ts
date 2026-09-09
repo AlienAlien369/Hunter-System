@@ -3,6 +3,7 @@ import type { Quest, Stats, RankProgress, Level } from '../lib/api';
 import { api } from '../lib/api';
 import { useAuthStore } from './authStore';
 import { calculateLevel, calculateRank } from '../utils/xp';
+import { sfx } from '../utils/sounds';
 
 export interface HunterProfile {
   name: string;
@@ -357,6 +358,10 @@ export const useGameStore = create<GameState>((set, get) => ({
       ? quest.completedDates.length > 0
       : quest.completedDates.includes(date);
 
+    // Sound feedback for the toggle direction
+    if (isCompleted) sfx.undo();
+    else sfx.complete();
+
     // Optimistic update
     const updatedQuests = dailyQuests.map(q => {
       if (q.id === questId) {
@@ -386,6 +391,7 @@ export const useGameStore = create<GameState>((set, get) => ({
   redoTrack: async (track: 'dsa' | 'saas' | 'arch') => {
     try {
       await api.redoTrack(track);
+      sfx.redo();
       await get().loadDashboard();
     } catch (error) {
       console.error(`Failed to reset ${track} track:`, error);
