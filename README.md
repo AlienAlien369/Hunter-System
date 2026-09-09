@@ -102,7 +102,7 @@ hunter-system/
 ```bash
 curl -X POST http://localhost:3000/api/auth/login \
   -H "Content-Type: application/json" \
-  -d '{"username": "alien", "password": "Alien@123"}' \
+  -d '{"username": process.env.DEMO_USER, "password": process.env.DEMO_PASS}' \
   -c cookies.txt
 ```
 

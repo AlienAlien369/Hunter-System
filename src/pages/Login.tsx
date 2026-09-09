@@ -168,8 +168,8 @@ export default function Login() {
             <div className="mt-6 pt-6 border-t border-purple-500/10">
               <p className="text-gray-500 font-mono text-xs text-center mb-3">DEMO CREDENTIALS</p>
               <div className="bg-[#0d1117] rounded-lg p-3 text-center">
-                <p className="text-purple-400 font-mono text-sm">Username: <span className="text-white">alien</span></p>
-                <p className="text-purple-400 font-mono text-sm mt-1">Password: <span className="text-white">Alien@123</span></p>
+                <p className="text-purple-400 font-mono text-sm">Username: <span className="text-white">{import.meta.env.VITE_DEMO_USER || 'demo_user'}</span></p>
+                <p className="text-purple-400 font-mono text-sm mt-1">Password: <span className="text-white">{import.meta.env.VITE_DEMO_PASS || 'DemoPass123!'}</span></p>
               </div>
             </div>
           )}

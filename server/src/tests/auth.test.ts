@@ -6,6 +6,8 @@ import { describe, it, before, after } from 'node:test';
 import assert from 'node:assert';
 
 const BASE_URL = 'http://localhost:3000';
+const DEMO_USER = process.env.DEMO_USER || 'demo_user';
+const DEMO_PASS = process.env.DEMO_PASS || 'DemoPass123!';
 
 describe('Authentication API', () => {
   let authCookie;
@@ -69,24 +71,24 @@ describe('Authentication API', () => {
     assert.strictEqual(res2.status, 409);
   });
 
-  it('should login with valid credentials', async () => {
+  it('should login with demo credentials from environment', async () => {
     const res = await fetch(`${BASE_URL}/api/auth/login`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ username: 'alien', password: 'Alien@123' }),
+      body: JSON.stringify({ username: DEMO_USER, password: DEMO_PASS }),
     });
     assert.strictEqual(res.status, 200);
     const data = await res.json();
     assert.ok(data.message);
     assert.ok(data.user);
-    assert.strictEqual(data.user.username, 'alien');
+    assert.strictEqual(data.user.username, DEMO_USER);
   });
 
   it('should return 401 for invalid credentials', async () => {
     const res = await fetch(`${BASE_URL}/api/auth/login`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ username: 'alien', password: 'wrongpassword' }),
+      body: JSON.stringify({ username: DEMO_USER, password: 'wrongpassword' }),
     });
     assert.strictEqual(res.status, 401);
   });
@@ -105,7 +107,7 @@ describe('Authentication API', () => {
     const loginRes = await fetch(`${BASE_URL}/api/auth/login`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ username: 'alien', password: 'Alien@123' }),
+      body: JSON.stringify({ username: DEMO_USER, password: DEMO_PASS }),
     });
     const cookies = loginRes.headers.get('set-cookie');
     assert.ok(cookies);
@@ -117,7 +119,7 @@ describe('Authentication API', () => {
     assert.strictEqual(meRes.status, 200);
     const data = await meRes.json();
     assert.ok(data.user);
-    assert.strictEqual(data.user.username, 'alien');
+    assert.strictEqual(data.user.username, DEMO_USER);
   });
 
   it('should return 401 for /me without token', async () => {

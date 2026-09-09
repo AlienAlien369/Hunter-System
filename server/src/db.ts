@@ -110,19 +110,21 @@ export async function initDatabase() {
       }
     }
 
-    // Seed test user if doesn't exist
-    const userCount = await client.query('SELECT COUNT(*) FROM users WHERE username = $1', ['alien']);
+    // Seed demo user from environment variables
+    const demoUsername = process.env.DEMO_USER || 'demo_user';
+    const demoPassword = process.env.DEMO_PASS || 'DemoPass123!';
+    const demoName = process.env.DEMO_NAME || 'Demo Hunter';
+
+    const userCount = await client.query('SELECT COUNT(*) FROM users WHERE username = $1', [demoUsername]);
     if (parseInt(userCount.rows[0].count) === 0) {
-      // Hash password for 'Alien@123' - using a pre-hashed value for demo
-      // In production, you would hash it dynamically
       const bcrypt = await import('bcrypt');
-      const passwordHash = await bcrypt.hash('Alien@123', 10);
+      const passwordHash = await bcrypt.hash(demoPassword, 10);
 
       await client.query(
         `INSERT INTO users (username, password_hash, name) VALUES ($1, $2, $3)`,
-        ['alien', passwordHash, 'Alien Hunter']
+        [demoUsername, passwordHash, demoName]
       );
-      console.log('Test user created: alien / Alien@123');
+      console.log(`Demo user created: ${demoUsername}`);
     }
 
     console.log('Database initialized successfully');
