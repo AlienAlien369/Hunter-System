@@ -10,6 +10,7 @@ import {
   diffModuleTasks, moduleRemovalChange, modulePauseChange, validateModuleDraft, sanitizeModuleTask, slugify, type ModuleTask,
 } from '../rules.js';
 import { calculateLevel } from '../progression.js';
+import { toGeminiSchema } from '../ai.js';
 
 const H = 3600_000;
 const T0 = new Date('2026-09-01T10:00:00Z');
@@ -203,6 +204,29 @@ describe('module commitment rules', () => {
     assert.match(sanitizeModuleTask({ title: 'x', difficulty: 5 }) as string, /Difficulty/);
     assert.strictEqual((sanitizeModuleTask({ title: 'x', recurrence: [...DAYS] }) as ModuleTask).recurrence, null);
     assert.strictEqual(slugify('Content Creation!'), 'content-creation');
+  });
+});
+
+describe('Gemini schema conversion', () => {
+  it('uppercases types, keeps string enums and drops non-string enums', () => {
+    const out = toGeminiSchema({
+      type: 'object',
+      properties: {
+        difficulty: { type: 'string', enum: ['easy', 'hard'] },
+        level: { type: 'integer', enum: [1, 2, 3] },
+        tasks: { type: 'array', items: { type: 'object', properties: { title: { type: 'string', description: 'd' } }, required: ['title'] } },
+      },
+      required: ['difficulty'],
+    });
+    assert.deepStrictEqual(out, {
+      type: 'OBJECT',
+      required: ['difficulty'],
+      properties: {
+        difficulty: { type: 'STRING', enum: ['easy', 'hard'] },
+        level: { type: 'INTEGER' },
+        tasks: { type: 'ARRAY', items: { type: 'OBJECT', required: ['title'], properties: { title: { type: 'STRING', description: 'd' } } } },
+      },
+    });
   });
 });
 
