@@ -11,6 +11,10 @@ import rankRoutes from './routes/rank.js';
 import authRoutes from './routes/auth.js';
 import nutritionRoutes from './routes/nutrition.js';
 import activityRoutes from './routes/activity.js';
+import contentRoutes from './routes/content.js';
+import routineRoutes from './routes/routine.js';
+import unplannedRoutes from './routes/unplanned.js';
+import moduleRoutes from './routes/modules.js';
 import { initDatabase } from './db.js';
 
 // Load the project root .env (works regardless of CWD)
@@ -54,6 +58,10 @@ app.use('/api/stats', statsRoutes);
 app.use('/api/rank', rankRoutes);
 app.use('/api/nutrition', nutritionRoutes);
 app.use('/api/activity', activityRoutes);
+app.use('/api/content', contentRoutes);
+app.use('/api/routine', routineRoutes);
+app.use('/api/unplanned', unplannedRoutes);
+app.use('/api/modules', moduleRoutes);
 app.get('/api/health', (req, res) => res.json({ status: 'ok', timestamp: new Date().toISOString() }));
 
 // Serve frontend static files in production

@@ -476,7 +476,9 @@ async function checkPenaltiesAndRecovery(
       );
       const hpLost = Math.max(5, Math.round(15 * (1 - protection)));
       await pool.query(
-        "UPDATE users SET xp = GREATEST(0, xp - $1), hp = GREATEST(1, hp - $2), updated_at = NOW() WHERE id = $3",
+        // Missed-day penalties still stop at 0, but must never *raise* XP that
+        // is already negative from routine-change penalties.
+        "UPDATE users SET xp = LEAST(xp, GREATEST(0, xp - $1)), hp = GREATEST(1, hp - $2), updated_at = NOW() WHERE id = $3",
         [xpLost, hpLost, userId],
       );
       await pool.query(

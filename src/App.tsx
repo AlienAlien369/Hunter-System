@@ -29,6 +29,13 @@ import Inventory from './pages/Inventory';
 import AchievementPanel from './components/AchievementPanel';
 import WeeklyReport from './pages/WeeklyReport';
 import Settings from './pages/Settings';
+import Modules from './pages/Modules';
+import ModulePage from './pages/ModulePage';
+import XpConfirmHost from './components/hunter/XpConfirmHost';
+import { useModuleStore } from './store/moduleStore';
+import { moduleHref } from './data/presets';
+import RoutineSetup from './components/routine/RoutineSetup';
+import { api } from './lib/api';
 
 // Layout Components
 import Sidebar from './components/layout/Sidebar';
@@ -39,22 +46,20 @@ import LootDrop from './components/LootDrop';
 import BackgroundFX from './components/BackgroundFX';
 import HunterNameEntry from './components/HunterNameEntry';
 
-const NAV_ITEMS = [
+// Fixed core pages every hunter has. Everything else is a user module
+// (see /modules), listed dynamically after the core pages.
+const CORE_NAV = [
   { path: '/', label: 'Dashboard', icon: '⚔' },
   { path: '/quests', label: 'Quests', icon: '✅' },
   { path: '/stats', label: 'Stats', icon: '📊' },
   { path: '/rank', label: 'Rank', icon: '🏆' },
   { path: '/progress', label: 'Progress', icon: '📈' },
   { path: '/time', label: 'Timetable', icon: '📅' },
-  { path: '/diet', label: 'Diet', icon: '🥗' },
-  { path: '/saas', label: 'SaaS', icon: '🚀' },
-  { path: '/arch', label: 'Arch', icon: '🧠' },
-  { path: '/dsa-roadmap', label: 'DSA Roadmap', icon: '📚' },
   { path: '/inventory', label: 'Inventory', icon: '🎒' },
   { path: '/achievements', label: 'Achievements', icon: '🏆' },
   { path: '/weekly', label: 'Weekly Report', icon: '📊' },
-  { path: '/settings', label: 'Settings', icon: '⚙' },
 ];
+const SETTINGS_NAV = { path: '/settings', label: 'Settings', icon: '⚙' };
 
 const BOOT_EVENTS = ['pointerdown', 'keydown', 'touchstart'] as const;
 
@@ -93,6 +98,26 @@ function AppContent() {
   // Check if hunter name needs to be set
   const needsNameEntry = user && !user.name_set;
 
+  // Onboarding step 2: hunters without a confirmed routine are offered the
+  // routine setup once per session (they can always do it later from Timetable).
+  // Dynamic user modules → sidebar entries after the core pages
+  const modules = useModuleStore(s => s.modules);
+  useEffect(() => { if (user?.id) useModuleStore.getState().load(); }, [user?.id]);
+  const navItems = [
+    ...CORE_NAV,
+    ...modules.map(m => ({ path: moduleHref(m), label: m.status === 'paused' ? `${m.name} (paused)` : m.name, icon: m.icon })),
+    { path: '/modules', label: 'Modules', icon: '🧩' },
+    SETTINGS_NAV,
+  ];
+
+  const [routineSetup, setRoutineSetup] = useState(false);
+  useEffect(() => {
+    if (!user?.name_set) return;
+    const key = `routineSetupOffered:${user.id}`;
+    try { if (sessionStorage.getItem(key)) return; sessionStorage.setItem(key, '1'); } catch { /* storage unavailable */ }
+    api.getRoutine().then(r => { if (!r.routine) setRoutineSetup(true); }).catch(() => {});
+  }, [user?.id, user?.name_set]);
+
   // Close the mobile drawer whenever the route changes
   useEffect(() => {
     setSidebarOpen(false);
@@ -106,7 +131,7 @@ function AppContent() {
       <div className="relative flex h-screen">
         {/* Sidebar */}
         <Sidebar
-          items={NAV_ITEMS}
+          items={navItems}
           currentPath={location.pathname}
           userName={user?.name || user?.username || 'Hunter'}
           onLogout={() => logout()}
@@ -137,6 +162,8 @@ function AppContent() {
                   <Route path="/progress" element={<ProtectedRoute><ProgressDashboard /></ProtectedRoute>} />
                   <Route path="/time" element={<ProtectedRoute><Timetable /></ProtectedRoute>} />
                   <Route path="/diet" element={<ProtectedRoute><NutritionBudget /></ProtectedRoute>} />
+                  <Route path="/modules" element={<ProtectedRoute><Modules /></ProtectedRoute>} />
+                  <Route path="/m/:slug" element={<ProtectedRoute><ModulePage /></ProtectedRoute>} />
                   <Route path="/saas" element={<ProtectedRoute><SaaSRoadmap /></ProtectedRoute>} />
                   <Route path="/arch" element={<ProtectedRoute><SystemDesign /></ProtectedRoute>} />
                   <Route path="/dsa-roadmap" element={<ProtectedRoute><DSARoadmap /></ProtectedRoute>} />
@@ -163,6 +190,9 @@ function AppContent() {
           }}
         />
       )}
+
+      <XpConfirmHost />
+      <RoutineSetup open={routineSetup && !needsNameEntry} onClose={() => setRoutineSetup(false)} onDone={() => setRoutineSetup(false)} />
 
       {/* Level-up / rank-up celebration + floating XP toasts */}
       <CelebrationBanner />

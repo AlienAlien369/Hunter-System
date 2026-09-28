@@ -683,8 +683,8 @@ export const useGameStore = create<GameState>((set, get) => ({
     if (!quest) return;
 
     // Permanent tracks (LC-*, SS-*, AR-*) are done = any completion ever.
-    // Daily quests (DQ-*) and hidden quests (HQ-*) reset each day: done = completed today.
-    const isDaily = questId.startsWith("DQ-") || questId.startsWith("HQ-");
+    // Daily (DQ-*), hidden (HQ-*) and custom module tasks (CQ-*) reset each day: done = completed today.
+    const isDaily = /^(DQ|HQ|CQ)-/.test(questId);
     const isCompleted = hq
       ? hq.completedToday
       : !isDaily

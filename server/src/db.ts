@@ -154,6 +154,102 @@ export async function initDatabase() {
     await client.query('ALTER TABLE quest_completions ADD CONSTRAINT quest_completions_user_quest_date_key UNIQUE (user_id, quest_id, completion_date)');
     await client.query('CREATE INDEX IF NOT EXISTS idx_quest_completions_user ON quest_completions(user_id)');
 
+    // Idempotent, additive migration: modules, custom tasks, content channels,
+    // routine contract and unplanned activities. Existing rows are untouched
+    // (all new quest columns are nullable / defaulted; global quests keep
+    // user_id NULL). Rollback: drop the new tables and columns — no existing
+    // column changes meaning.
+    await client.query(`
+      -- Per-user custom tasks live in the existing quests table (quest_id 'CQ-<id>').
+      -- The module is the existing category column (e.g. 'skincare', 'content').
+      ALTER TABLE quests ADD COLUMN IF NOT EXISTS user_id INTEGER REFERENCES users(id) ON DELETE CASCADE;
+      ALTER TABLE quests ADD COLUMN IF NOT EXISTS schedule_time VARCHAR(5);
+      ALTER TABLE quests ADD COLUMN IF NOT EXISTS time_of_day VARCHAR(10);
+      ALTER TABLE quests ADD COLUMN IF NOT EXISTS recurrence TEXT[];
+      ALTER TABLE quests ADD COLUMN IF NOT EXISTS metadata JSONB;
+      ALTER TABLE quests ADD COLUMN IF NOT EXISTS archived BOOLEAN NOT NULL DEFAULT false;
+      CREATE INDEX IF NOT EXISTS idx_quests_user ON quests(user_id) WHERE user_id IS NOT NULL;
+
+      CREATE TABLE IF NOT EXISTS content_channels (
+        id SERIAL PRIMARY KEY,
+        user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+        name VARCHAR(100) NOT NULL,
+        platform VARCHAR(30) NOT NULL,
+        category VARCHAR(50) NOT NULL DEFAULT 'general',
+        status VARCHAR(20) NOT NULL DEFAULT 'active',
+        posting_frequency VARCHAR(50),
+        target_per_week INTEGER NOT NULL DEFAULT 1,
+        created_at TIMESTAMP NOT NULL DEFAULT NOW(),
+        updated_at TIMESTAMP NOT NULL DEFAULT NOW()
+      );
+      CREATE INDEX IF NOT EXISTS idx_content_channels_user ON content_channels(user_id);
+
+      -- One routine (timetable) per hunter. confirmed_at starts the 48h setup period.
+      CREATE TABLE IF NOT EXISTS routines (
+        user_id INTEGER PRIMARY KEY REFERENCES users(id) ON DELETE CASCADE,
+        items JSONB NOT NULL DEFAULT '[]',
+        timezone VARCHAR(64),
+        confirmed_at TIMESTAMPTZ,
+        rewarded_modules TEXT[] NOT NULL DEFAULT '{}',
+        updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+      );
+
+      CREATE TABLE IF NOT EXISTS unplanned_activities (
+        id SERIAL PRIMARY KEY,
+        user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+        description TEXT NOT NULL,
+        analysis JSONB NOT NULL,
+        source VARCHAR(10) NOT NULL,
+        status VARCHAR(10) NOT NULL DEFAULT 'pending',
+        xp_awarded INTEGER,
+        created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+        resolved_at TIMESTAMPTZ
+      );
+      CREATE INDEX IF NOT EXISTS idx_unplanned_user_time ON unplanned_activities(user_id, created_at DESC);
+
+      -- Dynamic user modules. Everything outside the fixed core pages is a
+      -- module; its tasks are CQ-* quests whose category = module slug.
+      CREATE TABLE IF NOT EXISTS user_modules (
+        id SERIAL PRIMARY KEY,
+        user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+        slug VARCHAR(40) NOT NULL,
+        name VARCHAR(60) NOT NULL,
+        icon VARCHAR(16) NOT NULL DEFAULT '✨',
+        kind VARCHAR(20) NOT NULL DEFAULT 'tasks',
+        status VARCHAR(10) NOT NULL DEFAULT 'active',
+        goals JSONB NOT NULL DEFAULT '[]',
+        reward_xp INTEGER NOT NULL DEFAULT 0,
+        created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+        updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+        UNIQUE (user_id, slug)
+      );
+
+      CREATE TABLE IF NOT EXISTS app_migrations (
+        name TEXT PRIMARY KEY,
+        applied_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+      );
+    `);
+
+    // One-time: hunters who existed before modules keep their former pages
+    // (Diet, DSA, SaaS, Architecture) as modules — with a fresh 48h setup
+    // period so they can remove them without penalty — plus a module for any
+    // custom task category they already use.
+    const first = await client.query(`INSERT INTO app_migrations (name) VALUES ('user_modules_v1') ON CONFLICT DO NOTHING RETURNING name`);
+    if (first.rowCount) {
+      await client.query(`
+        INSERT INTO user_modules (user_id, slug, name, icon, kind)
+        SELECT u.id, m.slug, m.name, m.icon, m.slug
+        FROM users u CROSS JOIN (VALUES
+          ('diet', 'Diet', '🥗'), ('dsa', 'DSA Roadmap', '📚'), ('saas', 'SaaS', '🚀'), ('arch', 'Architecture', '🧠')
+        ) AS m(slug, name, icon)
+        ON CONFLICT DO NOTHING`);
+      await client.query(`
+        INSERT INTO user_modules (user_id, slug, name, kind)
+        SELECT DISTINCT user_id, category, initcap(category), CASE WHEN category = 'content' THEN 'content' ELSE 'tasks' END
+        FROM quests WHERE user_id IS NOT NULL
+        ON CONFLICT DO NOTHING`);
+    }
+
     // Seed default quests (idempotent: fills in any missing quests on every boot)
     const defaultQuests = [
       // Discipline

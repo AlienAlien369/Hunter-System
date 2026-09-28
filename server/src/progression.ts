@@ -20,8 +20,9 @@ export function calculateRank(xp: number): string {
 }
 
 // Infinite level curve: reaching level L costs 500·L·(L−1) cumulative XP.
+// XP may be negative (routine-change penalties); the level never drops below 1.
 export function calculateLevel(xp: number): number {
-  return Math.floor((1 + Math.sqrt(1 + (4 * xp) / 500)) / 2);
+  return Math.max(1, Math.floor((1 + Math.sqrt(1 + (4 * Math.max(0, xp)) / 500)) / 2));
 }
 
 /** Cumulative XP required to reach a given level. */

@@ -27,7 +27,129 @@ export interface Quest {
   difficulty: number;
   is_daily: boolean;
   completions?: { completion_date: string }[];
+  // Custom module tasks (CQ-*) only
+  user_id?: number | null;
+  schedule_time?: string | null;
+  time_of_day?: 'morning' | 'evening' | 'anytime' | null;
+  recurrence?: Day[] | null;
+  metadata?: { channelId?: number; stage?: ContentStage; subtasks?: string[] } | null;
 }
+
+export type Day = 'MON' | 'TUE' | 'WED' | 'THU' | 'FRI' | 'SAT' | 'SUN';
+export const DAYS: Day[] = ['MON', 'TUE', 'WED', 'THU', 'FRI', 'SAT', 'SUN'];
+export type ContentStage = 'research' | 'planning' | 'production' | 'publishing' | 'analytics';
+
+export interface CustomTaskInput {
+  subtasks?: string[];
+  title?: string;
+  module?: string;
+  difficulty?: 1 | 2 | 3;
+  scheduleTime?: string | null;
+  timeOfDay?: 'morning' | 'evening' | 'anytime' | null;
+  recurrence?: Day[] | null;
+  metadata?: { channelId?: number; stage?: ContentStage } | null;
+}
+
+export interface ModuleSummary {
+  module: string;
+  xpEarned: number;
+  completedTotal: number;
+  completedToday: number;
+  completedThisWeek: number;
+  streak: number;
+}
+
+export interface ContentChannel {
+  id: number;
+  name: string;
+  platform: string;
+  category: string;
+  status: 'active' | 'paused' | 'archived';
+  posting_frequency: string | null;
+  target_per_week: number;
+}
+
+export interface ChannelInput {
+  name?: string;
+  platform?: string;
+  category?: string;
+  postingFrequency?: string;
+  targetPerWeek?: number;
+  status?: ContentChannel['status'];
+}
+
+export interface RoutineItem {
+  id: string;
+  module: string;
+  title: string;
+  time: string;
+  durationMin: number;
+  days: Day[];
+  createdAt?: string;
+}
+
+export interface Routine {
+  items: RoutineItem[];
+  timezone: string | null;
+  confirmedAt: string | null;
+  graceEndsAt: string | null;
+  established: boolean;
+}
+
+export interface RoutineChange {
+  kind: string;
+  label: string;
+  module: string;
+  detail?: string;
+  severity?: 'major' | 'minor';
+  xp: number;
+  reason: string;
+}
+
+export interface RoutinePreview {
+  changes: RoutineChange[];
+  netXp: number;
+  established: boolean;
+  currentXp: number;
+  newXp: number;
+  isInitial: boolean;
+}
+
+export interface RoutineSuggestion {
+  modules: string[];
+  schedule: Omit<RoutineItem, 'id' | 'createdAt'>[];
+  suggestions: string[];
+}
+
+export type UnplannedDifficulty = 'easy' | 'medium' | 'hard' | 'extreme';
+export const UNPLANNED_CATEGORIES = ['work', 'learning', 'fitness', 'health', 'skincare', 'content', 'mindset', 'chores', 'social', 'other'] as const;
+
+export interface UnplannedAnalysis {
+  title: string;
+  category: string;
+  difficulty: UnplannedDifficulty;
+  estimatedMinutes: number;
+  goalRelevance: number;
+  meaningful: boolean;
+  trivial: boolean;
+  duplicate: boolean;
+  xpSuggestion: number;
+  reason: string;
+}
+
+export interface UnplannedOffer {
+  id: number;
+  source: 'ai' | 'manual';
+  analysis: UnplannedAnalysis;
+  xp: number;
+  repeats: number;
+  dailyRemaining: number;
+  acceptedToday: number;
+  limitReached: boolean;
+  similarTask: { questId: string; title: string; xpReward: number } | null;
+}
+
+export type UnplannedEdits = Partial<Pick<UnplannedAnalysis, 'title' | 'category' | 'difficulty' | 'estimatedMinutes'>>;
 
 export interface User {
   id: number;
@@ -191,6 +313,64 @@ export interface SetNameResponse {
   name: string;
 }
 
+/** Error carrying the HTTP status and body (e.g. a 409 XP-confirmation preview). */
+export class ApiError extends Error {
+  status: number;
+  data: Record<string, unknown>;
+  constructor(message: string, status: number, data: Record<string, unknown>) {
+    super(message);
+    this.status = status;
+    this.data = data;
+  }
+}
+
+export type ModuleKind = 'tasks' | 'content' | 'diet' | 'dsa' | 'saas' | 'arch';
+
+export interface HunterModule {
+  id: number;
+  slug: string;
+  name: string;
+  icon: string;
+  kind: ModuleKind;
+  status: 'active' | 'paused';
+  goals: string[];
+  createdAt: string;
+  graceEndsAt: string;
+  established: boolean;
+  taskCount?: number;
+}
+
+export interface ModuleTaskSpec {
+  id?: string;
+  title: string;
+  difficulty: 1 | 2 | 3;
+  scheduleTime: string | null;
+  timeOfDay: 'morning' | 'evening' | null;
+  recurrence: Day[] | null;
+  subtasks?: string[];
+  xp?: number;
+}
+
+export interface ModuleInput {
+  name: string;
+  icon?: string;
+  kind?: ModuleKind;
+  goals?: string[];
+  tasks?: ModuleTaskSpec[];
+  channels?: ChannelInput[];
+}
+
+export interface ModuleDraft {
+  name: string;
+  icon: string;
+  goals: string[];
+  tasks: ModuleTaskSpec[];
+  suggestions: string[];
+}
+
+/** Body of a 409 "confirm the XP impact" response. */
+export type XpConfirmation = RoutinePreview & { requiresConfirmation: true };
+
 // API Client with auth support
 async function request<T>(endpoint: string, options: RequestInit = {}): Promise<T> {
   const response = await fetch(`${API_URL}${endpoint}`, {
@@ -201,7 +381,7 @@ async function request<T>(endpoint: string, options: RequestInit = {}): Promise<
 
   if (!response.ok) {
     const error = await response.json().catch(() => ({ error: response.statusText }));
-    throw new Error(error.error || `API error: ${response.status}`);
+    throw new ApiError(error.error || `API error: ${response.status}`, response.status, error);
   }
 
   return response.json();
@@ -282,6 +462,85 @@ export const api = {
   getRank: () => request<RankProgress>('/rank'),
 
   getLevels: () => request<{ levels: Level[]; currentLevel: number }>('/rank/levels'),
+
+  // Custom module tasks (skincare, content, …)
+  createTask: (input: CustomTaskInput) =>
+    request<Quest>('/quests/custom', { method: 'POST', body: JSON.stringify(input) }),
+
+  updateTask: (questId: string, input: CustomTaskInput, expectedXp?: number) =>
+    request<Quest>(`/quests/custom/${questId}`, { method: 'PATCH', body: JSON.stringify({ ...input, expectedXp }) }),
+
+  deleteTask: (questId: string, expectedXp?: number) =>
+    request<{ message: string }>(`/quests/custom/${questId}${expectedXp !== undefined ? `?expectedXp=${expectedXp}` : ''}`, { method: 'DELETE' }),
+
+  getModuleSummary: (module: string) => request<ModuleSummary>(`/quests/modules/${encodeURIComponent(module)}/summary`),
+
+  // Content channels
+  getChannels: () => request<ContentChannel[]>('/content/channels'),
+
+  createChannel: (input: ChannelInput) =>
+    request<ContentChannel>('/content/channels', { method: 'POST', body: JSON.stringify(input) }),
+
+  updateChannel: (id: number, input: ChannelInput) =>
+    request<ContentChannel>(`/content/channels/${id}`, { method: 'PATCH', body: JSON.stringify(input) }),
+
+  deleteChannel: (id: number) =>
+    request<{ message: string }>(`/content/channels/${id}`, { method: 'DELETE' }),
+
+  getContentProgress: () =>
+    request<{ id: number; target_per_week: number; published: number; completed: number }[]>('/content/progress'),
+
+  // Routine (timetable contract)
+  getRoutine: () => request<{ routine: Routine | null; graceHours: number }>('/routine'),
+
+  previewRoutine: (items: RoutineItem[]) =>
+    request<RoutinePreview>('/routine/preview', { method: 'POST', body: JSON.stringify({ items }) }),
+
+  saveRoutine: (body: { items: RoutineItem[]; timezone?: string; acknowledged?: boolean; expectedNetXp?: number }) =>
+    request<{ routine: Routine; changes: RoutineChange[]; netXp: number; xp: number }>('/routine', { method: 'PUT', body: JSON.stringify(body) }),
+
+  getRoutineHistory: () => request<ActivityEntry[]>('/routine/history'),
+
+  suggestRoutine: (description: string) =>
+    request<RoutineSuggestion>('/routine/suggest', { method: 'POST', body: JSON.stringify({ description }) }),
+
+  // Unplanned activities ("I did something else")
+  analyzeActivity: (description: string) =>
+    request<({ status: 'analyzed' } & UnplannedOffer) | { status: 'manual'; message: string }>('/unplanned/analyze', {
+      method: 'POST', body: JSON.stringify({ description }),
+    }),
+
+  manualActivity: (description: string, fields: Required<UnplannedEdits>) =>
+    request<{ status: 'analyzed' } & UnplannedOffer>('/unplanned/manual', { method: 'POST', body: JSON.stringify({ description, ...fields }) }),
+
+  previewActivity: (id: number, edits: UnplannedEdits) =>
+    request<Omit<UnplannedOffer, 'id' | 'source'>>(`/unplanned/${id}/preview`, { method: 'POST', body: JSON.stringify({ edits }) }),
+
+  acceptActivity: (id: number, edits?: UnplannedEdits) =>
+    request<{ xpGained: number; newXp: number; level: number }>(`/unplanned/${id}/accept`, { method: 'POST', body: JSON.stringify({ edits }) }),
+
+  rejectActivity: (id: number) =>
+    request<{ message: string }>(`/unplanned/${id}/reject`, { method: 'POST' }),
+
+  // Dynamic modules
+  getModules: () => request<HunterModule[]>('/modules'),
+
+  getModuleHistory: () => request<ActivityEntry[]>('/modules/history'),
+
+  createModule: (input: ModuleInput & { acknowledged: true; replaceModuleId?: number }, expectedXp?: number) =>
+    request<{ module: HunterModule; xp: number }>('/modules', { method: 'POST', body: JSON.stringify({ ...input, expectedXp }) }),
+
+  updateModule: (id: number, input: Partial<Pick<HunterModule, 'name' | 'icon' | 'goals' | 'status'>>, expectedXp?: number) =>
+    request<{ module: HunterModule }>(`/modules/${id}`, { method: 'PATCH', body: JSON.stringify({ ...input, expectedXp }) }),
+
+  saveModuleTasks: (id: number, tasks: ModuleTaskSpec[], expectedXp?: number) =>
+    request<{ netXp: number }>(`/modules/${id}/tasks`, { method: 'PUT', body: JSON.stringify({ tasks, expectedXp }) }),
+
+  deleteModule: (id: number, expectedXp?: number) =>
+    request<{ message: string }>(`/modules/${id}${expectedXp !== undefined ? `?expectedXp=${expectedXp}` : ''}`, { method: 'DELETE' }),
+
+  draftModule: (prompt: string, moduleId?: number) =>
+    request<ModuleDraft>('/modules/ai/draft', { method: 'POST', body: JSON.stringify({ prompt, moduleId }) }),
 
   // Health
   health: () => request<{ status: string; timestamp: string }>('/health'),

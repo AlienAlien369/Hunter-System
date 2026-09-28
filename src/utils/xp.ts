@@ -33,9 +33,10 @@ export interface LevelInfo {
  * Infinite level curve: reaching level L costs 500·L·(L−1) cumulative XP,
  * so each level is harder than the last and there is no cap.
  *   L1=0 · L2=1,000 · L3=3,000 · L4=6,000 · L5=10,000 · L10=45,000 · L50=1.2M
+ * XP may be negative (routine-change penalties); the level never drops below 1.
  */
 export function getLevelInfo(xp: number): LevelInfo {
-  const level = Math.floor((1 + Math.sqrt(1 + (4 * xp) / 500)) / 2);
+  const level = Math.max(1, Math.floor((1 + Math.sqrt(1 + (4 * Math.max(0, xp)) / 500)) / 2));
   const currentLevelXP = 500 * level * (level - 1);
   const nextLevelXP = 500 * (level + 1) * level;
   return {
