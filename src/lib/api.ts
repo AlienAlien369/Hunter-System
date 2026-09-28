@@ -582,6 +582,13 @@ export const api = {
   getCoachWeekly: () => request<CoachWeekly>('/coach/weekly'),
   generateCoachWeekly: () => request<CoachWeekly>('/coach/weekly', { method: 'POST' }),
 
+  // Account
+  changePassword: (currentPassword: string, newPassword: string) =>
+    request<{ message: string }>('/auth/change-password', { method: 'POST', body: JSON.stringify({ currentPassword, newPassword }) }),
+
+  deleteAccount: (password: string, confirm: string) =>
+    request<{ message: string }>('/auth/account', { method: 'DELETE', body: JSON.stringify({ password, confirm }) }),
+
   // Health
   health: () => request<{ status: string; timestamp: string }>('/health'),
 };

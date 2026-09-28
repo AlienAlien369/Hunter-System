@@ -4,6 +4,7 @@ import { useSoundStore } from "../store/soundStore";
 import type { SoundPackId } from "../data/soundPacks";
 import { sfx } from "../utils/sounds";
 import AppSettingsPanel from '../components/AppSettingsPanel';
+import AccountPanel from '../components/AccountPanel';
 
 type ThemeId = keyof typeof THEMES;
 
@@ -49,6 +50,7 @@ export default function Settings() {
       </motion.div>
 
       <AppSettingsPanel />
+      <AccountPanel />
 
       {/* Appearance Section */}
       <motion.div

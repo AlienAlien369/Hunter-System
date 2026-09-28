@@ -491,6 +491,60 @@ describe('Hunter extensions', () => {
     });
   });
 
+  describe('account: change password & delete account', () => {
+    const uname = 'ext_acct_' + suffix;
+    const login = (password: string) => fetch(`${BASE_URL}/api/auth/login`, {
+      method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ username: uname, password }),
+    });
+    let U: ReturnType<typeof client>;
+    let uId: number;
+
+    before(async () => {
+      const r = await fetch(`${BASE_URL}/api/auth/register`, {
+        method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ username: uname, password: 'OldPass123!' }),
+      });
+      const cookie = (r.headers.get('set-cookie') || '').split(';')[0];
+      U = client(cookie);
+      uId = (await U.get('/auth/me')).body.user.id;
+      await U.patch('/quests/DQ-01/complete');
+      await U.post('/modules', { name: 'Reading', acknowledged: true, tasks: [{ title: 'Read', difficulty: 1 }] });
+    });
+
+    it('changes the password only with the correct current password', async () => {
+      assert.strictEqual((await U.post('/auth/change-password', { currentPassword: 'wrong', newPassword: 'NewPass123!' })).status, 401);
+      assert.strictEqual((await U.post('/auth/change-password', { currentPassword: 'OldPass123!', newPassword: '123' })).status, 400);
+      assert.strictEqual((await U.post('/auth/change-password', { currentPassword: 'OldPass123!', newPassword: 'NewPass123!' })).status, 200);
+      assert.strictEqual((await login('OldPass123!')).status, 401);
+      assert.strictEqual((await login('NewPass123!')).status, 200);
+    });
+
+    it('deletes the account and all its data after password + username confirmation', async () => {
+      assert.strictEqual((await U.del('/auth/account')).status, 401);
+      const wrongConfirm = await fetch(`${BASE_URL}/api/auth/account`, {
+        method: 'DELETE', headers: { Cookie: await loginCookie(), 'Content-Type': 'application/json' },
+        body: JSON.stringify({ password: 'NewPass123!', confirm: 'nope' }),
+      });
+      assert.strictEqual(wrongConfirm.status, 400);
+      const res = await fetch(`${BASE_URL}/api/auth/account`, {
+        method: 'DELETE', headers: { Cookie: (await loginCookie()), 'Content-Type': 'application/json' },
+        body: JSON.stringify({ password: 'NewPass123!', confirm: uname }),
+      });
+      assert.strictEqual(res.status, 200);
+      assert.strictEqual((await login('NewPass123!')).status, 401);
+      const left = await db.query(
+        `SELECT (SELECT COUNT(*) FROM users WHERE id = $1) + (SELECT COUNT(*) FROM quest_completions WHERE user_id = $1)
+              + (SELECT COUNT(*) FROM user_modules WHERE user_id = $1) + (SELECT COUNT(*) FROM activity_log WHERE user_id = $1) AS n`,
+        [uId],
+      );
+      assert.strictEqual(Number(left.rows[0].n), 0);
+    });
+
+    async function loginCookie() {
+      const r = await login('NewPass123!');
+      return (r.headers.get('set-cookie') || '').split(';')[0];
+    }
+  });
+
   describe('launch hardening: sessions, CORS, CSRF origin guard, login lockout', () => {
     const uname = 'ext_sec_' + suffix;
 

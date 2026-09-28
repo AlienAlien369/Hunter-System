@@ -293,4 +293,81 @@ router.post(
   },
 );
 
+/** Re-check the signed-in hunter's password (rate-limited like logins). */
+async function verifyPassword(req: Request, res: Response, password: unknown): Promise<any | null> {
+  const userId = req.user!.id;
+  const failKey = `password-check:${userId}`;
+  const locked = blockedFor(failKey, LIMITS.failedLogins.max);
+  if (locked) {
+    tooMany(res, locked, "incorrect password attempts");
+    return null;
+  }
+  const user = (await pool.query("SELECT * FROM users WHERE id = $1", [userId])).rows[0];
+  if (!user) {
+    res.status(404).json({ error: "User not found" });
+    return null;
+  }
+  if (typeof password !== "string" || !(await bcrypt.compare(password, user.password_hash))) {
+    hit(failKey, LIMITS.failedLogins.max, LIMITS.failedLogins.windowMs);
+    res.status(401).json({ error: "Current password is incorrect" });
+    return null;
+  }
+  clearKey(failKey);
+  return user;
+}
+
+/**
+ * POST /api/auth/change-password { currentPassword, newPassword }
+ */
+router.post("/change-password", authenticateToken, async (req: Request, res: Response) => {
+  try {
+    const { currentPassword, newPassword } = req.body;
+    if (typeof newPassword !== "string" || newPassword.length < 6) {
+      return res.status(400).json({ error: "New password must be at least 6 characters" });
+    }
+    const user = await verifyPassword(req, res, currentPassword);
+    if (!user) return;
+    if (await bcrypt.compare(newPassword, user.password_hash)) {
+      return res.status(400).json({ error: "New password must be different from the current one" });
+    }
+    await pool.query("UPDATE users SET password_hash = $1, updated_at = NOW() WHERE id = $2", [await bcrypt.hash(newPassword, 10), user.id]);
+    await logActivity(user.id, "password_change", user.username);
+    issueSession(req, res, user);
+    res.json({ message: "Password updated" });
+  } catch (error) {
+    console.error("Change password error:", error);
+    res.status(500).json({ error: "Failed to change password" });
+  }
+});
+
+/**
+ * DELETE /api/auth/account { password, confirm } — confirm must equal the username.
+ * Permanently deletes the hunter and all their data.
+ */
+router.delete("/account", authenticateToken, async (req: Request, res: Response) => {
+  const client = await pool.connect();
+  try {
+    const user = await verifyPassword(req, res, req.body?.password);
+    if (!user) return;
+    if (req.body?.confirm !== user.username) {
+      return res.status(400).json({ error: "Type your username to confirm" });
+    }
+    await client.query("BEGIN");
+    // These two tables reference users without ON DELETE CASCADE.
+    await client.query("DELETE FROM rank_history WHERE user_id = $1", [user.id]);
+    await client.query("DELETE FROM daily_stats WHERE user_id = $1", [user.id]);
+    await client.query("DELETE FROM users WHERE id = $1", [user.id]); // everything else cascades
+    await client.query("COMMIT");
+    const cookieOptions = getAuthCookieOptions(req);
+    res.clearCookie("token", { httpOnly: cookieOptions.httpOnly, secure: cookieOptions.secure, sameSite: cookieOptions.sameSite });
+    res.json({ message: "Account deleted" });
+  } catch (error) {
+    await client.query("ROLLBACK").catch(() => {});
+    console.error("Delete account error:", error);
+    res.status(500).json({ error: "Failed to delete account" });
+  } finally {
+    client.release();
+  }
+});
+
 export default router;
