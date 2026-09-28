@@ -13,7 +13,10 @@ export default function Login() {
   // Return to the page that required login (deep links, refreshes); only same-app paths.
   const from = (location.state as { from?: string } | null)?.from;
   const target = from && from.startsWith('/') && !from.startsWith('//') ? from : '/';
-  const [mode, setMode] = useState<'login' | 'register'>('login');
+  // Newcomers land on "create account"; browsers that have signed in before land on login.
+  const [mode, setMode] = useState<'login' | 'register'>(() => {
+    try { return localStorage.getItem('hunter.hasAccount') ? 'login' : 'register'; } catch { return 'login'; }
+  });
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
@@ -32,11 +35,13 @@ export default function Login() {
     try {
       if (mode === 'login') {
         const response = await api.login(username, password);
+        try { localStorage.setItem('hunter.hasAccount', '1'); } catch { /* storage unavailable */ }
         login(response.user);
         sfx.login();
         navigate(target, { replace: true });
       } else {
         const response = await api.register(username, password);
+        try { localStorage.setItem('hunter.hasAccount', '1'); } catch { /* storage unavailable */ }
         login(response.user);
         sfx.login();
         navigate(target, { replace: true });
@@ -49,14 +54,46 @@ export default function Login() {
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center p-4" style={{ background: 'var(--bg-base)' }}>
+    <div className="min-h-screen flex items-center justify-center p-4 py-10" style={{ background: 'var(--bg-base)' }}>
       {/* Animated system background */}
       <BackgroundFX />
+
+      {/* Mobile order: headline → form → features. Desktop: pitch left, form right. */}
+      <div className="relative w-full max-w-5xl grid grid-cols-1 lg:grid-cols-2 lg:grid-rows-[auto_1fr] gap-x-10 gap-y-6 items-center">
+      {/* Pitch: what Hunter is, for visitors arriving from a shared card or link */}
+      <motion.section initial={{ opacity: 0, x: -20 }} animate={{ opacity: 1, x: 0 }} className="text-center lg:text-left lg:col-start-1 lg:row-start-1 lg:self-end">
+        <p className="text-purple-300 font-mono text-xs tracking-[0.3em]">THE SYSTEM HAS CHOSEN YOU</p>
+        <h2 className="font-display text-3xl sm:text-5xl font-bold text-white tracking-wider mt-3 leading-tight">
+          Level up your <span className="bg-gradient-to-r from-purple-400 to-blue-400 bg-clip-text text-transparent">real life</span>
+        </h2>
+        <p className="text-gray-400 font-mono text-sm mt-4 max-w-md mx-auto lg:mx-0">
+          Hunter turns your day into quests. Earn XP for the habits you keep, rank up from E to S, and see who's grinding hardest this week.
+        </p>
+      </motion.section>
+
+      <motion.section initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="lg:col-start-1 lg:row-start-2 lg:self-start">
+        <ul className="space-y-3 text-left max-w-md mx-auto lg:mx-0">
+          {[
+            ['🗓️', 'Your timetable becomes your quest log', 'Describe your day — Hunter builds the schedule, every slot earns XP.'],
+            ['🧩', 'Modules for everything you care about', 'Fitness, skincare, reading, content creation — or build your own with AI.'],
+            ['⚡', 'Real consequences, real progress', 'Streaks, penalties for skipped days, and a 2-day rule that keeps you honest.'],
+            ['🏆', 'Ranks, leaderboard & shareable cards', 'Climb the weekly board and flex your Hunter card with friends.'],
+          ].map(([icon, title, body]) => (
+            <li key={title} className="flex gap-3">
+              <span className="text-xl">{icon}</span>
+              <span>
+                <span className="block text-white font-mono text-sm">{title}</span>
+                <span className="block text-gray-500 font-mono text-xs">{body}</span>
+              </span>
+            </li>
+          ))}
+        </ul>
+      </motion.section>
 
       <motion.div
         initial={{ opacity: 0, scale: 0.9 }}
         animate={{ opacity: 1, scale: 1 }}
-        className="relative w-full max-w-md"
+        className="relative w-full max-w-md mx-auto lg:col-start-2 lg:row-start-1 lg:row-span-2 row-start-2"
       >
         {/* Card */}
         <div className="backdrop-blur-xl rounded-2xl p-8 shadow-2xl" style={{ background: 'var(--bg-card)', border: '1px solid var(--accent-border)', boxShadow: '0 25px 50px -12px var(--aurora-1)' }}>
@@ -164,23 +201,14 @@ export default function Login() {
             </button>
           </form>
 
-          {/* Demo Credentials */}
-          {mode === 'login' && (
-            <div className="mt-6 pt-6 border-t border-purple-500/10">
-              <p className="text-gray-500 font-mono text-xs text-center mb-3">DEMO CREDENTIALS</p>
-              <div className="bg-[#0d1117] rounded-lg p-3 text-center">
-                <p className="text-purple-400 font-mono text-sm">Username: <span className="text-white">{import.meta.env.VITE_DEMO_USER || 'demo_user'}</span></p>
-                <p className="text-purple-400 font-mono text-sm mt-1">Password: <span className="text-white">{import.meta.env.VITE_DEMO_PASS || 'DemoPass123!'}</span></p>
-              </div>
-            </div>
-          )}
         </div>
 
         {/* Footer */}
         <p className="text-center text-gray-600 font-mono text-xs mt-6">
-          Solo Leveling Hunter System v1.0
+          Hunter System · free to play
         </p>
       </motion.div>
+      </div>
     </div>
   );
 }
