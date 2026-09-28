@@ -63,31 +63,47 @@ async function anthropic(opts: StructuredRequest, key: string): Promise<unknown 
   }
 }
 
+/**
+ * Models to try, in order. Google retires older models for new API keys
+ * (e.g. gemini-2.5-flash → 404 "no longer available to new users"), so a
+ * 404 moves on to the next candidate instead of failing the feature.
+ */
+export function geminiModels(): string[] {
+  return [...new Set([process.env.GEMINI_MODEL, 'gemini-3.8-flash', 'gemini-3.5-flash'].filter((m): m is string => !!m))];
+}
+
 /** Gemini: structure is enforced with responseMimeType + responseSchema. */
 async function gemini(opts: StructuredRequest, key: string): Promise<unknown | null> {
-  try {
-    const model = process.env.GEMINI_MODEL || 'gemini-2.5-flash';
-    const res = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${encodeURIComponent(model)}:generateContent`, {
-      method: 'POST',
-      headers: { 'content-type': 'application/json', 'x-goog-api-key': key },
-      body: JSON.stringify({
-        systemInstruction: { parts: [{ text: opts.system }] },
-        contents: [{ role: 'user', parts: [{ text: opts.prompt }] }],
-        generationConfig: { responseMimeType: 'application/json', responseSchema: toGeminiSchema(opts.schema), maxOutputTokens: 2048 },
-      }),
-      signal: AbortSignal.timeout(opts.timeoutMs ?? 20000),
-    });
-    if (!res.ok) {
-      console.error('Gemini request failed:', res.status, await res.text().catch(() => ''));
+  for (const model of geminiModels()) {
+    try {
+      const res = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${encodeURIComponent(model)}:generateContent`, {
+        method: 'POST',
+        headers: { 'content-type': 'application/json', 'x-goog-api-key': key },
+        body: JSON.stringify({
+          systemInstruction: { parts: [{ text: opts.system }] },
+          contents: [{ role: 'user', parts: [{ text: opts.prompt }] }],
+          // Newer models spend output tokens on thinking first, so leave generous headroom.
+          generationConfig: { responseMimeType: 'application/json', responseSchema: toGeminiSchema(opts.schema), maxOutputTokens: 8192 },
+        }),
+        signal: AbortSignal.timeout(opts.timeoutMs ?? 30000),
+      });
+      if (res.status === 404) {
+        console.error(`Gemini model ${model} unavailable, trying next:`, (await res.text().catch(() => '')).slice(0, 200));
+        continue;
+      }
+      if (!res.ok) {
+        console.error(`Gemini request failed (${model}):`, res.status, await res.text().catch(() => ''));
+        return null;
+      }
+      const data = (await res.json()) as { candidates?: { content?: { parts?: { text?: string; thought?: boolean }[] } }[] };
+      const text = data.candidates?.[0]?.content?.parts?.filter(p => !p.thought).map(p => p.text ?? '').join('') ?? '';
+      return text ? JSON.parse(text) : null;
+    } catch (error) {
+      console.error(`Gemini request error (${model}):`, (error as Error).message);
       return null;
     }
-    const data = (await res.json()) as { candidates?: { content?: { parts?: { text?: string }[] } }[] };
-    const text = data.candidates?.[0]?.content?.parts?.map(p => p.text ?? '').join('') ?? '';
-    return text ? JSON.parse(text) : null;
-  } catch (error) {
-    console.error('Gemini request error:', (error as Error).message);
-    return null;
   }
+  return null;
 }
 
 /**

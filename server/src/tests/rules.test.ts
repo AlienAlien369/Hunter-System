@@ -10,7 +10,7 @@ import {
   diffModuleTasks, moduleRemovalChange, modulePauseChange, validateModuleDraft, sanitizeModuleTask, slugify, type ModuleTask,
 } from '../rules.js';
 import { calculateLevel } from '../progression.js';
-import { toGeminiSchema } from '../ai.js';
+import { toGeminiSchema, structuredCompletion } from '../ai.js';
 
 const H = 3600_000;
 const T0 = new Date('2026-09-01T10:00:00Z');
@@ -227,6 +227,32 @@ describe('Gemini schema conversion', () => {
         tasks: { type: 'ARRAY', items: { type: 'OBJECT', required: ['title'], properties: { title: { type: 'STRING', description: 'd' } } } },
       },
     });
+  });
+});
+
+describe('Gemini provider', () => {
+  it('skips a retired model (404) and parses the next model\'s JSON, ignoring thought parts', async () => {
+    const saved = { fetch: globalThis.fetch, a: process.env.ANTHROPIC_API_KEY, g: process.env.GOOGLE_API_KEY, m: process.env.GEMINI_MODEL };
+    delete process.env.ANTHROPIC_API_KEY;
+    process.env.GOOGLE_API_KEY = 'test-key';
+    process.env.GEMINI_MODEL = 'gemini-2.5-flash';
+    const urls: string[] = [];
+    globalThis.fetch = (async (url: string) => {
+      urls.push(url);
+      if (url.includes('gemini-2.5-flash')) return new Response('{"error":{"code":404}}', { status: 404 });
+      return new Response(JSON.stringify({ candidates: [{ content: { parts: [{ text: 'thinking…', thought: true }, { text: '{"a":"ok"}' }] } }] }), { status: 200 });
+    }) as typeof fetch;
+    try {
+      const out = await structuredCompletion({ system: 's', prompt: 'p', toolName: 't', schema: { type: 'object', properties: { a: { type: 'string' } } } });
+      assert.deepStrictEqual(out, { a: 'ok' });
+      assert.match(urls[0], /gemini-2\.5-flash/);
+      assert.match(urls[1], /gemini-3\.8-flash/);
+    } finally {
+      globalThis.fetch = saved.fetch;
+      for (const [k, v] of [['ANTHROPIC_API_KEY', saved.a], ['GOOGLE_API_KEY', saved.g], ['GEMINI_MODEL', saved.m]] as const) {
+        if (v === undefined) delete process.env[k]; else process.env[k] = v;
+      }
+    }
   });
 });
 
