@@ -571,6 +571,33 @@ describe('Hunter extensions', () => {
     });
   });
 
+  describe('friends', () => {
+    it('follows by Hunter name, ranks the circle by weekly XP, respects opt-out, unfollows', async () => {
+      const F1 = client((await register('ext_f1_' + suffix)).cookie);
+      const F2 = client((await register('ext_f2_' + suffix)).cookie);
+      const F3 = client((await register('ext_f3_' + suffix)).cookie);
+      const [n1, n2, n3] = ['Ally', 'Bolt', 'Cove'].map(p => p + String(suffix).slice(-6));
+      await F1.post('/auth/set-name', { name: n1 });
+      await F2.post('/auth/set-name', { name: n2 });
+      await F3.post('/auth/set-name', { name: n3 });
+      await F2.patch('/quests/DQ-03/complete'); // F2: 25 XP this week
+
+      assert.strictEqual((await F1.post('/friends', { name: n2.toLowerCase() })).status, 201, 'case-insensitive');
+      assert.strictEqual((await F1.post('/friends', { name: n1 })).status, 400, 'cannot follow yourself');
+      assert.strictEqual((await F1.post('/friends', { name: 'nobody-' + suffix })).status, 404);
+      const circle = (await F1.get('/friends')).body.friends;
+      assert.deepStrictEqual(circle.map((f: any) => [f.name, f.weeklyXp, f.isMe]), [[n2, 25, false], [n1, 0, true]]);
+      assert.ok(circle.every((f: any) => !('id' in f) && !('username' in f)));
+
+      await F3.patch('/leaderboard/visibility', { visible: false });
+      assert.strictEqual((await F1.post('/friends', { name: n3 })).status, 404, 'opted-out hunters cannot be found');
+
+      assert.strictEqual((await F1.del(`/friends/${encodeURIComponent(n2)}`)).status, 200);
+      assert.deepStrictEqual((await F1.get('/friends')).body.friends.map((f: any) => f.name), [n1]);
+      assert.strictEqual((await F1.del(`/friends/${encodeURIComponent(n2)}`)).status, 404);
+    });
+  });
+
   describe('launch hardening: sessions, CORS, CSRF origin guard, login lockout', () => {
     const uname = 'ext_sec_' + suffix;
 

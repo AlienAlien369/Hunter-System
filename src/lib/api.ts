@@ -593,6 +593,11 @@ export const api = {
   getOnboarding: () => request<{ claimed: boolean; bonus: number; steps: { id: string; label: string; done: boolean }[] }>('/onboarding'),
   claimOnboarding: () => request<{ xpGained: number }>('/onboarding/claim', { method: 'POST' }),
 
+  // Friends
+  getFriends: () => request<{ weekStart: string; friends: { position: number; name: string; weeklyXp: number; level: number; rank: string; lastActive: string | null; isMe: boolean }[] }>('/friends'),
+  addFriend: (name: string) => request<{ name: string }>('/friends', { method: 'POST', body: JSON.stringify({ name }) }),
+  removeFriend: (name: string) => request<{ message: string }>(`/friends/${encodeURIComponent(name)}`, { method: 'DELETE' }),
+
   // Health
   health: () => request<{ status: string; timestamp: string }>('/health'),
 };

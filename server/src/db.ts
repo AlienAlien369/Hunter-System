@@ -227,6 +227,15 @@ export async function initDatabase() {
         UNIQUE (user_id, slug)
       );
 
+      -- Friends: one-way follows between hunters
+      CREATE TABLE IF NOT EXISTS friendships (
+        follower_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+        followee_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+        created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+        PRIMARY KEY (follower_id, followee_id),
+        CHECK (follower_id <> followee_id)
+      );
+
       -- Weekly AI coach reviews, cached one per hunter per week
       CREATE TABLE IF NOT EXISTS coach_reviews (
         user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,

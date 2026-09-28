@@ -91,7 +91,8 @@ export async function drawHunterCard(d: CardData): Promise<Blob> {
     ctx.fillText(s.value, x + tileW / 2, y + 118);
   });
 
-  if (d.modules.length) center(d.modules.slice(0, 4).join('  ·  '), 1255, '500 30px Inter', 'rgba(255,255,255,0.7)');
+  if (d.modules.length) center(d.modules.slice(0, 4).join('  ·  '), 1215, '500 30px Inter', 'rgba(255,255,255,0.7)');
+  center(`Find me on Hunter: ${d.name}`, 1265, '600 30px Inter', 'rgba(255,255,255,0.85)');
   center(`Level up your life → ${d.url.replace(/^https?:\/\//, '')}`, 1310, '700 30px Inter', '#c4b5fd');
 
   return new Promise((resolve, reject) => canvas.toBlob(b => (b ? resolve(b) : reject(new Error('Could not render card'))), 'image/png'));
