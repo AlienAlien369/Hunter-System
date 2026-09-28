@@ -34,6 +34,7 @@ import ModulePage from './pages/ModulePage';
 import XpConfirmHost from './components/hunter/XpConfirmHost';
 import { useModuleStore } from './store/moduleStore';
 import { moduleHref } from './data/presets';
+import { useTimetableReminders } from './utils/reminders';
 import RoutineSetup from './components/routine/RoutineSetup';
 import { api } from './lib/api';
 
@@ -100,6 +101,9 @@ function AppContent() {
 
   // Onboarding step 2: hunters without a confirmed routine are offered the
   // routine setup once per session (they can always do it later from Timetable).
+  // Notifications when today's timetable quests are due (opt-in in Settings)
+  useTimetableReminders();
+
   // Dynamic user modules → sidebar entries after the core pages
   const modules = useModuleStore(s => s.modules);
   useEffect(() => { if (user?.id) useModuleStore.getState().load(); }, [user?.id]);

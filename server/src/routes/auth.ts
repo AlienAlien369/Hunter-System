@@ -2,14 +2,13 @@ import { Router, Request, Response } from "express";
 import bcrypt from "bcrypt";
 import jwt from "jsonwebtoken";
 import { pool } from "../db.js";
-import { authenticateToken } from "../middleware/auth.js";
+import { authenticateToken, jwtSecret } from "../middleware/auth.js";
 import { logActivity } from "../activity.js";
 import { calculateLevel, calculateRank } from "../progression.js";
 import { LIMITS, blockedFor, clearKey, hit, tooMany } from "../middleware/security.js";
 
 const router = Router();
 
-const JWT_SECRET = process.env.JWT_SECRET || "hunter-system-secret-key-2024";
 // Sessions last 7 days and slide: every app open (GET /me) renews the cookie.
 const SESSION_DAYS = 7;
 const JWT_EXPIRES_IN = `${SESSION_DAYS}d`;
@@ -42,7 +41,7 @@ function getAuthCookieOptions(req: Request) {
 
 /** Sign a session JWT and set it as the auth cookie. */
 function issueSession(req: Request, res: Response, user: { id: number; username: string }) {
-  const token = jwt.sign({ id: user.id, username: user.username }, JWT_SECRET, { expiresIn: JWT_EXPIRES_IN });
+  const token = jwt.sign({ id: user.id, username: user.username }, jwtSecret(), { expiresIn: JWT_EXPIRES_IN });
   res.cookie("token", token, getAuthCookieOptions(req));
 }
 

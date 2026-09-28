@@ -1,5 +1,26 @@
 import { Request, Response, NextFunction } from 'express';
 import jwt from 'jsonwebtoken';
+import { createHash } from 'crypto';
+
+let warned = false;
+/**
+ * The JWT signing secret, read on every call (env is loaded after imports).
+ * Prefer JWT_SECRET. Without it, derive a secret from DATABASE_URL — private
+ * to the deployment and stable across restarts — rather than falling back to
+ * a constant that is visible in the public repository. The constant remains
+ * only for local development with neither variable set.
+ */
+export function jwtSecret(): string {
+  if (process.env.JWT_SECRET) return process.env.JWT_SECRET;
+  if (process.env.DATABASE_URL) {
+    if (!warned) {
+      warned = true;
+      console.warn('JWT_SECRET is not set — using a secret derived from DATABASE_URL. Set JWT_SECRET explicitly.');
+    }
+    return createHash('sha256').update(`hunter-jwt:${process.env.DATABASE_URL}`).digest('hex');
+  }
+  return 'hunter-system-local-dev-secret';
+}
 
 // Extend Express Request to include user
 declare global {
@@ -31,7 +52,7 @@ export function authenticateToken(req: Request, res: Response, next: NextFunctio
 
   try {
     // Must match the secret used when signing tokens in routes/auth.ts
-    const secret = process.env.JWT_SECRET || 'hunter-system-secret-key-2024';
+    const secret = jwtSecret();
     const verified = jwt.verify(token, secret) as JwtPayload;
 
     req.user = verified;
@@ -52,7 +73,7 @@ export function optionalAuth(req: Request, res: Response, next: NextFunction) {
   }
 
   try {
-    const secret = process.env.JWT_SECRET || 'hunter-system-secret-key-2024';
+    const secret = jwtSecret();
     const verified = jwt.verify(token, secret) as JwtPayload;
     req.user = verified;
     next();

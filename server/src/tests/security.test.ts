@@ -30,3 +30,23 @@ describe('rate limiter', () => {
     assert.strictEqual(blockedFor(k, 3, t0), 0);
   });
 });
+
+describe('JWT secret selection', () => {
+  it('prefers JWT_SECRET, else derives from DATABASE_URL, never the old public constant', async () => {
+    const { jwtSecret } = await import('../middleware/auth.js');
+    const saved = { s: process.env.JWT_SECRET, d: process.env.DATABASE_URL };
+    try {
+      process.env.JWT_SECRET = 'explicit';
+      assert.strictEqual(jwtSecret(), 'explicit');
+      delete process.env.JWT_SECRET;
+      process.env.DATABASE_URL = 'postgres://u:p@host/db';
+      const derived = jwtSecret();
+      assert.match(derived, /^[0-9a-f]{64}$/);
+      assert.strictEqual(jwtSecret(), derived, 'stable across calls');
+      assert.notStrictEqual(derived, 'hunter-system-secret-key-2024');
+    } finally {
+      if (saved.s === undefined) delete process.env.JWT_SECRET; else process.env.JWT_SECRET = saved.s;
+      if (saved.d === undefined) delete process.env.DATABASE_URL; else process.env.DATABASE_URL = saved.d;
+    }
+  });
+});

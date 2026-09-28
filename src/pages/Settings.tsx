@@ -3,6 +3,7 @@ import { useThemeStore, THEMES, applyTheme } from "../store/themeStore";
 import { useSoundStore } from "../store/soundStore";
 import type { SoundPackId } from "../data/soundPacks";
 import { sfx } from "../utils/sounds";
+import AppSettingsPanel from '../components/AppSettingsPanel';
 
 type ThemeId = keyof typeof THEMES;
 
@@ -46,6 +47,8 @@ export default function Settings() {
           ⚙️
         </div>
       </motion.div>
+
+      <AppSettingsPanel />
 
       {/* Appearance Section */}
       <motion.div
