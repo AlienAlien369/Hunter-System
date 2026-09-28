@@ -10,6 +10,7 @@ import HiddenQuestCard from '../components/HiddenQuestCard';
 import PenaltyBanner from '../components/PenaltyBanner';
 import UnplannedActivity from '../components/UnplannedActivity';
 import ShareCardButton from '../components/ShareCardButton';
+import InitiationCard from '../components/InitiationCard';
 import { useModuleStore } from '../store/moduleStore';
 import { Panel } from '../components/hunter/ui';
 import { TaskRow } from '../components/hunter/tasks';
@@ -55,6 +56,8 @@ export default function Dashboard() {
           <p className="text-gray-500 font-mono text-xs mt-1">SYSTEM STATUS: ONLINE</p>
         </div>
       </motion.div>
+
+      <InitiationCard />
 
       {/* Main Grid */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">

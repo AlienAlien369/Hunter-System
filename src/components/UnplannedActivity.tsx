@@ -98,6 +98,7 @@ export default function UnplannedActivity() {
       <button
         type="button"
         onClick={() => setOpen(true)}
+        data-unplanned-trigger
         className="px-4 py-2 rounded-lg border border-purple-400/50 bg-purple-600/20 hover:bg-purple-600/40 text-purple-100 font-display text-xs tracking-[0.2em] shadow-lg shadow-purple-500/20 transition-colors"
       >
         + I DID SOMETHING ELSE

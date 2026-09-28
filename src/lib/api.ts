@@ -589,6 +589,10 @@ export const api = {
   deleteAccount: (password: string, confirm: string) =>
     request<{ message: string }>('/auth/account', { method: 'DELETE', body: JSON.stringify({ password, confirm }) }),
 
+  // Hunter Initiation (first-session checklist)
+  getOnboarding: () => request<{ claimed: boolean; bonus: number; steps: { id: string; label: string; done: boolean }[] }>('/onboarding'),
+  claimOnboarding: () => request<{ xpGained: number }>('/onboarding/claim', { method: 'POST' }),
+
   // Health
   health: () => request<{ status: string; timestamp: string }>('/health'),
 };

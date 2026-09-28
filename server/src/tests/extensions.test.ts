@@ -545,6 +545,32 @@ describe('Hunter extensions', () => {
     }
   });
 
+  describe('hunter initiation checklist', () => {
+    it('tracks real progress and pays the bonus exactly once', async () => {
+      const N = client((await register('ext_init_' + suffix)).cookie);
+      let o = (await N.get('/onboarding')).body;
+      assert.deepStrictEqual(o.steps.map((s: any) => s.done), [false, false, false, false, false]);
+      assert.strictEqual((await N.post('/onboarding/claim')).status, 400, 'cannot claim early');
+
+      await N.post('/auth/set-name', { name: 'Init' + String(suffix).slice(-6) });
+      await N.put('/routine', { items: [slot('i1', 'Wake', '06:00', 15)], acknowledged: true });
+      await N.post('/modules', { name: 'Reading', acknowledged: true });
+      await N.patch('/quests/DQ-01/complete');
+      const m = await N.post('/unplanned/manual', { description: 'Organised my whole desk', title: 'Organised desk', category: 'chores', difficulty: 'easy', estimatedMinutes: 20 });
+      await N.post(`/unplanned/${m.body.id}/accept`);
+
+      o = (await N.get('/onboarding')).body;
+      assert.ok(o.steps.every((s: any) => s.done));
+      const before = (await N.xp()).xp;
+      const claim = await N.post('/onboarding/claim');
+      assert.strictEqual(claim.status, 200);
+      assert.strictEqual(claim.body.xpGained, 50);
+      assert.strictEqual((await N.xp()).xp, before + 50);
+      assert.strictEqual((await N.post('/onboarding/claim')).status, 409, 'only once');
+      assert.strictEqual((await N.get('/onboarding')).body.claimed, true);
+    });
+  });
+
   describe('launch hardening: sessions, CORS, CSRF origin guard, login lockout', () => {
     const uname = 'ext_sec_' + suffix;
 
