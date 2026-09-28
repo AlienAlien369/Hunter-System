@@ -16,6 +16,7 @@ import routineRoutes from './routes/routine.js';
 import unplannedRoutes from './routes/unplanned.js';
 import moduleRoutes from './routes/modules.js';
 import leaderboardRoutes from './routes/leaderboard.js';
+import coachRoutes from './routes/coach.js';
 import { initDatabase } from './db.js';
 import { isAllowedOrigin, originGuard } from './middleware/security.js';
 
@@ -53,6 +54,7 @@ app.use('/api/routine', routineRoutes);
 app.use('/api/unplanned', unplannedRoutes);
 app.use('/api/modules', moduleRoutes);
 app.use('/api/leaderboard', leaderboardRoutes);
+app.use('/api/coach', coachRoutes);
 app.get('/api/health', (req, res) => res.json({ status: 'ok', timestamp: new Date().toISOString() }));
 
 // Serve frontend static files in production

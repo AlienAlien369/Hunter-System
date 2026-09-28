@@ -59,3 +59,30 @@ describe('leaderboard week boundary', () => {
     assert.strictEqual(weekStart(new Date('2026-10-05T00:00:00Z')), '2026-10-05'); // next Monday
   });
 });
+
+describe('weekly coach', () => {
+  it('aggregates week stats per day and area', async () => {
+    const { buildWeekStats } = await import('../routes/coach.js');
+    const s = buildWeekStats(
+      [{ date: '2026-09-28', area: 'routine', xp: 30 }, { date: '2026-09-28', area: 'skincare', xp: 10 }, { date: '2026-09-30', area: 'routine', xp: 20 }],
+      [{ title: 'Debugged API', xp: 40 }],
+      '2026-09-28', '2026-09-30',
+    );
+    assert.strictEqual(s.daysElapsed, 3);
+    assert.strictEqual(s.activeDays, 2);
+    assert.strictEqual(s.xpEarned, 100);
+    assert.deepStrictEqual(s.byArea, [{ area: 'Timetable', completions: 2 }, { area: 'Skincare', completions: 1 }]);
+    assert.deepStrictEqual(s.byDay.map(d => d.completions), [2, 0, 1]);
+  });
+
+  it('writes a grounded rules-based review (and an encouraging one for an empty week)', async () => {
+    const { buildWeekStats, rulesReview } = await import('../routes/coach.js');
+    const s = buildWeekStats([{ date: '2026-09-28', area: 'routine', xp: 30 }], [], '2026-09-28', '2026-09-29');
+    const r = rulesReview(s);
+    assert.strictEqual(r.source, 'rules');
+    assert.match(r.wins.join(' '), /30 XP/);
+    assert.match(r.focus.join(' '), /Tuesday/);
+    const empty = rulesReview(buildWeekStats([], [], '2026-09-28', '2026-09-28'));
+    assert.match(empty.headline, /quiet week/);
+  });
+});

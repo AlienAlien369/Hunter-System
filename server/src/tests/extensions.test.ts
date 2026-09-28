@@ -472,6 +472,25 @@ describe('Hunter extensions', () => {
     });
   });
 
+  describe('weekly coach', () => {
+    it('generates a grounded review (rules fallback without AI), caches it, and rate-limits refreshes', async () => {
+      const C2 = client((await register('ext_coach_' + suffix)).cookie);
+      await C2.patch('/quests/DQ-03/complete');
+      const before = (await C2.get('/coach/weekly')).body;
+      assert.strictEqual(before.review, null);
+      assert.strictEqual(before.stats.completions, 1);
+      const gen = await C2.post('/coach/weekly');
+      assert.strictEqual(gen.status, 200);
+      assert.ok(gen.body.review.headline);
+      assert.ok(gen.body.review.wins.length && gen.body.review.focus.length && gen.body.review.nextWeek.length);
+      assert.strictEqual((await C2.get('/coach/weekly')).body.review.headline, gen.body.review.headline, 'cached');
+      await C2.post('/coach/weekly');
+      await C2.post('/coach/weekly');
+      assert.strictEqual((await C2.post('/coach/weekly')).status, 429);
+      assert.strictEqual((await B.get('/coach/weekly')).body.review, null, 'reviews are per user');
+    });
+  });
+
   describe('launch hardening: sessions, CORS, CSRF origin guard, login lockout', () => {
     const uname = 'ext_sec_' + suffix;
 

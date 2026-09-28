@@ -384,6 +384,20 @@ export interface Leaderboard {
   me: { score: number; position: number | null; visible: boolean; nameSet: boolean };
 }
 
+export interface CoachReview {
+  headline: string;
+  wins: string[];
+  focus: string[];
+  nextWeek: string[];
+  source: 'ai' | 'rules';
+}
+
+export interface CoachWeekly {
+  stats: { weekStart: string; daysElapsed: number; xpEarned: number; completions: number; activeDays: number };
+  review: CoachReview | null;
+  generatedAt: string | null;
+}
+
 /** Body of a 409 "confirm the XP impact" response. */
 export type XpConfirmation = RoutinePreview & { requiresConfirmation: true };
 
@@ -563,6 +577,10 @@ export const api = {
 
   setLeaderboardVisibility: (visible: boolean) =>
     request<{ visible: boolean }>('/leaderboard/visibility', { method: 'PATCH', body: JSON.stringify({ visible }) }),
+
+  // Weekly AI coach
+  getCoachWeekly: () => request<CoachWeekly>('/coach/weekly'),
+  generateCoachWeekly: () => request<CoachWeekly>('/coach/weekly', { method: 'POST' }),
 
   // Health
   health: () => request<{ status: string; timestamp: string }>('/health'),

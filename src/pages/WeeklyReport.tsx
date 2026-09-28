@@ -6,6 +6,7 @@ import type { StatHistory } from "../lib/api";
 import { getStreak, MAX_DAILY_COMPLETIONS } from "../utils/xp";
 import { sfx } from "../utils/sounds";
 import { dailyHistoryQuests } from "../utils/dailyBoard";
+import CoachPanel from "../components/CoachPanel";
 
 // ─── Grade System ───────────────────────────────────────────────────────────
 
@@ -288,6 +289,8 @@ export default function WeeklyReport() {
           {sharing ? "📋 COPYING..." : "📋 COPY REPORT"}
         </button>
       </motion.div>
+
+      <CoachPanel />
 
       {/* ── Shareable report card ── */}
       <div ref={reportRef}>

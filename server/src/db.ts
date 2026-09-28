@@ -227,6 +227,15 @@ export async function initDatabase() {
         UNIQUE (user_id, slug)
       );
 
+      -- Weekly AI coach reviews, cached one per hunter per week
+      CREATE TABLE IF NOT EXISTS coach_reviews (
+        user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+        week_start DATE NOT NULL,
+        review JSONB NOT NULL,
+        created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+        PRIMARY KEY (user_id, week_start)
+      );
+
       CREATE TABLE IF NOT EXISTS app_migrations (
         name TEXT PRIMARY KEY,
         applied_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
