@@ -1,6 +1,6 @@
 import { Routes, Route, useLocation, Navigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
-import { useEffect, useState } from 'react';
+import { Suspense, lazy, useEffect, useState } from 'react';
 import { useAuthStore } from './store/authStore';
 import { useGameStore } from './store/gameStore';
 import { useSoundStore } from './store/soundStore';
@@ -13,24 +13,42 @@ import AuthProvider from './components/auth/AuthProvider';
 import ProtectedRoute from './components/auth/ProtectedRoute';
 import Login from './pages/Login';
 
-// Pages
+/**
+ * Lazy page with deploy safety: if a new deploy replaced the chunk this tab
+ * expects (404 on the old hash), reload once to pick up the new build.
+ * Rate-limited via sessionStorage so a genuinely broken chunk can't loop.
+ */
+function lazyPage<T extends React.ComponentType>(load: () => Promise<{ default: T }>) {
+  return lazy(() => load().catch(err => {
+    const KEY = 'hunter.chunkReloadAt';
+    const last = Number(sessionStorage.getItem(KEY) || 0);
+    if (Date.now() - last > 30_000) {
+      sessionStorage.setItem(KEY, String(Date.now()));
+      window.location.reload();
+    }
+    throw err;
+  }));
+}
+
+// Pages — Login and Dashboard load immediately; every other page is
+// code-split and downloaded on first visit (smaller initial bundle on mobile).
 import Dashboard from './pages/Dashboard';
-import QuestLog from './pages/QuestLog';
-import QuestDetail from './pages/QuestDetail';
-import SkillTree from './components/SkillTree';
-import Rank from './pages/Rank';
-import ProgressDashboard from './pages/ProgressDashboard';
-import Timetable from './pages/Timetable';
-import NutritionBudget from './pages/NutritionBudget';
-import SaaSRoadmap from './pages/SaaSRoadmap';
-import SystemDesign from './pages/SystemDesign';
-import DSARoadmap from './pages/DSARoadmap';
-import Inventory from './pages/Inventory';
-import AchievementPanel from './components/AchievementPanel';
-import WeeklyReport from './pages/WeeklyReport';
-import Settings from './pages/Settings';
-import Modules from './pages/Modules';
-import ModulePage from './pages/ModulePage';
+const QuestLog = lazyPage(() => import('./pages/QuestLog'));
+const QuestDetail = lazyPage(() => import('./pages/QuestDetail'));
+const SkillTree = lazyPage(() => import('./components/SkillTree'));
+const Rank = lazyPage(() => import('./pages/Rank'));
+const ProgressDashboard = lazyPage(() => import('./pages/ProgressDashboard'));
+const Timetable = lazyPage(() => import('./pages/Timetable'));
+const NutritionBudget = lazyPage(() => import('./pages/NutritionBudget'));
+const SaaSRoadmap = lazyPage(() => import('./pages/SaaSRoadmap'));
+const SystemDesign = lazyPage(() => import('./pages/SystemDesign'));
+const DSARoadmap = lazyPage(() => import('./pages/DSARoadmap'));
+const Inventory = lazyPage(() => import('./pages/Inventory'));
+const AchievementPanel = lazyPage(() => import('./components/AchievementPanel'));
+const WeeklyReport = lazyPage(() => import('./pages/WeeklyReport'));
+const Settings = lazyPage(() => import('./pages/Settings'));
+const Modules = lazyPage(() => import('./pages/Modules'));
+const ModulePage = lazyPage(() => import('./pages/ModulePage'));
 import XpConfirmHost from './components/hunter/XpConfirmHost';
 import { useModuleStore } from './store/moduleStore';
 import { moduleHref } from './data/presets';
@@ -61,6 +79,14 @@ const CORE_NAV = [
   { path: '/weekly', label: 'Weekly Report', icon: '📊' },
 ];
 const SETTINGS_NAV = { path: '/settings', label: 'Settings', icon: '⚙' };
+
+function PageLoading() {
+  return (
+    <div className="flex items-center justify-center py-24" role="status" aria-label="Loading">
+      <div className="w-10 h-10 border-4 border-purple-500 border-t-transparent rounded-full animate-spin" />
+    </div>
+  );
+}
 
 const BOOT_EVENTS = ['pointerdown', 'keydown', 'touchstart'] as const;
 
@@ -163,6 +189,7 @@ function AppContent() {
                 transition={{ duration: 0.24, ease: 'easeOut' }}
                 className="p-4 sm:p-6"
               >
+                <Suspense fallback={<PageLoading />}>
                 <Routes>
                   <Route path="/" element={<ProtectedRoute><Dashboard /></ProtectedRoute>} />
                   <Route path="/quests" element={<ProtectedRoute><QuestLog /></ProtectedRoute>} />
@@ -183,6 +210,7 @@ function AppContent() {
                   <Route path="/settings" element={<ProtectedRoute><Settings /></ProtectedRoute>} />
                   <Route path="*" element={<Navigate to="/" replace />} />
                 </Routes>
+                </Suspense>
               </motion.div>
             </AnimatePresence>
           </main>
