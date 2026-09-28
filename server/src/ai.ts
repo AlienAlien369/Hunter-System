@@ -65,45 +65,61 @@ async function anthropic(opts: StructuredRequest, key: string): Promise<unknown 
 
 /**
  * Models to try, in order. Google retires older models for new API keys
- * (e.g. gemini-2.5-flash → 404 "no longer available to new users"), so a
- * 404 moves on to the next candidate instead of failing the feature.
+ * (404 "no longer available to new users") and popular models are often
+ * briefly overloaded (503 "high demand") or rate-limited (429), so those
+ * errors move on to the next candidate instead of failing the feature.
  */
 export function geminiModels(): string[] {
-  return [...new Set([process.env.GEMINI_MODEL, 'gemini-3.8-flash', 'gemini-3.5-flash'].filter((m): m is string => !!m))];
+  return [...new Set([process.env.GEMINI_MODEL, 'gemini-3.8-flash', 'gemini-3.5-flash', 'gemini-flash-latest'].filter((m): m is string => !!m))];
 }
+
+/** Statuses where another attempt (same model after a pause, or another model) may succeed. */
+const RETRYABLE = new Set([404, 429, 500, 503]);
+const sleep = (ms: number) => new Promise(r => setTimeout(r, ms));
 
 /** Gemini: structure is enforced with responseMimeType + responseSchema. */
 async function gemini(opts: StructuredRequest, key: string): Promise<unknown | null> {
   for (const model of geminiModels()) {
-    try {
-      const res = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${encodeURIComponent(model)}:generateContent`, {
-        method: 'POST',
-        headers: { 'content-type': 'application/json', 'x-goog-api-key': key },
-        body: JSON.stringify({
-          systemInstruction: { parts: [{ text: opts.system }] },
-          contents: [{ role: 'user', parts: [{ text: opts.prompt }] }],
-          // Newer models spend output tokens on thinking first, so leave generous headroom.
-          generationConfig: { responseMimeType: 'application/json', responseSchema: toGeminiSchema(opts.schema), maxOutputTokens: 8192 },
-        }),
-        signal: AbortSignal.timeout(opts.timeoutMs ?? 30000),
-      });
-      if (res.status === 404) {
-        console.error(`Gemini model ${model} unavailable, trying next:`, (await res.text().catch(() => '')).slice(0, 200));
-        continue;
-      }
-      if (!res.ok) {
-        console.error(`Gemini request failed (${model}):`, res.status, await res.text().catch(() => ''));
-        return null;
-      }
-      const data = (await res.json()) as { candidates?: { content?: { parts?: { text?: string; thought?: boolean }[] } }[] };
-      const text = data.candidates?.[0]?.content?.parts?.filter(p => !p.thought).map(p => p.text ?? '').join('') ?? '';
-      return text ? JSON.parse(text) : null;
-    } catch (error) {
-      console.error(`Gemini request error (${model}):`, (error as Error).message);
-      return null;
+    // Overload/rate-limit: one quick retry on the same model, then the next model.
+    for (let attempt = 1; attempt <= 2; attempt++) {
+      const r = await geminiOnce(opts, key, model);
+      if (r.ok) return r.value;
+      console.error(`Gemini ${model} attempt ${attempt} failed: ${r.error}`);
+      if (!r.retryable) return null; // e.g. invalid key or bad request — other models won't help
+      if (r.status !== 503 && r.status !== 429) break; // gone/timeout/garbled → next model
+      if (attempt === 1) await sleep(1500);
     }
   }
   return null;
+}
+
+type Attempt = { ok: true; value: unknown } | { ok: false; retryable: boolean; status?: number; error: string };
+
+async function geminiOnce(opts: StructuredRequest, key: string, model: string): Promise<Attempt> {
+  try {
+    const res = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${encodeURIComponent(model)}:generateContent`, {
+      method: 'POST',
+      headers: { 'content-type': 'application/json', 'x-goog-api-key': key },
+      body: JSON.stringify({
+        systemInstruction: { parts: [{ text: opts.system }] },
+        contents: [{ role: 'user', parts: [{ text: opts.prompt }] }],
+        // Newer models spend output tokens on thinking first, so leave generous headroom.
+        generationConfig: { responseMimeType: 'application/json', responseSchema: toGeminiSchema(opts.schema), maxOutputTokens: 8192 },
+      }),
+      signal: AbortSignal.timeout(opts.timeoutMs ?? 20000),
+    });
+    if (!res.ok) {
+      const body = (await res.text().catch(() => '')).slice(0, 300);
+      return { ok: false, retryable: RETRYABLE.has(res.status), status: res.status, error: `${res.status} ${body}` };
+    }
+    const data = (await res.json()) as { candidates?: { content?: { parts?: { text?: string; thought?: boolean }[] } }[] };
+    const text = data.candidates?.[0]?.content?.parts?.filter(p => !p.thought).map(p => p.text ?? '').join('') ?? '';
+    if (!text) return { ok: false, retryable: true, error: 'empty response' };
+    return { ok: true, value: JSON.parse(text) };
+  } catch (error) {
+    // Timeouts, network errors and malformed JSON: worth trying another model.
+    return { ok: false, retryable: true, error: (error as Error).message };
+  }
 }
 
 /**

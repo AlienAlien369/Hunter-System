@@ -256,6 +256,47 @@ describe('Gemini provider', () => {
   });
 });
 
+describe('Gemini overload handling', () => {
+  it('retries a 503 "high demand" model once, then succeeds on the next model', async () => {
+    const saved = { fetch: globalThis.fetch, a: process.env.ANTHROPIC_API_KEY, g: process.env.GOOGLE_API_KEY, m: process.env.GEMINI_MODEL };
+    delete process.env.ANTHROPIC_API_KEY;
+    delete process.env.GEMINI_MODEL;
+    process.env.GOOGLE_API_KEY = 'test-key';
+    const urls: string[] = [];
+    globalThis.fetch = (async (url: string) => {
+      urls.push(url);
+      if (url.includes('gemini-3.8-flash')) return new Response('{"error":{"code":503,"status":"UNAVAILABLE"}}', { status: 503 });
+      return new Response(JSON.stringify({ candidates: [{ content: { parts: [{ text: '{"a":"ok"}' }] } }] }), { status: 200 });
+    }) as typeof fetch;
+    try {
+      const out = await structuredCompletion({ system: 's', prompt: 'p', toolName: 't', schema: { type: 'object', properties: { a: { type: 'string' } } } });
+      assert.deepStrictEqual(out, { a: 'ok' });
+      assert.deepStrictEqual(urls.map(u => u.match(/models\/([^:]+)/)![1]), ['gemini-3.8-flash', 'gemini-3.8-flash', 'gemini-3.5-flash']);
+    } finally {
+      globalThis.fetch = saved.fetch;
+      for (const [k, v] of [['ANTHROPIC_API_KEY', saved.a], ['GOOGLE_API_KEY', saved.g], ['GEMINI_MODEL', saved.m]] as const) {
+        if (v === undefined) delete process.env[k]; else process.env[k] = v;
+      }
+    }
+  });
+
+  it('gives up immediately on a non-retryable error such as an invalid key', async () => {
+    const saved = { fetch: globalThis.fetch, g: process.env.GOOGLE_API_KEY, a: process.env.ANTHROPIC_API_KEY };
+    delete process.env.ANTHROPIC_API_KEY;
+    process.env.GOOGLE_API_KEY = 'bad';
+    let calls = 0;
+    globalThis.fetch = (async () => { calls++; return new Response('{"error":{"code":400}}', { status: 400 }); }) as typeof fetch;
+    try {
+      assert.strictEqual(await structuredCompletion({ system: 's', prompt: 'p', toolName: 't', schema: { type: 'object' } }), null);
+      assert.strictEqual(calls, 1);
+    } finally {
+      globalThis.fetch = saved.fetch;
+      if (saved.g === undefined) delete process.env.GOOGLE_API_KEY; else process.env.GOOGLE_API_KEY = saved.g;
+      if (saved.a !== undefined) process.env.ANTHROPIC_API_KEY = saved.a;
+    }
+  });
+});
+
 describe('similarity & level floor', () => {
   it('detects near-duplicates but not unrelated text', () => {
     assert.ok(similarity('Drank water', 'drank water!') >= 0.99);
