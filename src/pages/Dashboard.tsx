@@ -9,6 +9,7 @@ import StreakCalendar from '../components/StreakCalendar';
 import HiddenQuestCard from '../components/HiddenQuestCard';
 import PenaltyBanner from '../components/PenaltyBanner';
 import UnplannedActivity from '../components/UnplannedActivity';
+import ShareCardButton from '../components/ShareCardButton';
 import { useModuleStore } from '../store/moduleStore';
 import { Panel } from '../components/hunter/ui';
 import { TaskRow } from '../components/hunter/tasks';
@@ -45,7 +46,10 @@ export default function Dashboard() {
             Welcome back, {profile.name}
           </p>
         </div>
-        <UnplannedActivity />
+        <div className="flex flex-wrap items-center gap-2">
+          <ShareCardButton />
+          <UnplannedActivity />
+        </div>
         <div className="text-right">
           <p className="text-purple-400 font-mono text-xs sm:text-sm">{new Date().toLocaleDateString('en-US', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })}</p>
           <p className="text-gray-500 font-mono text-xs mt-1">SYSTEM STATUS: ONLINE</p>
