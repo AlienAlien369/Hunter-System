@@ -368,6 +368,22 @@ export interface ModuleDraft {
   suggestions: string[];
 }
 
+export interface LeaderboardEntry {
+  position: number;
+  name: string;
+  score: number;
+  level: number;
+  rank: string;
+  isMe: boolean;
+}
+
+export interface Leaderboard {
+  period: 'week' | 'all';
+  weekStart: string;
+  entries: LeaderboardEntry[];
+  me: { score: number; position: number | null; visible: boolean; nameSet: boolean };
+}
+
 /** Body of a 409 "confirm the XP impact" response. */
 export type XpConfirmation = RoutinePreview & { requiresConfirmation: true };
 
@@ -541,6 +557,12 @@ export const api = {
 
   draftModule: (prompt: string, moduleId?: number) =>
     request<ModuleDraft>('/modules/ai/draft', { method: 'POST', body: JSON.stringify({ prompt, moduleId }) }),
+
+  // Leaderboard
+  getLeaderboard: (period: 'week' | 'all') => request<Leaderboard>(`/leaderboard?period=${period}`),
+
+  setLeaderboardVisibility: (visible: boolean) =>
+    request<{ visible: boolean }>('/leaderboard/visibility', { method: 'PATCH', body: JSON.stringify({ visible }) }),
 
   // Health
   health: () => request<{ status: string; timestamp: string }>('/health'),

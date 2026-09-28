@@ -50,3 +50,12 @@ describe('JWT secret selection', () => {
     }
   });
 });
+
+describe('leaderboard week boundary', () => {
+  it('weeks start Monday 00:00 UTC', async () => {
+    const { weekStart } = await import('../routes/leaderboard.js');
+    assert.strictEqual(weekStart(new Date('2026-09-28T10:00:00Z')), '2026-09-28'); // Monday
+    assert.strictEqual(weekStart(new Date('2026-10-04T23:59:00Z')), '2026-09-28'); // Sunday
+    assert.strictEqual(weekStart(new Date('2026-10-05T00:00:00Z')), '2026-10-05'); // next Monday
+  });
+});

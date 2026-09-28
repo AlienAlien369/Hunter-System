@@ -134,6 +134,8 @@ export async function initDatabase() {
 
     `);      // Idempotent migration: track whether hunter name has been set (one-time only)
     await client.query('ALTER TABLE users ADD COLUMN IF NOT EXISTS name_set BOOLEAN NOT NULL DEFAULT false');
+    // Idempotent migration: leaderboard opt-out (visible by Hunter name by default)
+    await client.query('ALTER TABLE users ADD COLUMN IF NOT EXISTS show_on_leaderboard BOOLEAN NOT NULL DEFAULT true');
 
     // Idempotent migration: record exactly how much XP each completion awarded
     // (level-scaled hidden quests award more than the quest's base xp_reward).

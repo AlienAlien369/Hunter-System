@@ -428,6 +428,50 @@ describe('Hunter extensions', () => {
     });
   });
 
+  describe('leaderboard', () => {
+    let L1: ReturnType<typeof client>;
+    let L2: ReturnType<typeof client>;
+    const n1 = 'Lead' + String(suffix).slice(-6);
+    const n2 = 'Chase' + String(suffix).slice(-6);
+
+    before(async () => {
+      L1 = client((await register('ext_l1_' + suffix)).cookie);
+      L2 = client((await register('ext_l2_' + suffix)).cookie);
+      assert.strictEqual((await L1.post('/auth/set-name', { name: n1 })).status, 200);
+      assert.strictEqual((await L2.post('/auth/set-name', { name: n2 })).status, 200);
+      await L1.patch('/quests/DQ-03/complete'); // 25 XP
+      await L1.patch('/quests/DQ-01/complete'); // 10 XP
+      await L2.patch('/quests/DQ-01/complete'); // 10 XP
+    });
+
+    it("ranks this week's earned XP by Hunter name only", async () => {
+      const r = (await L2.get('/leaderboard?period=week')).body;
+      const mine = r.entries.filter((e: any) => e.name === n1 || e.name === n2);
+      assert.deepStrictEqual(mine.map((e: any) => [e.name, e.score]), [[n1, 35], [n2, 10]]);
+      assert.ok(mine[0].position < mine[1].position);
+      assert.strictEqual(mine.find((e: any) => e.name === n2).isMe, true);
+      assert.strictEqual(r.me.score, 10);
+      assert.ok(r.entries.every((e: any) => !('username' in e) && !('id' in e)), 'no usernames or ids leak');
+    });
+
+    it('excludes hunters without a chosen name (e.g. user A)', async () => {
+      const r = (await A.get('/leaderboard?period=all')).body;
+      assert.strictEqual(r.me.nameSet, false);
+      assert.strictEqual(r.me.position, null);
+    });
+
+    it('lets hunters opt out and back in', async () => {
+      assert.strictEqual((await L1.patch('/leaderboard/visibility', { visible: false })).status, 200);
+      let r = (await L2.get('/leaderboard?period=week')).body;
+      assert.ok(!r.entries.some((e: any) => e.name === n1));
+      assert.strictEqual((await L1.get('/leaderboard?period=week')).body.me.position, null);
+      assert.strictEqual((await L1.patch('/leaderboard/visibility', { visible: 'no' })).status, 400);
+      await L1.patch('/leaderboard/visibility', { visible: true });
+      r = (await L2.get('/leaderboard?period=week')).body;
+      assert.ok(r.entries.some((e: any) => e.name === n1));
+    });
+  });
+
   describe('launch hardening: sessions, CORS, CSRF origin guard, login lockout', () => {
     const uname = 'ext_sec_' + suffix;
 

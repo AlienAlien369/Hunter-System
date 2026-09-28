@@ -1,6 +1,7 @@
 import { motion } from 'framer-motion';
 import { useGameStore } from '../store/gameStore';
 import { RANK_THRESHOLDS } from '../utils/xp';
+import LeaderboardPanel from '../components/LeaderboardPanel';
 
 const RANK_STYLES: Record<string, { name: string; color: string; glow: string }> = {
   E: { name: 'E-Rank', color: '#8A92B2', glow: 'shadow-gray-500/20' },
@@ -37,6 +38,8 @@ export default function Rank() {
           Your journey to becoming an S-Rank Hunter — 25,000 XP, no shortcuts
         </p>
       </motion.div>
+
+      <LeaderboardPanel />
 
       {/* Current Rank Display */}
       <motion.div
