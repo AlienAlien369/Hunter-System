@@ -115,6 +115,12 @@ function AppContent() {
   ];
 
   const [routineSetup, setRoutineSetup] = useState(false);
+  // Any "Create my timetable" button (Quest Log, Dashboard) opens the setup.
+  useEffect(() => {
+    const open = () => setRoutineSetup(true);
+    window.addEventListener('hunter-open-routine-setup', open);
+    return () => window.removeEventListener('hunter-open-routine-setup', open);
+  }, []);
   useEffect(() => {
     if (!user?.name_set) return;
     const key = `routineSetupOffered:${user.id}`;

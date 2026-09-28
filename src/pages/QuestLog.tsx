@@ -4,6 +4,8 @@ import QuestCard from '../components/QuestCard';
 import TrackReward from '../components/TrackReward';
 import HiddenQuestCard from '../components/HiddenQuestCard';
 import { isTimetableQuest, todaysBoard } from '../utils/dailyBoard';
+import BuildYourDay from '../components/BuildYourDay';
+import { useModuleStore } from '../store/moduleStore';
 
 interface TrackConfig {
   id: string;
@@ -134,6 +136,7 @@ function TrackSection({
 
 export default function QuestLog() {
   const { dailyQuests, completeQuest, redoTrack, profile } = useGameStore();
+  const moduleKinds = new Set(useModuleStore(s => s.modules).filter(m => m.status === 'active').map(m => m.kind as string));
   const today = new Date().toISOString().split('T')[0];
 
   const usesTimetable = dailyQuests.some(isTimetableQuest);
@@ -211,6 +214,7 @@ export default function QuestLog() {
           <span className="text-xs text-gray-500 font-mono">RESETS EVERY DAY • {today}</span>
         </div>
 
+        {dailyQuestsList.length === 0 ? <BuildYourDay /> : (<>
         {/* Reward Preview */}
         <TrackReward
           quests={dailyQuestsList.map(q => ({ xpReward: q.xpReward, done: q.completedToday }))}
@@ -246,10 +250,11 @@ export default function QuestLog() {
             </motion.div>
           ))}
         </div>
+        </>)}
       </motion.div>
 
-      {/* Permanent Track Sections */}
-      {TRACKS.map((track, i) => (
+      {/* Permanent tracks — only for hunters who have that module */}
+      {TRACKS.filter(t => moduleKinds.has(t.id)).map((track, i) => (
         <motion.div
           key={track.id}
           initial={{ opacity: 0, y: 20 }}

@@ -1,6 +1,7 @@
 import { motion } from 'framer-motion';
 import { useGameStore } from '../store/gameStore';
 import QuestCard from './QuestCard';
+import BuildYourDay from './BuildYourDay';
 import { todaysBoard } from '../utils/dailyBoard';
 
 export default function ActiveQuests() {
@@ -43,6 +44,7 @@ export default function ActiveQuests() {
 
       {/* Quest List */}
       <div className="p-4 space-y-3 max-h-96 overflow-y-auto custom-scrollbar">
+        {todaysQuests.length === 0 && <BuildYourDay compact />}
         {todaysQuests.map((quest, index) => (
           <motion.div
             key={quest.id}
@@ -63,13 +65,13 @@ export default function ActiveQuests() {
       <div className="px-6 py-4 border-t border-purple-500/10">
         <div className="flex items-center justify-between text-xs font-mono text-gray-500">
           <span>Daily Quest Board</span>
-          <span>{Math.round((completedCount / todaysQuests.length) * 100)}% Complete</span>
+          <span>{todaysQuests.length ? Math.round((completedCount / todaysQuests.length) * 100) : 0}% Complete</span>
         </div>
         <div className="mt-2 h-1 bg-gray-800 rounded-full overflow-hidden">
           <motion.div
             className="h-full bg-gradient-to-r from-purple-500 to-blue-500"
             initial={{ width: 0 }}
-            animate={{ width: `${(completedCount / todaysQuests.length) * 100}%` }}
+            animate={{ width: `${todaysQuests.length ? (completedCount / todaysQuests.length) * 100 : 0}%` }}
             transition={{ duration: 0.8 }}
           />
         </div>
