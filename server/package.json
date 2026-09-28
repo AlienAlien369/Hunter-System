@@ -7,8 +7,8 @@
     "build": "tsc",
     "start": "node dist/index.js",
     "migrate": "node-pg-migrate up",
-    "test": "tsx --test src/tests/rules.test.ts && node --test src/tests/auth.test.ts src/tests/isolation.test.ts src/tests/progress.test.ts src/tests/extensions.test.ts",
-    "test:unit": "tsx --test src/tests/rules.test.ts"
+    "test": "tsx --test src/tests/rules.test.ts src/tests/security.test.ts && node --test src/tests/auth.test.ts src/tests/isolation.test.ts src/tests/progress.test.ts src/tests/extensions.test.ts",
+    "test:unit": "tsx --test src/tests/rules.test.ts src/tests/security.test.ts"
   },
   "dependencies": {
     "bcrypt": "^6.0.0",

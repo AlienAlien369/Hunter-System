@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { motion } from 'framer-motion';
-import { useNavigate, Navigate } from 'react-router-dom';
+import { useNavigate, Navigate, useLocation } from 'react-router-dom';
 import { useAuthStore } from '../store/authStore';
 import { api } from '../lib/api';
 import { sfx } from '../utils/sounds';
@@ -8,16 +8,20 @@ import BackgroundFX from '../components/BackgroundFX';
 
 export default function Login() {
   const navigate = useNavigate();
+  const location = useLocation();
   const { login, user } = useAuthStore();
+  // Return to the page that required login (deep links, refreshes); only same-app paths.
+  const from = (location.state as { from?: string } | null)?.from;
+  const target = from && from.startsWith('/') && !from.startsWith('//') ? from : '/';
   const [mode, setMode] = useState<'login' | 'register'>('login');
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
 
-  // If already logged in, redirect to dashboard
+  // If already logged in, go where the hunter was headed
   if (user) {
-    return <Navigate to="/" replace />;
+    return <Navigate to={target} replace />;
   }
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -30,12 +34,12 @@ export default function Login() {
         const response = await api.login(username, password);
         login(response.user);
         sfx.login();
-        navigate('/');
+        navigate(target, { replace: true });
       } else {
         const response = await api.register(username, password);
         login(response.user);
         sfx.login();
-        navigate('/');
+        navigate(target, { replace: true });
       }
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Authentication failed');

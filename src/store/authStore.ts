@@ -19,7 +19,9 @@ interface AuthState {
 export const useAuthStore = create<AuthState>(set => ({
   user: null,
   isAuthenticated: false,
-  loading: false,
+  // Start in the loading state: AuthProvider checks the session on mount, and
+  // protected pages must wait for it instead of bouncing to /login on refresh.
+  loading: true,
   error: null,
 
   login: async (userData) => {

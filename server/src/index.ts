@@ -16,6 +16,7 @@ import routineRoutes from './routes/routine.js';
 import unplannedRoutes from './routes/unplanned.js';
 import moduleRoutes from './routes/modules.js';
 import { initDatabase } from './db.js';
+import { isAllowedOrigin, originGuard } from './middleware/security.js';
 
 // Load the project root .env (works regardless of CWD)
 const __filename = fileURLToPath(import.meta.url);
@@ -29,25 +30,13 @@ const PORT = process.env.BACKEND_PORT || 3000;
 // the real request (needed for correct Secure-cookie decisions).
 app.set("trust proxy", 1);
 
-// Allowed CORS origins
-const ALLOWED_ORIGINS = [
-  process.env.FRONTEND_URL,
-  'http://localhost:5173',
-  'http://localhost:3000',
-  'https://hunter-system.vercel.app',
-  'https://hunter-system-kss0.onrender.com',
-].filter(Boolean);
-
-// Middleware
+// CORS: only Hunter's own frontends may send credentialed requests
+// (see middleware/security.ts). Unknown origins get no CORS headers.
 app.use(cors({
-  origin: (origin, callback) => {
-    // Allow requests with no origin (mobile apps, same-origin, curl)
-    if (!origin) return callback(null, true);
-    if (ALLOWED_ORIGINS.includes(origin)) return callback(null, true);
-    callback(null, true); // Allow all in dev; tighten in production if needed
-  },
+  origin: (origin, callback) => callback(null, !origin || isAllowedOrigin(origin)),
   credentials: true, // Allow cookies to be sent
 }));
+app.use(originGuard);
 app.use(cookieParser());
 app.use(express.json());
 

@@ -5,11 +5,15 @@ import { pool } from "../db.js";
 import { authenticateToken } from "../middleware/auth.js";
 import { logActivity } from "../activity.js";
 import { calculateLevel, calculateRank } from "../progression.js";
+import { LIMITS, blockedFor, clearKey, hit, tooMany } from "../middleware/security.js";
 
 const router = Router();
 
 const JWT_SECRET = process.env.JWT_SECRET || "hunter-system-secret-key-2024";
-const JWT_EXPIRES_IN = "1h";
+// Sessions last 7 days and slide: every app open (GET /me) renews the cookie.
+const SESSION_DAYS = 7;
+const JWT_EXPIRES_IN = `${SESSION_DAYS}d`;
+const RENEW_AFTER_MS = 24 * 60 * 60 * 1000;
 
 /**
  * Build cookie options for the JWT auth cookie.
@@ -32,8 +36,14 @@ function getAuthCookieOptions(req: Request) {
     // SameSite=None is only accepted together with the Secure attribute.
     secure: !isLocal,
     sameSite: (isLocal ? "lax" : "none") as "lax" | "none",
-    maxAge: 60 * 60 * 1000, // 1 hour (matches JWT_EXPIRES_IN)
+    maxAge: SESSION_DAYS * 24 * 60 * 60 * 1000, // matches JWT_EXPIRES_IN
   };
+}
+
+/** Sign a session JWT and set it as the auth cookie. */
+function issueSession(req: Request, res: Response, user: { id: number; username: string }) {
+  const token = jwt.sign({ id: user.id, username: user.username }, JWT_SECRET, { expiresIn: JWT_EXPIRES_IN });
+  res.cookie("token", token, getAuthCookieOptions(req));
 }
 
 /**
@@ -43,6 +53,9 @@ function getAuthCookieOptions(req: Request) {
 router.post("/register", async (req: Request, res: Response) => {
   try {
     const { username, password } = req.body;
+
+    const wait = hit(`register:${req.ip}`, LIMITS.registrations.max, LIMITS.registrations.windowMs);
+    if (wait) return tooMany(res, wait, "sign-ups from this network");
 
     // Validate input
     if (!username || !password) {
@@ -85,15 +98,7 @@ router.post("/register", async (req: Request, res: Response) => {
 
     const user = result.rows[0];
 
-    // Generate JWT
-    const token = jwt.sign(
-      { id: user.id, username: user.username },
-      JWT_SECRET,
-      { expiresIn: JWT_EXPIRES_IN },
-    );
-
-    // Set HttpOnly cookie
-    res.cookie("token", token, getAuthCookieOptions(req));
+    issueSession(req, res, user);
 
     await logActivity(user.id, "register", user.username);
 
@@ -122,33 +127,28 @@ router.post("/login", async (req: Request, res: Response) => {
         .json({ error: "Username and password are required" });
     }
 
+    // Brute-force protection: too many failed attempts for this account from
+    // this network → temporarily locked (successful logins reset the count).
+    const failKey = `login-fail:${req.ip}:${String(username).toLowerCase()}`;
+    const locked = blockedFor(failKey, LIMITS.failedLogins.max);
+    if (locked) return tooMany(res, locked, "failed login attempts");
+
     // Find user
     const result = await pool.query("SELECT * FROM users WHERE username = $1", [
       username,
     ]);
-
-    if (result.rows.length === 0) {
-      return res.status(401).json({ error: "Invalid credentials" });
-    }
-
     const user = result.rows[0];
 
     // Compare password with hash
-    const isValid = await bcrypt.compare(password, user.password_hash);
+    const isValid = user ? await bcrypt.compare(password, user.password_hash) : false;
 
     if (!isValid) {
+      hit(failKey, LIMITS.failedLogins.max, LIMITS.failedLogins.windowMs);
       return res.status(401).json({ error: "Invalid credentials" });
     }
+    clearKey(failKey);
 
-    // Generate JWT with user id and username
-    const token = jwt.sign(
-      { id: user.id, username: user.username },
-      JWT_SECRET,
-      { expiresIn: JWT_EXPIRES_IN },
-    );
-
-    // Set HttpOnly cookie
-    res.cookie("token", token, getAuthCookieOptions(req));
+    issueSession(req, res, user);
 
     await logActivity(user.id, "login", user.username);
 
@@ -201,6 +201,10 @@ router.get("/me", authenticateToken, async (req: Request, res: Response) => {
     }
 
     const user = result.rows[0];
+
+    // Sliding session: renew the cookie when the token is more than a day old.
+    const iat = (jwt.decode(req.cookies?.token) as { iat?: number } | null)?.iat;
+    if (iat && Date.now() - iat * 1000 > RENEW_AFTER_MS) issueSession(req, res, user);
 
     // Remove password hash from response, and report the live rank/level
     // computed from XP (the stored rank column is only a registration default)

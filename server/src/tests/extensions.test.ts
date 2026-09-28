@@ -428,6 +428,43 @@ describe('Hunter extensions', () => {
     });
   });
 
+  describe('launch hardening: sessions, CORS, CSRF origin guard, login lockout', () => {
+    const uname = 'ext_sec_' + suffix;
+
+    it('issues a 7-day session cookie', async () => {
+      const res = await fetch(`${BASE_URL}/api/auth/register`, {
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ username: uname, password: 'SecPass123!' }),
+      });
+      assert.strictEqual(res.status, 201);
+      assert.match(res.headers.get('set-cookie') || '', /Max-Age=604800/);
+    });
+
+    it('sends CORS headers only to Hunter origins', async () => {
+      const good = await fetch(`${BASE_URL}/api/health`, { headers: { Origin: 'https://hunters-system.vercel.app' } });
+      assert.strictEqual(good.headers.get('access-control-allow-origin'), 'https://hunters-system.vercel.app');
+      const bad = await fetch(`${BASE_URL}/api/health`, { headers: { Origin: 'https://evil.example' } });
+      assert.strictEqual(bad.headers.get('access-control-allow-origin'), null);
+    });
+
+    it('rejects state-changing requests from foreign origins', async () => {
+      const bad = await fetch(`${BASE_URL}/api/auth/logout`, { method: 'POST', headers: { Origin: 'https://evil.example' } });
+      assert.strictEqual(bad.status, 403);
+      const good = await fetch(`${BASE_URL}/api/auth/logout`, { method: 'POST', headers: { Origin: 'http://localhost:5173' } });
+      assert.strictEqual(good.status, 200);
+    });
+
+    it('locks an account on this network after 10 failed logins, even for the right password', async () => {
+      const login = (password: string) => fetch(`${BASE_URL}/api/auth/login`, {
+        method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ username: uname, password }),
+      });
+      for (let i = 0; i < 10; i++) assert.strictEqual((await login('wrong-password')).status, 401);
+      const locked = await login('SecPass123!');
+      assert.strictEqual(locked.status, 429);
+      assert.ok(Number(locked.headers.get('retry-after')) > 0);
+    });
+  });
+
   describe('unplanned activities (manual/fallback path, AI not configured in tests)', () => {
     it('falls back to manual when AI is unavailable', async () => {
       const r = await A.post('/unplanned/analyze', { description: 'I spent 2 hours debugging a production issue' });
