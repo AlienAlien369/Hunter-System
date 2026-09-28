@@ -421,6 +421,10 @@ async function changeTask(req: Request, res: Response, remove: boolean) {
       await client.query('ROLLBACK');
       return res.status(404).json({ error: 'Task not found' });
     }
+    if (row.category === 'routine') {
+      await client.query('ROLLBACK');
+      return res.status(400).json({ error: 'This quest comes from your Timetable — change it there' });
+    }
     const mod = await findModule(client, userId, row.category);
     const before = toModuleTask(row);
     let after: ModuleTask | null = null;

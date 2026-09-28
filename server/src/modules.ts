@@ -1,6 +1,6 @@
 import type { Pool, PoolClient } from 'pg';
 import type { Response } from 'express';
-import { taskXp, type ModuleTask, type RoutineChange } from './rules.js';
+import { routineDifficulty, taskXp, type ModuleTask, type RoutineChange, type RoutineItem } from './rules.js';
 
 type Db = Pool | PoolClient;
 
@@ -85,3 +85,34 @@ export const xpEntries = (changes: RoutineChange[], action = 'module_change') =>
     entity: c.module,
     details: { kind: c.kind, label: c.label, detail: c.detail, reason: c.reason },
   }));
+
+/**
+ * Keep the hunter's timetable quests (CQ-*, category 'routine') in sync with
+ * their routine slots: one daily quest per slot, scheduled on the slot's days.
+ * Removed slots are archived (completion history and XP stay). XP
+ * consequences of timetable changes are handled by the routine diff, so this
+ * sync itself never changes XP.
+ */
+export async function syncRoutineQuests(db: Db, userId: number, items: RoutineItem[]) {
+  const rows = (await db.query(
+    `SELECT id, metadata->>'routineItemId' AS rid FROM quests WHERE user_id = $1 AND category = 'routine' AND NOT archived`,
+    [userId],
+  )).rows;
+  const byRid = new Map<string, number>(rows.map((r: any) => [r.rid, r.id]));
+  for (const it of items) {
+    const difficulty = routineDifficulty(it.durationMin);
+    const recurrence = it.days.length === 7 ? null : it.days;
+    const meta = { routineItemId: it.id, module: it.module, durationMin: it.durationMin };
+    const id = byRid.get(it.id);
+    if (id) {
+      await db.query(
+        `UPDATE quests SET title = $2, difficulty = $3, xp_reward = $4, schedule_time = $5, recurrence = $6, metadata = $7 WHERE id = $1`,
+        [id, it.title, difficulty, taskXp(difficulty), it.time, recurrence, JSON.stringify(meta)],
+      );
+      byRid.delete(it.id);
+    } else {
+      await insertTask(db, userId, 'routine', { title: it.title, difficulty, scheduleTime: it.time, timeOfDay: null, recurrence }, meta);
+    }
+  }
+  for (const id of byRid.values()) await db.query('UPDATE quests SET archived = true WHERE id = $1', [id]);
+}

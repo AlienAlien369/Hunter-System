@@ -32,6 +32,7 @@ import {
 } from "../data/items";
 import { ACHIEVEMENTS } from "../data/achievements";
 
+
 export interface HunterProfile {
   name: string;
   rank: "E" | "D" | "C" | "B" | "A" | "S";
@@ -64,8 +65,13 @@ export interface DailyQuest {
     | "mindset"
     | "spiritual"
     | "health"
-    | "architecture";
+    | "architecture"
+    | "routine";
   completedDates: string[];
+  /** Timetable/module quests: scheduled days (null = daily), time and module. */
+  recurrence?: string[] | null;
+  time?: string | null;
+  module?: string;
 }
 
 // LeetCode 75 Questions for DSA
@@ -546,6 +552,9 @@ export const useGameStore = create<GameState>((set, get) => ({
         xpReward: q.xp_reward,
         category: q.category as DailyQuest["category"],
         completedDates: q.completions?.map((c) => c.completion_date) || [],
+        recurrence: q.recurrence ?? null,
+        time: q.schedule_time ?? null,
+        module: (q.metadata as { module?: string } | null)?.module,
       }));
 
       // Detect level/rank milestones crossed by this XP gain (skip initial load: prevXp 0)

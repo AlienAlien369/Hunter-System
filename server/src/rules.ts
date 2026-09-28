@@ -68,6 +68,11 @@ export function taskXp(difficulty: number): number {
   return XP_RULES.taskXpByDifficulty[clamp(Math.round(difficulty) || 1, 1, 3)];
 }
 
+/** Timetable slots become daily quests; their difficulty follows the slot length. */
+export function routineDifficulty(durationMin: number): 1 | 2 | 3 {
+  return durationMin <= 30 ? 1 : durationMin <= 90 ? 2 : 3;
+}
+
 // ─── Unplanned activities ─────────────────────────────────────────────────
 
 export interface UnplannedFields {

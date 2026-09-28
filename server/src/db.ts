@@ -1,5 +1,6 @@
 import { Pool, PoolConfig } from 'pg';
 import { HIDDEN_QUESTS } from './data/hiddenQuests.js';
+import { syncRoutineQuests } from './modules.js';
 
 const poolConfig: PoolConfig = process.env.DATABASE_URL
   ? { connectionString: process.env.DATABASE_URL, ssl: { rejectUnauthorized: false } }
@@ -248,6 +249,12 @@ export async function initDatabase() {
         SELECT DISTINCT user_id, category, initcap(category), CASE WHEN category = 'content' THEN 'content' ELSE 'tasks' END
         FROM quests WHERE user_id IS NOT NULL
         ON CONFLICT DO NOTHING`);
+    }
+
+    // One-time: routines confirmed before timetable quests existed get their quests.
+    const rq = await client.query(`INSERT INTO app_migrations (name) VALUES ('routine_quests_v1') ON CONFLICT DO NOTHING RETURNING name`);
+    if (rq.rowCount) {
+      for (const r of (await client.query('SELECT user_id, items FROM routines')).rows) await syncRoutineQuests(client, r.user_id, r.items);
     }
 
     // Seed default quests (idempotent: fills in any missing quests on every boot)

@@ -4,6 +4,7 @@ import { useGameStore } from '../store/gameStore';
 import { sfx } from '../utils/sounds';
 import { todayKey } from '../data/hiddenQuests';
 import { getActiveBuffs } from '../utils/xp';
+import { dailyHistoryQuests } from '../utils/dailyBoard';
 
 /**
  * Solo Leveling-style System notice banner. Shows:
@@ -32,8 +33,7 @@ export default function PenaltyBanner() {
   if (dismissed || (!penalty && !recovery)) return null;
 
   const today = todayKey();
-  const todayDone = dailyQuests
-    .filter(q => q.id.startsWith('DQ-'))
+  const todayDone = dailyHistoryQuests(dailyQuests)
     .some(q => q.completedDates.includes(today));
 
   // Recovery reward — shown first, it's a win. `applied: false` just means

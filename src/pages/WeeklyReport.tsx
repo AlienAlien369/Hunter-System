@@ -5,6 +5,7 @@ import { api } from "../lib/api";
 import type { StatHistory } from "../lib/api";
 import { getStreak, MAX_DAILY_COMPLETIONS } from "../utils/xp";
 import { sfx } from "../utils/sounds";
+import { dailyHistoryQuests } from "../utils/dailyBoard";
 
 // ─── Grade System ───────────────────────────────────────────────────────────
 
@@ -129,14 +130,12 @@ export default function WeeklyReport() {
 
   // ── Compute this week's data ──
 
-  const allCompletedDates = dailyQuests
-    .filter((q) => q.id.startsWith("DQ-"))
+  const allCompletedDates = dailyHistoryQuests(dailyQuests)
     .flatMap((q) => q.completedDates);
 
   const thisWeekStats = thisWeekDates.map((date, i) => {
     const dayHistory = statHistory.find((h) => h.completion_date === date);
-    const questsCompleted = dailyQuests
-      .filter((q) => q.id.startsWith("DQ-"))
+    const questsCompleted = dailyHistoryQuests(dailyQuests)
       .filter((q) => q.completedDates.includes(date)).length;
     const xpEarned = dayHistory?.xp_gained ?? 0;
     const intensity = questsCompleted / MAX_DAILY_COMPLETIONS;
@@ -151,8 +150,7 @@ export default function WeeklyReport() {
 
   const lastWeekStats = lastWeekDates.map((date, i) => {
     const dayHistory = statHistory.find((h) => h.completion_date === date);
-    const questsCompleted = dailyQuests
-      .filter((q) => q.id.startsWith("DQ-"))
+    const questsCompleted = dailyHistoryQuests(dailyQuests)
       .filter((q) => q.completedDates.includes(date)).length;
     const xpEarned = dayHistory?.xp_gained ?? 0;
     return { date, dayName: DAY_NAMES[i], questsCompleted, xpEarned };

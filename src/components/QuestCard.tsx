@@ -4,8 +4,11 @@ interface DailyQuest {
   id: string;
   title: string;
   xpReward: number;
-  category: 'discipline' | 'skill' | 'physical' | 'nutrition' | 'saas' | 'mindset' | 'spiritual' | 'health' | 'architecture';
+  category: 'discipline' | 'skill' | 'physical' | 'nutrition' | 'saas' | 'mindset' | 'spiritual' | 'health' | 'architecture' | 'routine';
   completedDates: string[];
+  /** Timetable quests: slot time and module. */
+  time?: string | null;
+  module?: string;
 }
 
 interface QuestCardProps {
@@ -24,6 +27,7 @@ const CATEGORY_CONFIG = {
   mindset: { color: 'text-blue-300', bg: 'bg-blue-300/10', border: 'border-blue-300/20', icon: '🧘' },
   spiritual: { color: 'text-pink-400', bg: 'bg-pink-500/10', border: 'border-pink-500/20', icon: '🕯️' },
   health: { color: 'text-teal-400', bg: 'bg-teal-500/10', border: 'border-teal-500/20', icon: '❤️' },
+  routine: { color: 'text-purple-300', bg: 'bg-purple-500/10', border: 'border-purple-500/20', icon: '📅' },
 };
 
 export default function QuestCard({ quest, onComplete, showXP = true }: QuestCardProps) {
@@ -85,7 +89,9 @@ export default function QuestCard({ quest, onComplete, showXP = true }: QuestCar
               text-xs px-2 py-0.5 rounded-full font-mono border
               ${config.bg} ${config.color} ${config.border}
             `}>
-              {quest.category.toUpperCase()}
+              {quest.category === 'routine'
+                ? [quest.time, quest.module].filter(Boolean).join(' · ').toUpperCase() || 'TIMETABLE'
+                : quest.category.toUpperCase()}
             </span>
           </div>
         </div>

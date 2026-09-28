@@ -1,13 +1,14 @@
 import { motion } from 'framer-motion';
 import { useGameStore } from '../store/gameStore';
 import QuestCard from './QuestCard';
+import { todaysBoard } from '../utils/dailyBoard';
 
 export default function ActiveQuests() {
   const { dailyQuests, completeQuest } = useGameStore();
   const today = new Date().toISOString().split('T')[0];
 
-  const todaysQuests = dailyQuests
-    .filter(quest => quest.id.startsWith('DQ-')) // permanent tracks (LC/SS/AR) are not daily quests
+  // Today's board follows the hunter's timetable (permanent tracks LC/SS/AR are not daily quests)
+  const todaysQuests = todaysBoard(dailyQuests)
     .map(quest => ({
       ...quest,
       completedToday: quest.completedDates.includes(today),

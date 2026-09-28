@@ -189,6 +189,24 @@ describe('Hunter extensions', () => {
       assert.ok(r.body.routine.graceEndsAt);
     });
 
+    it('the Quest Log follows the timetable: one daily quest per slot', async () => {
+      const q = (await A.get('/quests')).body.filter((x: any) => x.category === 'routine');
+      assert.deepStrictEqual(q.map((x: any) => x.title).sort(), ['Deep Work', 'Reading', 'Workout']);
+      const deep = q.find((x: any) => x.title === 'Deep Work');
+      assert.strictEqual(deep.schedule_time, '09:00');
+      assert.strictEqual(deep.xp_reward, 30, '120-minute slot → hard');
+      assert.strictEqual(q.find((x: any) => x.title === 'Reading').xp_reward, 10, '30-minute slot → easy');
+      // Completing a timetable quest uses the normal quest/XP flow
+      const before = (await A.xp()).xp;
+      assert.strictEqual((await A.patch(`/quests/${deep.quest_id}/complete`)).body.xpGained, 30);
+      assert.strictEqual((await A.xp()).xp, before + 30);
+      await A.patch(`/quests/${deep.quest_id}/complete`); // undo
+      // Timetable quests can only be changed through the timetable
+      assert.strictEqual((await A.patch(`/quests/custom/${deep.quest_id}`, { title: 'x' })).status, 400);
+      assert.strictEqual((await A.del(`/quests/custom/${deep.quest_id}`)).status, 400);
+      assert.ok(!(await B.get('/quests')).body.some((x: any) => x.category === 'routine'));
+    });
+
     it('edits during the 48h setup period are free', async () => {
       const before = (await A.xp()).xp;
       const p = (await A.post('/routine/preview', { items: [initial[0], initial[2]] })).body;
@@ -223,6 +241,9 @@ describe('Hunter extensions', () => {
       const me = await A.xp();
       assert.strictEqual(me.xp, -55);
       assert.strictEqual(me.level, 1);
+      // Removed slot → its quest leaves the Quest Log
+      const titles = (await A.get('/quests')).body.filter((x: any) => x.category === 'routine').map((x: any) => x.title).sort();
+      assert.deepStrictEqual(titles, ['Deep Work', 'Workout']);
 
       const history = (await A.get('/routine/history')).body;
       assert.ok(history.some((h: any) => h.action === 'routine_change' && h.details.xp === -75 && /Reading/.test(h.details.label)));

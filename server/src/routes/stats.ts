@@ -385,7 +385,8 @@ interface PenaltyOutcome {
 /**
  * Lazy penalty + recovery check, called from GET /api/stats.
  *
- * Penalty rule: a day "counts" as missed when no daily quest (DQ-*) was
+ * Penalty rule: a day "counts" as missed when no daily quest (the default
+ * DQ-* quests, or the hunter's own CQ-* timetable/module quests) was
  * completed that day. Once 2+ consecutive full days are missed, the hunter
  * takes a penalty (XP and HP), applied once per gap — the first time the
  * check runs after the gap reaches 2 days. Today's in-progress day never
@@ -416,7 +417,7 @@ async function checkPenaltiesAndRecovery(
     `SELECT DISTINCT qc.completion_date::text AS d
      FROM quest_completions qc
      JOIN quests q ON qc.quest_id = q.id
-     WHERE qc.user_id = $1 AND q.quest_id LIKE 'DQ-%'`,
+     WHERE qc.user_id = $1 AND (q.quest_id LIKE 'DQ-%' OR q.quest_id LIKE 'CQ-%')`,
     [userId],
   );
   const doneSet: Set<string> = new Set(done.rows.map((r: any) => String(r.d)));

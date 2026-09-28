@@ -127,7 +127,7 @@ router.post('/', async (req: Request, res: Response) => {
     // Built-in kinds keep a fixed slug; custom modules get a unique slug from their name.
     let slug = kind === 'tasks' ? slugify(meta.name!) : kind;
     if (kind === 'tasks') {
-      if ((MODULE_KINDS as readonly string[]).includes(slug) || slug === 'hidden') slug += '-m';
+      if ((MODULE_KINDS as readonly string[]).includes(slug) || slug === 'hidden' || slug === 'routine') slug += '-m';
       const taken = new Set(others.map(m => m.slug));
       for (let i = 2; taken.has(slug); i++) slug = `${slugify(meta.name!).slice(0, 32)}-${i}`;
     }

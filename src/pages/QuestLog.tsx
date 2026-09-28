@@ -3,6 +3,7 @@ import { useGameStore } from '../store/gameStore';
 import QuestCard from '../components/QuestCard';
 import TrackReward from '../components/TrackReward';
 import HiddenQuestCard from '../components/HiddenQuestCard';
+import { isTimetableQuest, todaysBoard } from '../utils/dailyBoard';
 
 interface TrackConfig {
   id: string;
@@ -135,8 +136,8 @@ export default function QuestLog() {
   const { dailyQuests, completeQuest, redoTrack, profile } = useGameStore();
   const today = new Date().toISOString().split('T')[0];
 
-  const dailyQuestsList = dailyQuests
-    .filter(q => q.id.startsWith('DQ-'))
+  const usesTimetable = dailyQuests.some(isTimetableQuest);
+  const dailyQuestsList = todaysBoard(dailyQuests)
     .map(quest => ({
       ...quest,
       completedToday: quest.completedDates.includes(today),
@@ -174,7 +175,7 @@ export default function QuestLog() {
             QUEST LOG
           </h1>
           <p className="text-gray-400 mt-1 font-mono text-sm">
-            Daily challenges • {new Date().toLocaleDateString()}
+            {usesTimetable ? "Today's timetable" : 'Daily challenges'} • {new Date().toLocaleDateString()}
           </p>
         </div>
 

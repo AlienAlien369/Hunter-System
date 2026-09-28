@@ -1,14 +1,14 @@
 import { motion } from 'framer-motion';
 import { useGameStore } from '../store/gameStore';
 import { getStreak } from '../utils/xp';
+import { dailyHistoryQuests, todaysBoard } from '../utils/dailyBoard';
 
 export default function QuickStats() {
   const { dailyQuests, freezeDates } = useGameStore();
   const today = new Date().toISOString().split('T')[0];
 
   // Only daily quests count as "today" — permanent tracks (LC/SS/AR) have their own progress
-  const todayQuests = dailyQuests
-    .filter(q => q.id.startsWith('DQ-'))
+  const todayQuests = todaysBoard(dailyQuests)
     .map(q => ({
       ...q,
       completedToday: q.completedDates.includes(today),
@@ -16,7 +16,7 @@ export default function QuickStats() {
 
   const completedToday = todayQuests.filter(q => q.completedToday).length;
   const totalToday = todayQuests.length;
-  const allCompletedDates = todayQuests.flatMap(q => q.completedDates);
+  const allCompletedDates = dailyHistoryQuests(dailyQuests).flatMap(q => q.completedDates);
   const streak = getStreak(allCompletedDates, freezeDates);
 
   const stats = [

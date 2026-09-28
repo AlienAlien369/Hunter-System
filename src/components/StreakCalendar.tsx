@@ -9,6 +9,7 @@ import {
   MAX_DAILY_COMPLETIONS,
 } from "../utils/xp";
 import { sfx } from "../utils/sounds";
+import { dailyHistoryQuests } from "../utils/dailyBoard";
 
 const MONTHS = [
   "January",
@@ -55,9 +56,8 @@ export default function StreakCalendar() {
 
   const today = new Date().toISOString().split("T")[0];
 
-  // Gather all completed dates from daily quests (DQ-* only)
-  const allCompletedDates = dailyQuests
-    .filter((q) => q.id.startsWith("DQ-"))
+  // Gather all completed dates from daily quests (defaults + timetable quests)
+  const allCompletedDates = dailyHistoryQuests(dailyQuests)
     .flatMap((q) => q.completedDates);
 
   const streak = getStreak(allCompletedDates, freezeDates);

@@ -4,6 +4,7 @@ import { pool } from '../db.js';
 import { authenticateToken } from '../middleware/auth.js';
 import { logActivity } from '../activity.js';
 import { applyXp } from '../xp.js';
+import { syncRoutineQuests } from '../modules.js';
 import { structuredCompletion } from '../ai.js';
 import { diffRoutine, sanitizeRoutineItems, validateRoutineSuggestion, XP_RULES, DAYS, RoutineItem } from '../rules.js';
 
@@ -98,6 +99,9 @@ router.put('/', async (req: Request, res: Response) => {
        RETURNING *`,
       [userId, JSON.stringify(p.items), timezone, p.diff.rewardModules]
     );
+
+    // The Quest Log follows the timetable: one daily quest per slot.
+    await syncRoutineQuests(client, userId, p.items);
 
     let xpResult = null;
     if (p.isInitial) {
