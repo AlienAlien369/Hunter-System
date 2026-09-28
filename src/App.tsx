@@ -50,6 +50,7 @@ const Settings = lazyPage(() => import('./pages/Settings'));
 const Modules = lazyPage(() => import('./pages/Modules'));
 const ModulePage = lazyPage(() => import('./pages/ModulePage'));
 import XpConfirmHost from './components/hunter/XpConfirmHost';
+import PerfectDayBanner from './components/PerfectDayBanner';
 import { useModuleStore } from './store/moduleStore';
 import { moduleHref } from './data/presets';
 import { useTimetableReminders } from './utils/reminders';
@@ -230,6 +231,7 @@ function AppContent() {
       )}
 
       <XpConfirmHost />
+      <PerfectDayBanner />
       <RoutineSetup open={routineSetup && !needsNameEntry} onClose={() => setRoutineSetup(false)} onDone={() => setRoutineSetup(false)} />
 
       {/* Level-up / rank-up celebration + floating XP toasts */}

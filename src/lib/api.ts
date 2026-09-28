@@ -454,7 +454,7 @@ export const api = {
   getTodaysHiddenQuest: () => request<HiddenQuestToday>('/quests/hidden/today'),
 
   completeQuest: (id: string) =>
-    request<{ action: string; xpGained: number }>(`/quests/${id}/complete`, { method: 'PATCH' }),
+    request<{ action: string; xpGained?: number; perfectDay?: { status: 'awarded' | 'revoked'; xp: number } | null }>(`/quests/${id}/complete`, { method: 'PATCH' }),
 
   getQuestStats: () => request<QuestStats>('/quests/stats'),
 

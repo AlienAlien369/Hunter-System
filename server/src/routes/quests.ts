@@ -5,7 +5,7 @@ import { logActivity } from '../activity.js';
 import { calculateLevel } from '../progression.js';
 import { selectTodaysHiddenQuest, scaleHiddenXp, tierForLevel, TIERS } from '../data/hiddenQuests.js';
 import { applyXp } from '../xp.js';
-import { taskXp, DAYS, diffModuleTasks, sanitizeModuleTask, type ModuleTask } from '../rules.js';
+import { taskXp, DAYS, XP_RULES, diffModuleTasks, sanitizeModuleTask, type ModuleTask } from '../rules.js';
 import { confirmGate, findModule, insertTask, toModuleTask, xpEntries } from '../modules.js';
 
 const router = Router();
@@ -181,6 +181,43 @@ router.get('/:id', optionalAuth, async (req: Request, res: Response) => {
   }
 });
 
+/**
+ * Perfect Day: when every timetable quest scheduled today (at least
+ * XP_RULES.perfectDay.minQuests) is complete, award a one-time bonus; if a
+ * quest is then undone, take it back (so complete/undo can't farm it).
+ */
+async function settlePerfectDay(userId: number, today: string): Promise<{ status: 'awarded' | 'revoked'; xp: number } | null> {
+  const { bonus, minQuests } = XP_RULES.perfectDay;
+  const code = DAYS[(new Date(today).getUTCDay() + 6) % 7];
+  const r = await pool.query(
+    `SELECT COUNT(*)::int AS scheduled,
+            COUNT(qc.id)::int AS done,
+            (SELECT COUNT(*) FILTER (WHERE action = 'perfect_day') - COUNT(*) FILTER (WHERE action = 'perfect_day_revoked')
+               FROM activity_log WHERE user_id = $1 AND entity = $2::text AND action IN ('perfect_day', 'perfect_day_revoked'))::int AS awarded
+     FROM quests q
+     LEFT JOIN quest_completions qc ON qc.quest_id = q.id AND qc.user_id = $1 AND qc.completion_date = $2::date
+     WHERE q.user_id = $1 AND q.category = 'routine' AND NOT q.archived
+       AND (q.recurrence IS NULL OR $3 = ANY(q.recurrence))`,
+    [userId, today, code]
+  );
+  const { scheduled, done, awarded } = r.rows[0];
+  if (awarded <= 0 && scheduled >= minQuests && done === scheduled) {
+    await applyXp(pool, userId, [{ delta: bonus, action: 'perfect_day', entity: today, details: { label: 'Perfect Day — every timetable quest done', quests: scheduled } }]);
+    return { status: 'awarded', xp: bonus };
+  }
+  if (awarded > 0 && done < scheduled) {
+    await applyXp(pool, userId, [{ delta: -bonus, action: 'perfect_day_revoked', entity: today, details: { label: 'Perfect Day undone' } }]);
+    return { status: 'revoked', xp: -bonus };
+  }
+  return null;
+}
+
+/** A bonus-calculation failure must never fail the completion that already happened. */
+const bonusError = (error: unknown) => {
+  console.error('Perfect Day check failed:', error);
+  return null;
+};
+
 // PATCH /api/quests/:id/complete - Toggle quest completion
 // Daily quests (DQ-*) and hidden quests (HQ-*) reset every day:
 // completion is tracked per date.
@@ -267,7 +304,8 @@ router.patch('/:id/complete', authenticateToken, async (req: Request, res: Respo
         );
       }
 
-      res.json({ action: 'undone', message: 'Quest uncompleted' });
+      const perfectDay = q.category === 'routine' ? await settlePerfectDay(userId!, today).catch(bonusError) : null;
+      res.json({ action: 'undone', message: 'Quest uncompleted', perfectDay });
     } else {
       if (q.recurrence?.length && !q.recurrence.includes(DAYS[(new Date(today).getUTCDay() + 6) % 7])) {
         return res.status(400).json({ error: 'This task is not scheduled for today' });
@@ -312,7 +350,8 @@ router.patch('/:id/complete', authenticateToken, async (req: Request, res: Respo
         }
       }
 
-      res.json({ action: 'completed', xpGained: awardXp });
+      const perfectDay = q.category === 'routine' ? await settlePerfectDay(userId!, today).catch(bonusError) : null;
+      res.json({ action: 'completed', xpGained: awardXp, perfectDay });
     }
   } catch (error) {
     console.error('Error toggling quest completion:', error);

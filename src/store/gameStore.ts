@@ -771,7 +771,15 @@ export const useGameStore = create<GameState>((set, get) => ({
 
     // Always try to sync with the server; fall back to local-only on failure
     try {
-      await api.completeQuest(questId);
+      const result = await api.completeQuest(questId);
+      // Perfect Day: every timetable quest done today → server-awarded bonus
+      if (result.perfectDay) {
+        get().pushXpFloat(result.perfectDay.xp);
+        if (result.perfectDay.status === "awarded") {
+          sfx.levelUp();
+          window.dispatchEvent(new CustomEvent("hunter-perfect-day", { detail: result.perfectDay.xp }));
+        }
+      }
       await get().loadDashboard();
     } catch (error) {
       console.error("Failed to sync with server:", error);

@@ -31,6 +31,9 @@ export const XP_RULES = {
     editPenaltyCap: -100,
   },
 
+  /** Completing every timetable quest scheduled today (at least minQuests) pays a one-time bonus. */
+  perfectDay: { bonus: 25, minQuests: 3 },
+
   unplanned: {
     xpPerHour: { easy: 15, medium: 30, hard: 45, extreme: 60 } as Record<Difficulty, number>,
     minMinutes: 5,

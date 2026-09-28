@@ -598,6 +598,38 @@ describe('Hunter extensions', () => {
     });
   });
 
+  describe('perfect day bonus', () => {
+    it("pays once all of today's timetable quests are done, revokes on undo, cannot be farmed", async () => {
+      const P = client((await register('ext_pd_' + suffix)).cookie);
+      await P.put('/routine', { items: [slot('p1', 'Wake', '06:00', 15), slot('p2', 'Work', '09:00', 60), slot('p3', 'Read', '21:00', 30)], acknowledged: true });
+      const qs = (await P.get('/quests')).body.filter((q: any) => q.category === 'routine');
+      const ids = qs.map((q: any) => q.quest_id);
+      const total = qs.reduce((s: number, q: any) => s + q.xp_reward, 0);
+      assert.strictEqual(ids.length, 3);
+      const start = (await P.xp()).xp;
+      assert.strictEqual((await P.patch(`/quests/${ids[0]}/complete`)).body.perfectDay, null);
+      await P.patch(`/quests/${ids[1]}/complete`);
+      const last = (await P.patch(`/quests/${ids[2]}/complete`)).body;
+      assert.deepStrictEqual(last.perfectDay, { status: 'awarded', xp: 25 });
+      const withBonus = (await P.xp()).xp;
+      assert.strictEqual(withBonus, start + total + 25);
+      const undo = (await P.patch(`/quests/${ids[2]}/complete`)).body;
+      assert.deepStrictEqual(undo.perfectDay, { status: 'revoked', xp: -25 });
+      assert.strictEqual((await P.xp()).xp, start + total - qs[2].xp_reward);
+      await P.patch(`/quests/${ids[2]}/complete`); // redo → bonus again, no net gain from cycling
+      assert.strictEqual((await P.xp()).xp, withBonus);
+      assert.strictEqual((await P.patch(`/quests/${ids[1]}/complete`)).body.perfectDay.status, 'revoked');
+    });
+
+    it('needs at least 3 timetable quests today', async () => {
+      const Q = client((await register('ext_pd2_' + suffix)).cookie);
+      await Q.put('/routine', { items: [slot('q1', 'Wake', '06:00', 15), slot('q2', 'Read', '21:00', 30)], acknowledged: true });
+      const ids = (await Q.get('/quests')).body.filter((q: any) => q.category === 'routine').map((q: any) => q.quest_id);
+      await Q.patch(`/quests/${ids[0]}/complete`);
+      assert.strictEqual((await Q.patch(`/quests/${ids[1]}/complete`)).body.perfectDay, null);
+    });
+  });
+
   describe('launch hardening: sessions, CORS, CSRF origin guard, login lockout', () => {
     const uname = 'ext_sec_' + suffix;
 
