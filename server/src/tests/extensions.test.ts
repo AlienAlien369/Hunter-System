@@ -644,6 +644,15 @@ describe('Hunter extensions', () => {
     });
   });
 
+  describe('client error reporting', () => {
+    it('accepts capped crash reports without auth and validates input', async () => {
+      const post = (body: unknown) => fetch(`${BASE_URL}/api/client-errors`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) });
+      assert.strictEqual((await post({ message: 'TypeError: x is undefined', stack: 'at Foo', url: '/quests', kind: 'render' })).status, 204);
+      assert.strictEqual((await post({ message: 'y'.repeat(100000) })).status, 204, 'oversized reports are clipped, not rejected');
+      assert.strictEqual((await post({})).status, 400);
+    });
+  });
+
   describe('launch hardening: sessions, CORS, CSRF origin guard, login lockout', () => {
     const uname = 'ext_sec_' + suffix;
 

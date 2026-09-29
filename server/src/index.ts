@@ -19,6 +19,7 @@ import leaderboardRoutes from './routes/leaderboard.js';
 import coachRoutes from './routes/coach.js';
 import onboardingRoutes from './routes/onboarding.js';
 import friendsRoutes from './routes/friends.js';
+import clientErrorRoutes from './routes/clientErrors.js';
 import { initDatabase } from './db.js';
 import { isAllowedOrigin, originGuard } from './middleware/security.js';
 
@@ -59,6 +60,7 @@ app.use('/api/leaderboard', leaderboardRoutes);
 app.use('/api/coach', coachRoutes);
 app.use('/api/onboarding', onboardingRoutes);
 app.use('/api/friends', friendsRoutes);
+app.use('/api/client-errors', clientErrorRoutes);
 app.get('/api/health', (req, res) => res.json({ status: 'ok', timestamp: new Date().toISOString() }));
 
 // Serve frontend static files in production

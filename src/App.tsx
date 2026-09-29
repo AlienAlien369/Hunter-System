@@ -51,6 +51,7 @@ const Modules = lazyPage(() => import('./pages/Modules'));
 const ModulePage = lazyPage(() => import('./pages/ModulePage'));
 import XpConfirmHost from './components/hunter/XpConfirmHost';
 import PerfectDayBanner from './components/PerfectDayBanner';
+import ErrorBoundary from './components/ErrorBoundary';
 import { useModuleStore } from './store/moduleStore';
 import { moduleHref } from './data/presets';
 import { useTimetableReminders } from './utils/reminders';
@@ -190,6 +191,8 @@ function AppContent() {
                 transition={{ duration: 0.24, ease: 'easeOut' }}
                 className="p-4 sm:p-6"
               >
+                {/* Per-route boundary: navigating away from a broken page recovers. */}
+                <ErrorBoundary key={location.pathname}>
                 <Suspense fallback={<PageLoading />}>
                 <Routes>
                   <Route path="/" element={<ProtectedRoute><Dashboard /></ProtectedRoute>} />
@@ -212,6 +215,7 @@ function AppContent() {
                   <Route path="*" element={<Navigate to="/" replace />} />
                 </Routes>
                 </Suspense>
+                </ErrorBoundary>
               </motion.div>
             </AnimatePresence>
           </main>
