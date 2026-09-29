@@ -31,7 +31,7 @@ export default function PublicProfile() {
   ];
 
   return (
-    <div className="min-h-screen flex items-center justify-center p-4 py-10" style={{ background: 'var(--bg-base)' }}>
+    <main className="min-h-screen flex items-center justify-center p-4 py-10" style={{ background: 'var(--bg-base)' }}>
       <BackgroundFX />
       <div className="relative w-full max-w-md bg-[#161b22]/90 backdrop-blur rounded-2xl border border-purple-500/30 p-6 text-center">
         {error ? (
@@ -41,7 +41,7 @@ export default function PublicProfile() {
             <Link to="/login" className="inline-block mt-6 font-mono text-sm text-purple-300 underline">Start your own journey →</Link>
           </>
         ) : !hunter ? (
-          <p className="font-mono text-gray-500 py-16">Scanning hunter…</p>
+          <p className="font-mono text-gray-400 py-16">Scanning hunter…</p>
         ) : (
           <>
             <p className="text-purple-300 font-mono text-[10px] tracking-[0.3em]">HUNTER PROFILE</p>
@@ -56,7 +56,7 @@ export default function PublicProfile() {
             <div className="grid grid-cols-2 gap-2 mt-6">
               {tiles!.map(([label, value]) => (
                 <div key={label} className="rounded-lg border border-purple-500/15 bg-[#0d1117] py-3">
-                  <p className="text-[10px] font-mono text-gray-500 tracking-widest">{label}</p>
+                  <p className="text-[10px] font-mono text-gray-400 tracking-widest">{label}</p>
                   <p className="font-display text-lg text-gold">{value}</p>
                 </div>
               ))}
@@ -81,13 +81,13 @@ export default function PublicProfile() {
                   <Link to={`/login?invite=${encodeURIComponent(hunter.name)}`} className="block w-full py-3 rounded-lg bg-purple-600 hover:bg-purple-500 text-white font-display tracking-widest">
                     RACE {hunter.name.toUpperCase()}
                   </Link>
-                  <p className="mt-3 text-xs font-mono text-gray-500">Turn your real-life habits into quests, XP and ranks. Free.</p>
+                  <p className="mt-3 text-xs font-mono text-gray-400">Turn your real-life habits into quests, XP and ranks. Free.</p>
                 </>
               )}
             </div>
           </>
         )}
       </div>
-    </div>
+    </main>
   );
 }

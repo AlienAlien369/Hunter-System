@@ -69,7 +69,7 @@ export default function Login() {
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center p-4 py-10" style={{ background: 'var(--bg-base)' }}>
+    <main className="min-h-screen flex items-center justify-center p-4 py-10" style={{ background: 'var(--bg-base)' }}>
       {/* Animated system background */}
       <BackgroundFX />
 
@@ -98,7 +98,7 @@ export default function Login() {
               <span className="text-xl">{icon}</span>
               <span>
                 <span className="block text-white font-mono text-sm">{title}</span>
-                <span className="block text-gray-500 font-mono text-xs">{body}</span>
+                <span className="block text-gray-400 font-mono text-xs">{body}</span>
               </span>
             </li>
           ))}
@@ -141,7 +141,7 @@ export default function Login() {
               className={`flex-1 py-2 rounded-md font-mono text-sm transition-all ${
                 mode === 'login'
                   ? 'bg-purple-500/20 text-purple-400'
-                  : 'text-gray-500 hover:text-gray-300'
+                  : 'text-gray-400 hover:text-gray-200'
               }`}
             >
               LOGIN
@@ -151,7 +151,7 @@ export default function Login() {
               className={`flex-1 py-2 rounded-md font-mono text-sm transition-all ${
                 mode === 'register'
                   ? 'bg-purple-500/20 text-purple-400'
-                  : 'text-gray-500 hover:text-gray-300'
+                  : 'text-gray-400 hover:text-gray-200'
               }`}
             >
               REGISTER
@@ -242,7 +242,7 @@ export default function Login() {
             <button
               type="button"
               onClick={() => { setMode(mode === 'login' ? 'recover' : 'login'); setError(''); }}
-              className="block mx-auto mt-4 text-xs font-mono text-gray-500 hover:text-purple-300"
+              className="block mx-auto mt-4 text-xs font-mono text-gray-400 hover:text-purple-300"
             >
               {mode === 'login' ? 'Forgot password? Use your recovery code' : '← Back to login'}
             </button>
@@ -251,11 +251,11 @@ export default function Login() {
         </div>
 
         {/* Footer */}
-        <p className="text-center text-gray-600 font-mono text-xs mt-6">
+        <p className="text-center text-gray-400 font-mono text-xs mt-6">
           Hunter System · free to play
         </p>
       </motion.div>
       </div>
-    </div>
+    </main>
   );
 }

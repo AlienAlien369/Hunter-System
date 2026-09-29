@@ -1,0 +1,6 @@
+# Hunter System
+
+> A free, gamified productivity app: your timetable becomes a daily quest log, habits earn XP, and you rank up from E to S while racing friends on a weekly leaderboard.
+
+- [Sign up / log in](https://hunters-system.vercel.app/login): create an account and build your timetable
+- Public hunter profiles live at `https://hunters-system.vercel.app/h/<hunter name>`
