@@ -1,0 +1,17 @@
+name: Keep backend warm
+
+# Render's free plan sleeps after ~15 idle minutes: first visits then take
+# 30–60s and the push-reminder scheduler can't run. Pinging /api/health keeps
+# the single instance awake (~720h/month, within the free 750h).
+# Delete this workflow after moving the service to a paid plan.
+on:
+  schedule:
+    - cron: '*/10 * * * *'
+  workflow_dispatch:
+
+jobs:
+  ping:
+    runs-on: ubuntu-latest
+    timeout-minutes: 3
+    steps:
+      - run: curl -fsS --max-time 90 --retry 2 https://hunter-system-kss0.onrender.com/api/health
