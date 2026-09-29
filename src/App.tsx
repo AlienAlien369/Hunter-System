@@ -136,6 +136,9 @@ function AppContent() {
   // Dynamic user modules → sidebar entries after the core pages
   const modules = useModuleStore(s => s.modules);
   useEffect(() => { if (user?.id) useModuleStore.getState().load(); }, [user?.id]);
+  // Game data for every page — deep links (/quests from a push nudge, refreshes)
+  // must not wait for a visit to the Dashboard.
+  useEffect(() => { if (user?.id) useGameStore.getState().loadDashboard(); }, [user?.id]);
   const navItems = [
     ...CORE_NAV,
     ...modules.map(m => ({ path: moduleHref(m), label: m.status === 'paused' ? `${m.name} (paused)` : m.name, icon: m.icon })),
