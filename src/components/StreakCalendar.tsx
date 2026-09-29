@@ -10,6 +10,7 @@ import {
 } from "../utils/xp";
 import { sfx } from "../utils/sounds";
 import { dailyHistoryQuests } from "../utils/dailyBoard";
+import { localDateKey } from '../utils/date';
 
 const MONTHS = [
   "January",
@@ -54,7 +55,7 @@ export default function StreakCalendar() {
   const [showFreezeConfirm, setShowFreezeConfirm] = useState(false);
   const [freezeTarget, setFreezeTarget] = useState<string | null>(null);
 
-  const today = new Date().toISOString().split("T")[0];
+  const today = localDateKey();
 
   // Gather all completed dates from daily quests (defaults + timetable quests)
   const allCompletedDates = dailyHistoryQuests(dailyQuests)

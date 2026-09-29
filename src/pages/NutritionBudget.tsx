@@ -5,6 +5,7 @@ import { BarChart, Bar, XAxis, YAxis, Tooltip, Legend, ResponsiveContainer } fro
 import { PieChart, Pie, Cell, Tooltip as PieTooltip, Legend as PieLegend } from 'recharts';
 import { calculateTargetCalories, calculateTDEE, calculateProteinTotal } from '../utils/calorie';
 import { sfx } from '../utils/sounds';
+import { localDateKey } from '../utils/date';
 
 const FOODS = [
   { name: 'Fit Feast Pouch', protein: 20, cost: 60, unit: 'daily' },
@@ -55,7 +56,7 @@ export default function NutritionBudget() {
     nutritionEntries,
     profile,
   } = useGameStore();
-  const today = new Date().toISOString().split('T')[0];
+  const today = localDateKey();
   const month = today.slice(0, 7);
   const monthLabel = new Date(today + 'T00:00:00').toLocaleDateString('en-US', { month: 'long', year: 'numeric' });
 

@@ -1,3 +1,4 @@
+import { localDateKey } from './date';
 /** XP needed to go from level 1 to level 2 (the base step). */
 export const LEVEL_XP = 1000;
 
@@ -79,7 +80,7 @@ export function getStreak(completedDates: string[], freezeDates: string[] = []):
   const sorted = [...allDays].sort().reverse();
   if (!sorted.length) return 0;
   let streak = 1;
-  const today = new Date().toISOString().split('T')[0];
+  const today = localDateKey();
 
   if (sorted[0] !== today) return 0;
 

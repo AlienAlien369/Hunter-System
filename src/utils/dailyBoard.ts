@@ -1,11 +1,12 @@
 import type { DailyQuest } from '../store/gameStore';
+import { localDateKey } from './date';
 
 // The daily quest board follows the hunter's own Timetable: every timetable
 // slot is a daily quest (CQ-*, category 'routine', synced by the server).
 // Hunters without a timetable who already use the default DQ-* quests keep them.
 
 const DAY_CODES = ['MON', 'TUE', 'WED', 'THU', 'FRI', 'SAT', 'SUN'];
-const todayCode = () => DAY_CODES[(new Date(new Date().toISOString().split('T')[0]).getUTCDay() + 6) % 7];
+const todayCode = () => DAY_CODES[(new Date(localDateKey()).getUTCDay() + 6) % 7];
 
 export const isTimetableQuest = (q: DailyQuest) => q.id.startsWith('CQ-') && q.category === 'routine';
 

@@ -2,6 +2,7 @@ import { useGameStore } from '../store/gameStore';
 import { motion } from 'framer-motion';
 import { useState } from 'react';
 import TrackReward from '../components/TrackReward';
+import { localDateKey } from '../utils/date';
 
 const SAAS_STAGES = [
   { id: 1, title: 'Market Research', description: 'Validate problem-solution fit', icon: '🔍', duration: '2 weeks' },
@@ -17,7 +18,7 @@ const stageQuestId = (id: number) => `SS-${String(id).padStart(2, '0')}`;
 export default function SaaSRoadmap() {
   const { dailyQuests, completeQuest, redoTrack, profile } = useGameStore();
   const [expandedStage, setExpandedStage] = useState<number | null>(null);
-  const today = new Date().toISOString().split('T')[0];
+  const today = localDateKey();
 
   const doneSet = new Set(
     dailyQuests

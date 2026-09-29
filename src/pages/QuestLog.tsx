@@ -6,6 +6,7 @@ import HiddenQuestCard from '../components/HiddenQuestCard';
 import { isTimetableQuest, todaysBoard } from '../utils/dailyBoard';
 import BuildYourDay from '../components/BuildYourDay';
 import { useModuleStore } from '../store/moduleStore';
+import { localDateKey } from '../utils/date';
 
 interface TrackConfig {
   id: string;
@@ -137,7 +138,7 @@ function TrackSection({
 export default function QuestLog() {
   const { dailyQuests, completeQuest, redoTrack, profile } = useGameStore();
   const moduleKinds = new Set(useModuleStore(s => s.modules).filter(m => m.status === 'active').map(m => m.kind as string));
-  const today = new Date().toISOString().split('T')[0];
+  const today = localDateKey();
 
   const usesTimetable = dailyQuests.some(isTimetableQuest);
   const dailyQuestsList = todaysBoard(dailyQuests)

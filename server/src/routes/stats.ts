@@ -3,6 +3,7 @@ import { pool } from "../db.js";
 import { authenticateToken } from "../middleware/auth.js";
 import { logActivity } from "../activity.js";
 import { calculateRank } from "../progression.js";
+import { addDays, requestToday } from "../time.js";
 
 const router = Router();
 
@@ -20,7 +21,7 @@ router.get("/", authenticateToken, async (req: Request, res: Response) => {
     }
 
     // Get today's stats
-    const today = new Date().toISOString().split("T")[0];
+    const today = requestToday(req);
     const todayStats = await pool.query(
       `SELECT COALESCE(SUM(q.xp_reward), 0) as daily_xp,
               COUNT(qc.id) as quests_completed
@@ -47,8 +48,8 @@ router.get("/", authenticateToken, async (req: Request, res: Response) => {
     const streakResult = await pool.query(
       `WITH date_series AS (
         SELECT generate_series(
-          COALESCE((SELECT MAX(completion_date) FROM quest_completions WHERE user_id = $1), CURRENT_DATE),
-          CURRENT_DATE,
+          COALESCE((SELECT MAX(completion_date) FROM quest_completions WHERE user_id = $1), $2::date),
+          $2::date,
           INTERVAL '1 day'
         )::date AS date
       ),
@@ -58,7 +59,7 @@ router.get("/", authenticateToken, async (req: Request, res: Response) => {
       SELECT COUNT(*) as streak
       FROM date_series ds
       JOIN completed_dates cd ON ds.date = cd.completion_date`,
-      [userId],
+      [userId, today],
     );
 
     const streak = streakResult.rows[0]
@@ -67,7 +68,7 @@ router.get("/", authenticateToken, async (req: Request, res: Response) => {
 
     // Missed-daily-quest penalty (scaled by the broken streak) + recovery
     // bonus for rebuilding a 3-day streak (both applied lazily on check-in).
-    const { penalty, recovery } = await checkPenaltiesAndRecovery(pool, userId);
+    const { penalty, recovery } = await checkPenaltiesAndRecovery(pool, userId, today);
 
     // The penalty/recovery may have adjusted XP/HP — serve the fresh row.
     const fresh = await pool.query("SELECT * FROM users WHERE id = $1", [
@@ -403,6 +404,7 @@ interface PenaltyOutcome {
 async function checkPenaltiesAndRecovery(
   pool: any,
   userId: number | undefined,
+  today: string,
 ): Promise<PenaltyOutcome> {
   if (!userId) return { penalty: null, recovery: null };
   // Gate: only hunters who have completed at least one quest are "in the system".
@@ -424,14 +426,12 @@ async function checkPenaltiesAndRecovery(
 
   // Walk backward from yesterday (today is still in progress) and count
   // consecutive full days with zero daily-quest completions.
-  const yesterday = new Date();
-  yesterday.setDate(yesterday.getDate() - 1);
   let missed = 0;
-  const cursor = new Date(yesterday);
-  while (!doneSet.has(localDateKey(cursor))) {
-    if (localDateKey(cursor) < firstDate) break; // gap can't start before they began
+  let cursor = addDays(today, -1);
+  while (!doneSet.has(cursor)) {
+    if (cursor < firstDate) break; // gap can't start before they began
     missed += 1;
-    cursor.setDate(cursor.getDate() - 1);
+    cursor = addDays(cursor, -1);
   }
 
   let penalty: PenaltyInfo | null = null;
@@ -439,9 +439,7 @@ async function checkPenaltiesAndRecovery(
 
   if (missed > 0) {
     const missedDays = missed;
-    const gapStart = new Date(cursor);
-    gapStart.setDate(gapStart.getDate() + 1);
-    const gapStartKey = localDateKey(gapStart);
+    const gapStartKey = addDays(cursor, 1);
     // The streak the hunter is about to lose (done days right before the gap).
     const brokenStreak = countStreakEndingAt(doneSet, cursor);
 
@@ -484,9 +482,9 @@ async function checkPenaltiesAndRecovery(
       );
       await pool.query(
         `INSERT INTO penalties (user_id, penalty_date, missed_days, broken_streak, xp_lost, hp_lost)
-         VALUES ($1, CURRENT_DATE, $2, $3, $4, $5)
+         VALUES ($1, $6::date, $2, $3, $4, $5)
          ON CONFLICT (user_id, penalty_date) DO NOTHING`,
-        [userId, missedDays, brokenStreak, xpLost, hpLost],
+        [userId, missedDays, brokenStreak, xpLost, hpLost, today],
       );
       await logActivity(userId, "penalty_applied", "penalty", {
         missed_days: missedDays,
@@ -513,7 +511,6 @@ async function checkPenaltiesAndRecovery(
   // the System pays back half the lost XP (25–100 XP), once per penalty.
   // While the streak holds, the reward keeps being surfaced (applied: false)
   // so the client can show it until the hunter dismisses it.
-  const today = new Date();
   const currentStreak = countStreakEndingAt(doneSet, today);
   if (currentStreak >= 3) {
     const pending = await pool.query(
@@ -566,12 +563,12 @@ async function checkPenaltiesAndRecovery(
 }
 
 /** Consecutive days with a completion ending on (and including) `endDate`. */
-function countStreakEndingAt(doneSet: Set<string>, endDate: Date): number {
+function countStreakEndingAt(doneSet: Set<string>, endDay: string): number {
   let streak = 0;
-  const d = new Date(endDate);
-  while (doneSet.has(localDateKey(d))) {
+  let d = endDay;
+  while (doneSet.has(d)) {
     streak += 1;
-    d.setDate(d.getDate() - 1);
+    d = addDays(d, -1);
   }
   return streak;
 }

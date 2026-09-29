@@ -3,6 +3,7 @@ import { useEffect, useState } from 'react';
 import { useGameStore } from '../store/gameStore';
 import type { DailyQuest } from '../store/gameStore';
 import { getStreak } from '../utils/xp';
+import { localDateKey } from '../utils/date';
 
 const QUEST_CATEGORIES = {
   discipline: { name: 'Discipline', color: 'text-red-danger', bg: 'bg-red-danger/10', icon: '🌅' },
@@ -46,7 +47,7 @@ export default function DailyQuests() {
     const calculatedStreak = getStreak(allCompletedDates, freezeDates);
     setStreak(calculatedStreak);
 
-    const today = new Date().toISOString().split('T')[0];
+    const today = localDateKey();
     const completed = new Set<string>();
     dailyQuests.forEach(quest => {
       if (quest.completedDates.includes(today)) {
@@ -56,7 +57,7 @@ export default function DailyQuests() {
     setCompletedToday(completed);
   }, [dailyQuests]);
 
-  const today = new Date().toISOString().split('T')[0];
+  const today = localDateKey();
 
   const todayXP = DEFAULT_QUESTS.filter(q => completedToday.has(q.id))
     .reduce((sum, q) => sum + q.xpReward, 0);
@@ -328,7 +329,7 @@ export default function DailyQuests() {
               {Array.from({ length: 7 }).map((_, i) => {
                 const date = new Date();
                 date.setDate(date.getDate() - (6 - i));
-                const dateStr = date.toISOString().split('T')[0];
+                const dateStr = localDateKey(date);
                 const weekDay = date.toLocaleDateString('en-US', { weekday: 'short' });
 
                 const questsCompleted = dailyQuests.filter(q =>
@@ -383,7 +384,7 @@ export default function DailyQuests() {
                 const weekDays = Array.from({ length: 7 }).map((_, i) => {
                   const date = new Date();
                   date.setDate(date.getDate() - (6 - i));
-                  return date.toISOString().split('T')[0];
+                  return localDateKey(date);
                 });
                 const totalCompleted = categoryQuests.reduce((sum, q) =>
                   sum + q.completedDates.filter(d => weekDays.includes(d)).length, 0);
@@ -420,7 +421,7 @@ function WeeklyXPChart({ dailyQuests }: { dailyQuests: DailyQuest[] }) {
   const days = Array.from({ length: 7 }).map((_, i) => {
     const date = new Date();
     date.setDate(date.getDate() - (6 - i));
-    return date.toISOString().split('T')[0];
+    return localDateKey(date);
   });
 
   const dayLabels = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];

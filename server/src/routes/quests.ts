@@ -5,6 +5,7 @@ import { logActivity } from '../activity.js';
 import { calculateLevel } from '../progression.js';
 import { selectTodaysHiddenQuest, scaleHiddenXp, tierForLevel, TIERS } from '../data/hiddenQuests.js';
 import { applyXp } from '../xp.js';
+import { addDays, requestToday } from '../time.js';
 import { taskXp, DAYS, XP_RULES, diffModuleTasks, sanitizeModuleTask, type ModuleTask } from '../rules.js';
 import { confirmGate, findModule, insertTask, toModuleTask, xpEntries } from '../modules.js';
 
@@ -55,7 +56,7 @@ router.get('/', optionalAuth, async (req: Request, res: Response) => {
 router.get('/stats', optionalAuth, async (req: Request, res: Response) => {
   try {
     const userId = req.user?.id ?? null;
-    const today = new Date().toISOString().split('T')[0];
+    const today = requestToday(req);
     const weekAgo = new Date();
     weekAgo.setDate(weekAgo.getDate() - 7);
 
@@ -114,9 +115,9 @@ router.get('/hidden/today', authenticateToken, async (req: Request, res: Respons
     }
 
     const level = calculateLevel(parseInt(user.xp ?? '0'));
-    const def = selectTodaysHiddenQuest(user.username, level);
+    const today = requestToday(req);
+    const def = selectTodaysHiddenQuest(user.username, level, today);
     const tier = tierForLevel(level);
-    const today = new Date().toISOString().split('T')[0];
 
     const done = await pool.query(
       `SELECT qc.id FROM quest_completions qc
@@ -227,7 +228,7 @@ router.patch('/:id/complete', authenticateToken, async (req: Request, res: Respo
   try {
     const { id } = req.params;
     const userId = req.user?.id;
-    const today = new Date().toISOString().split('T')[0];
+    const today = requestToday(req);
 
     // Custom tasks (CQ-*) are only visible to — and completable by — their owner.
     const quest = await pool.query(
@@ -535,22 +536,20 @@ router.get('/modules/:module/summary', authenticateToken, async (req: Request, r
       [userId, module]
     );
     const byDate = new Map<string, number>(rows.rows.map((r: any) => [r.d, r.n]));
-    const key = (d: Date) => d.toISOString().split('T')[0];
-    const cursor = new Date();
-    if (!byDate.has(key(cursor))) cursor.setUTCDate(cursor.getUTCDate() - 1); // today still in progress
+    const today = requestToday(req);
+    let cursor = byDate.has(today) ? today : addDays(today, -1); // today still in progress
     let streak = 0;
-    while (byDate.has(key(cursor))) {
+    while (byDate.has(cursor)) {
       streak++;
-      cursor.setUTCDate(cursor.getUTCDate() - 1);
+      cursor = addDays(cursor, -1);
     }
-    const weekAgo = new Date();
-    weekAgo.setUTCDate(weekAgo.getUTCDate() - 6);
+    const weekAgo = addDays(today, -6);
     res.json({
       module,
       xpEarned: rows.rows.reduce((s: number, r: any) => s + r.xp, 0),
       completedTotal: rows.rows.reduce((s: number, r: any) => s + r.n, 0),
-      completedToday: byDate.get(key(new Date())) ?? 0,
-      completedThisWeek: rows.rows.filter((r: any) => r.d >= key(weekAgo)).reduce((s: number, r: any) => s + r.n, 0),
+      completedToday: byDate.get(today) ?? 0,
+      completedThisWeek: rows.rows.filter((r: any) => r.d >= weekAgo).reduce((s: number, r: any) => s + r.n, 0),
       streak,
     });
   } catch (error) {

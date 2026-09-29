@@ -7,6 +7,7 @@ import { getStreak, MAX_DAILY_COMPLETIONS } from "../utils/xp";
 import { sfx } from "../utils/sounds";
 import { dailyHistoryQuests } from "../utils/dailyBoard";
 import CoachPanel from "../components/CoachPanel";
+import { localDateKey } from '../utils/date';
 
 // ─── Grade System ───────────────────────────────────────────────────────────
 
@@ -92,7 +93,7 @@ function getWeekDates(offsetWeeks = 0): string[] {
   for (let i = 0; i < 7; i++) {
     const d = new Date(monday);
     d.setDate(monday.getDate() + i);
-    dates.push(d.toISOString().split("T")[0]);
+    dates.push(localDateKey(d));
   }
   return dates;
 }
@@ -422,7 +423,7 @@ export default function WeeklyReport() {
                 day.date === worstDay.date &&
                 day.questsCompleted > 0;
               const isToday =
-                day.date === new Date().toISOString().split("T")[0];
+                day.date === localDateKey();
 
               return (
                 <motion.div

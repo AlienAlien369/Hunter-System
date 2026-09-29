@@ -67,12 +67,12 @@ export function scaleHiddenXp(baseXp: number, level: number): number {
  * Picks from the hunter's own tier band; roughly 1 day in 5 drops one tier
  * lower as a "breather" (still level-appropriate, never harder).
  */
-export function selectTodaysHiddenQuest(username: string, level: number): HiddenQuestDef {
+export function selectTodaysHiddenQuest(username: string, level: number, today: string = todayKey()): HiddenQuestDef {
   const tier = tierForLevel(level);
   const tierIndex = TIERS.indexOf(tier) + 1; // 1..5
   const band = HIDDEN_QUESTS.filter(q => q.tier === tierIndex);
   const pool = band.length > 0 ? band : HIDDEN_QUESTS;
-  const hash = hashStr(`${username}:${todayKey()}`);
+  const hash = hashStr(`${username}:${today}`);
   // Breather day: dip one tier down for an easier challenge.
   if (hash % 5 === 0 && tierIndex > 1) {
     const lower = HIDDEN_QUESTS.filter(q => q.tier === tierIndex - 1);

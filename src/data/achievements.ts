@@ -1,4 +1,5 @@
 import type { GameState } from "../store/gameStore";
+import { localDateKey } from '../utils/date';
 
 // ─── Achievement Definition ─────────────────────────────────────────────────
 
@@ -202,7 +203,7 @@ export const ACHIEVEMENTS: AchievementDef[] = [
       const sorted = [...new Set(dates)].sort().reverse();
       if (
         !sorted.length ||
-        sorted[0] !== new Date().toISOString().split("T")[0]
+        sorted[0] !== localDateKey()
       )
         return false;
       let streak = 1;
@@ -230,7 +231,7 @@ export const ACHIEVEMENTS: AchievementDef[] = [
       const sorted = [...new Set(dates)].sort().reverse();
       if (
         !sorted.length ||
-        sorted[0] !== new Date().toISOString().split("T")[0]
+        sorted[0] !== localDateKey()
       )
         return false;
       let streak = 1;
@@ -271,7 +272,7 @@ export const ACHIEVEMENTS: AchievementDef[] = [
       const sorted = [...allDays].sort().reverse();
       if (
         !sorted.length ||
-        sorted[0] !== new Date().toISOString().split("T")[0]
+        sorted[0] !== localDateKey()
       )
         return false;
       let streak = 1;
@@ -301,7 +302,7 @@ export const ACHIEVEMENTS: AchievementDef[] = [
       const sorted = [...allDays].sort().reverse();
       if (
         !sorted.length ||
-        sorted[0] !== new Date().toISOString().split("T")[0]
+        sorted[0] !== localDateKey()
       )
         return false;
       let streak = 1;
@@ -485,7 +486,7 @@ export const ACHIEVEMENTS: AchievementDef[] = [
     xpReward: 200,
     description: "Complete all 15 daily quests in a single day",
     check: (s) => {
-      const today = new Date().toISOString().split("T")[0];
+      const today = localDateKey();
       return dqCompletedOnDate(s.dailyQuests, today) >= 15;
     },
   },

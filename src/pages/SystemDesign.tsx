@@ -2,6 +2,7 @@ import { useGameStore } from '../store/gameStore';
 import { motion } from 'framer-motion';
 import { useState } from 'react';
 import TrackReward from '../components/TrackReward';
+import { localDateKey } from '../utils/date';
 
 const ARCH_CHALLENGES = [
   { week: 1, scenario: 'Multi-tenant B2B SaaS data isolation', scale: '100 tenants / 100k users' },
@@ -28,7 +29,7 @@ export default function SystemDesign() {
     why: '',
     tradeoffs: '',
   });
-  const today = new Date().toISOString().split('T')[0];
+  const today = localDateKey();
 
   const doneSet = new Set(
     dailyQuests

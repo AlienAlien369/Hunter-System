@@ -3,10 +3,11 @@ import { useGameStore } from '../store/gameStore';
 import QuestCard from './QuestCard';
 import BuildYourDay from './BuildYourDay';
 import { todaysBoard } from '../utils/dailyBoard';
+import { localDateKey } from '../utils/date';
 
 export default function ActiveQuests() {
   const { dailyQuests, completeQuest } = useGameStore();
-  const today = new Date().toISOString().split('T')[0];
+  const today = localDateKey();
 
   // Today's board follows the hunter's timetable (permanent tracks LC/SS/AR are not daily quests)
   const todaysQuests = todaysBoard(dailyQuests)

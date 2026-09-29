@@ -86,3 +86,17 @@ describe('weekly coach', () => {
     assert.match(empty.headline, /quiet week/);
   });
 });
+
+describe('per-hunter calendar days', () => {
+  it('computes local dates per timezone and falls back to UTC for bad zones', async () => {
+    const { localDate, addDays, requestTimeZone } = await import('../time.js');
+    const t = new Date('2026-09-28T23:30:00Z');
+    assert.strictEqual(localDate('UTC', t), '2026-09-28');
+    assert.strictEqual(localDate('Asia/Kolkata', t), '2026-09-29'); // 05:00 next day
+    assert.strictEqual(localDate('America/Los_Angeles', t), '2026-09-28'); // 16:30 same day
+    assert.strictEqual(addDays('2026-03-01', -1), '2026-02-28');
+    assert.strictEqual(requestTimeZone({ headers: { 'x-timezone': 'Asia/Kolkata' } } as any), 'Asia/Kolkata');
+    assert.strictEqual(requestTimeZone({ headers: { 'x-timezone': 'Mars/Olympus' } } as any), 'UTC');
+    assert.strictEqual(requestTimeZone({ headers: {} } as any), 'UTC');
+  });
+});

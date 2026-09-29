@@ -3,6 +3,7 @@ import type { Pool, PoolClient } from 'pg';
 import { pool } from '../db.js';
 import { authenticateToken } from '../middleware/auth.js';
 import { applyXp } from '../xp.js';
+import { requestTimeZone, requestToday } from '../time.js';
 import { structuredCompletion } from '../ai.js';
 import {
   XP_RULES, DIFFICULTIES, UNPLANNED_CATEGORIES, UnplannedAnalysis, UnplannedFields,
@@ -17,14 +18,17 @@ router.use(authenticateToken);
 const R = XP_RULES.unplanned;
 
 type Db = Pool | PoolClient;
+/** The hunter's calendar day: local date + IANA zone (for "today" limits). */
+type Day = { today: string; tz: string };
+const dayOf = (req: Request): Day => ({ today: requestToday(req), tz: requestTimeZone(req) });
 
 /** XP offer for an analysis, after repeat decay, edit ceiling and the daily cap. */
-async function computeOffer(db: Db, userId: number, a: UnplannedAnalysis, source: string, original?: UnplannedAnalysis) {
+async function computeOffer(db: Db, userId: number, day: Day, a: UnplannedAnalysis, source: string, original?: UnplannedAnalysis) {
   const recent = await db.query(
-    `SELECT analysis->>'title' AS title, description, xp_awarded, created_at >= CURRENT_DATE AS today
+    `SELECT analysis->>'title' AS title, description, xp_awarded, created_at >= ($3::date)::timestamp AT TIME ZONE $4 AS today
      FROM unplanned_activities
      WHERE user_id = $1 AND status = 'accepted' AND created_at >= NOW() - make_interval(days => $2)`,
-    [userId, R.repeatWindowDays]
+    [userId, R.repeatWindowDays, day.today, day.tz]
   );
   const repeats = recent.rows.filter((r: any) => similarity(r.title, a.title) >= R.similarityThreshold).length;
   const acceptedToday = recent.rows.filter((r: any) => r.today);
@@ -57,11 +61,11 @@ async function computeOffer(db: Db, userId: number, a: UnplannedAnalysis, source
   };
 }
 
-async function exactDuplicateToday(db: Db, userId: number, description: string) {
+async function exactDuplicateToday(db: Db, userId: number, day: Day, description: string) {
   const r = await db.query(
     `SELECT description FROM unplanned_activities
-     WHERE user_id = $1 AND status = 'accepted' AND created_at >= CURRENT_DATE`,
-    [userId]
+     WHERE user_id = $1 AND status = 'accepted' AND created_at >= ($2::date)::timestamp AT TIME ZONE $3`,
+    [userId, day.today, day.tz]
   );
   const norm = normalizeText(description);
   return r.rows.some((row: any) => normalizeText(row.description) === norm);
@@ -72,12 +76,12 @@ function readDescription(body: any): string | null {
   return d.length >= 5 && d.length <= 1000 ? d : null;
 }
 
-async function createPending(userId: number, description: string, analysis: UnplannedAnalysis, source: 'ai' | 'manual') {
+async function createPending(userId: number, day: Day, description: string, analysis: UnplannedAnalysis, source: 'ai' | 'manual') {
   const row = await pool.query(
     `INSERT INTO unplanned_activities (user_id, description, analysis, source) VALUES ($1, $2, $3, $4) RETURNING id`,
     [userId, description, JSON.stringify(analysis), source]
   );
-  const offer = await computeOffer(pool, userId, analysis, source);
+  const offer = await computeOffer(pool, userId, day, analysis, source);
   return { id: row.rows[0].id, source, analysis, ...offer };
 }
 
@@ -96,7 +100,7 @@ router.post('/analyze', async (req: Request, res: Response) => {
     if (hourly.rows[0].n >= R.hourlyAnalyzeLimit) {
       return res.status(429).json({ error: 'Too many submissions this hour. Try again later.' });
     }
-    if (await exactDuplicateToday(pool, userId, description)) {
+    if (await exactDuplicateToday(pool, userId, dayOf(req), description)) {
       return res.status(409).json({ error: 'You already logged this activity today.', duplicate: true });
     }
 
@@ -141,7 +145,7 @@ router.post('/analyze', async (req: Request, res: Response) => {
     const analysis = validateUnplannedAnalysis(raw);
     if (!analysis) return res.json({ status: 'manual', message: "Hunter couldn't analyze this activity automatically. You can add it manually." });
 
-    res.json({ status: 'analyzed', ...(await createPending(userId, description, analysis, 'ai')) });
+    res.json({ status: 'analyzed', ...(await createPending(userId, dayOf(req), description, analysis, 'ai')) });
   } catch (error) {
     console.error('Error analyzing unplanned activity:', error);
     res.status(500).json({ error: 'Failed to analyze activity' });
@@ -162,14 +166,14 @@ router.post('/manual', async (req: Request, res: Response) => {
     };
     const err = unplannedFieldsError(fields);
     if (err) return res.status(400).json({ error: err });
-    if (await exactDuplicateToday(pool, userId, description)) {
+    if (await exactDuplicateToday(pool, userId, dayOf(req), description)) {
       return res.status(409).json({ error: 'You already logged this activity today.', duplicate: true });
     }
     const analysis: UnplannedAnalysis = {
       ...fields, goalRelevance: R.defaultRelevance, meaningful: true,
       trivial: fields.estimatedMinutes < R.minMinutes, duplicate: false, xpSuggestion: 0, reason: 'Added manually',
     };
-    res.json({ status: 'analyzed', ...(await createPending(userId, description, analysis, 'manual')) });
+    res.json({ status: 'analyzed', ...(await createPending(userId, dayOf(req), description, analysis, 'manual')) });
   } catch (error) {
     console.error('Error creating manual activity:', error);
     res.status(500).json({ error: 'Failed to create activity' });
@@ -204,7 +208,7 @@ router.post('/:id/preview', async (req: Request, res: Response) => {
     const userId = req.user!.id;
     const loaded = await loadWithEdits(pool, userId, req.params.id, req.body.edits, false);
     if ('error' in loaded) return res.status(loaded.status!).json({ error: loaded.error });
-    res.json({ analysis: loaded.analysis, ...(await computeOffer(pool, userId, loaded.analysis, loaded.row.source, loaded.original)) });
+    res.json({ analysis: loaded.analysis, ...(await computeOffer(pool, userId, dayOf(req), loaded.analysis, loaded.row.source, loaded.original)) });
   } catch (error) {
     console.error('Error previewing activity:', error);
     res.status(500).json({ error: 'Failed to preview activity' });
@@ -224,11 +228,11 @@ router.post('/:id/accept', async (req: Request, res: Response) => {
       await client.query('ROLLBACK');
       return res.status(loaded.status!).json({ error: loaded.error });
     }
-    if (await exactDuplicateToday(client, userId, loaded.row.description)) {
+    if (await exactDuplicateToday(client, userId, dayOf(req), loaded.row.description)) {
       await client.query('ROLLBACK');
       return res.status(409).json({ error: 'You already logged this activity today.', duplicate: true });
     }
-    const offer = await computeOffer(client, userId, loaded.analysis, loaded.row.source, loaded.original);
+    const offer = await computeOffer(client, userId, dayOf(req), loaded.analysis, loaded.row.source, loaded.original);
     if (offer.limitReached || offer.xp <= 0) {
       await client.query('ROLLBACK');
       return res.status(429).json({ error: 'Daily limit for unplanned activities reached. Come back tomorrow!' });

@@ -1,3 +1,5 @@
+import { browserTimeZone } from '../utils/date';
+
 // Auto-detect API URL based on environment
 const getApiUrl = (): string => {
   // Explicit env var (set in Docker/CI)
@@ -404,7 +406,8 @@ export type XpConfirmation = RoutinePreview & { requiresConfirmation: true };
 // API Client with auth support
 async function request<T>(endpoint: string, options: RequestInit = {}): Promise<T> {
   const response = await fetch(`${API_URL}${endpoint}`, {
-    headers: { 'Content-Type': 'application/json' },
+    // X-Timezone: the server computes "today" (daily resets, streaks, bonuses) in the hunter's zone.
+    headers: { 'Content-Type': 'application/json', 'X-Timezone': browserTimeZone() },
     credentials: 'include', // Send cookies
     ...options,
   });

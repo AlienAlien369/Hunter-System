@@ -2,10 +2,11 @@ import { motion } from 'framer-motion';
 import { useGameStore } from '../store/gameStore';
 import { getStreak } from '../utils/xp';
 import { dailyHistoryQuests, todaysBoard } from '../utils/dailyBoard';
+import { localDateKey } from '../utils/date';
 
 export default function QuickStats() {
   const { dailyQuests, freezeDates } = useGameStore();
-  const today = new Date().toISOString().split('T')[0];
+  const today = localDateKey();
 
   // Only daily quests count as "today" — permanent tracks (LC/SS/AR) have their own progress
   const todayQuests = todaysBoard(dailyQuests)

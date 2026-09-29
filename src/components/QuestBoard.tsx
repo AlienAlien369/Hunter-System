@@ -1,10 +1,11 @@
 import { useGameStore } from '../store/gameStore';
 import { motion } from 'framer-motion';
 import { useEffect, useState } from 'react';
+import { localDateKey } from '../utils/date';
 
 export default function QuestBoard() {
   const { dailyQuests, completeQuest } = useGameStore();
-  const today = new Date().toISOString().split('T')[0];
+  const today = localDateKey();
 
   // Filter today's quests (for simplicity, we'll show all quests with today's status)
   const todaysQuests = dailyQuests.map(quest => ({

@@ -2,6 +2,7 @@ import { Router, Request, Response } from 'express';
 import { pool } from '../db.js';
 import { authenticateToken } from '../middleware/auth.js';
 import { logActivity } from '../activity.js';
+import { addDays, requestToday } from '../time.js';
 
 // Content Creation module: channels are plain per-user rows. Content tasks
 // are regular custom quests (module 'content', metadata {channelId, stage}),
@@ -119,10 +120,10 @@ router.get('/progress', async (req: Request, res: Response) => {
        FROM content_channels c
        LEFT JOIN quests q ON q.user_id = c.user_id AND q.metadata->>'channelId' = c.id::text
        LEFT JOIN quest_completions qc ON qc.quest_id = q.id AND qc.user_id = c.user_id
-            AND qc.completion_date >= CURRENT_DATE - 6
+            AND qc.completion_date >= $2::date
        WHERE c.user_id = $1
        GROUP BY c.id`,
-      [req.user!.id]
+      [req.user!.id, addDays(requestToday(req), -6)]
     );
     res.json(result.rows);
   } catch (error) {

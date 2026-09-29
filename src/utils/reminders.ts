@@ -1,6 +1,7 @@
 import { useEffect } from 'react';
 import { useGameStore } from '../store/gameStore';
 import { todaysBoard } from './dailyBoard';
+import { localDateKey } from './date';
 
 // Timetable reminders: a notification when each of today's timetable quests
 // is due. Scheduled in the browser while Hunter is open (or installed and
@@ -57,7 +58,7 @@ export function useTimetableReminders() {
       timers.forEach(clearTimeout);
       timers = [];
       if (!remindersEnabled()) return;
-      const today = new Date().toISOString().split('T')[0];
+      const today = localDateKey();
       for (const q of todaysBoard(dailyQuests)) {
         if (!q.time || q.completedDates.includes(today)) continue;
         const ms = msUntil(q.time);

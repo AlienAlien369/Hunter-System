@@ -1,7 +1,8 @@
 import type { ContentStage, Quest } from '../../lib/api';
 import { useGameStore } from '../../store/gameStore';
+import { localDateKey } from '../../utils/date';
 
-export const todayKey = () => new Date().toISOString().split('T')[0];
+export const todayKey = () => localDateKey();
 export const todayCode = () => (['MON', 'TUE', 'WED', 'THU', 'FRI', 'SAT', 'SUN'] as const)[(new Date(todayKey()).getUTCDay() + 6) % 7];
 
 export const STAGES: { id: ContentStage; label: string; examples: string[] }[] = [

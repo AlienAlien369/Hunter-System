@@ -1,3 +1,4 @@
+import { localDateKey } from '../utils/date';
 /**
  * The hidden quest pool (200+ tiered challenges) lives on the SERVER
  * (server/src/data/hiddenQuests.ts) — it is the single source of truth and
@@ -11,5 +12,5 @@
 
 /** Today's date key (YYYY-MM-DD, UTC — matches the server's completion dates). */
 export function todayKey(): string {
-  return new Date().toISOString().split('T')[0];
+  return localDateKey();
 }

@@ -1,11 +1,12 @@
 import { useParams, Link } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { useGameStore } from '../store/gameStore';
+import { localDateKey } from '../utils/date';
 
 export default function QuestDetail() {
   const { id } = useParams<{ id: string }>();
   const { dailyQuests, completeQuest } = useGameStore();
-  const today = new Date().toISOString().split('T')[0];
+  const today = localDateKey();
 
   const quest = dailyQuests.find(q => q.id === id);
 
@@ -89,7 +90,7 @@ export default function QuestDetail() {
             {Array.from({ length: 30 }).map((_, i) => {
               const date = new Date();
               date.setDate(date.getDate() - (29 - i));
-              const dateStr = date.toISOString().split('T')[0];
+              const dateStr = localDateKey(date);
               const completed = quest.completedDates.includes(dateStr);
               const isToday = dateStr === today;
 

@@ -4,6 +4,7 @@ import { authenticateToken } from '../middleware/auth.js';
 import { structuredCompletion } from '../ai.js';
 import { hit } from '../middleware/security.js';
 import { weekStart } from './leaderboard.js';
+import { requestToday } from '../time.js';
 
 // Weekly AI coach (Weekly Report page). The server computes every number;
 // the AI only writes the narrative, and a deterministic review is used when
@@ -115,9 +116,8 @@ function validateReview(raw: unknown): CoachReview | null {
   return headline && review.wins.length && review.focus.length && review.nextWeek.length ? review : null;
 }
 
-async function weekStatsFor(userId: number): Promise<WeekStats> {
-  const start = weekStart();
-  const today = new Date().toISOString().split('T')[0];
+async function weekStatsFor(userId: number, today: string): Promise<WeekStats> {
+  const start = weekStart(new Date(`${today}T12:00:00Z`)); // the hunter's local week
   const rows = await pool.query(
     `SELECT qc.completion_date::text AS date, q.category AS area, COALESCE(qc.xp_awarded, q.xp_reward)::int AS xp
      FROM quest_completions qc JOIN quests q ON q.id = qc.quest_id
@@ -136,7 +136,7 @@ async function weekStatsFor(userId: number): Promise<WeekStats> {
 router.get('/weekly', async (req: Request, res: Response) => {
   try {
     const userId = req.user!.id;
-    const stats = await weekStatsFor(userId);
+    const stats = await weekStatsFor(userId, requestToday(req));
     const cached = await pool.query('SELECT review, created_at FROM coach_reviews WHERE user_id = $1 AND week_start = $2', [userId, stats.weekStart]);
     res.json({ stats, review: cached.rows[0]?.review ?? null, generatedAt: cached.rows[0]?.created_at ?? null });
   } catch (error) {
@@ -151,7 +151,7 @@ router.post('/weekly', async (req: Request, res: Response) => {
     const userId = req.user!.id;
     const wait = hit(`coach:${userId}`, 3, 24 * 3600_000);
     if (wait) return res.status(429).json({ error: 'You can refresh your review 3 times a day. Try again tomorrow.' });
-    const stats = await weekStatsFor(userId);
+    const stats = await weekStatsFor(userId, requestToday(req));
     const name = (await pool.query('SELECT name FROM users WHERE id = $1', [userId])).rows[0]?.name ?? 'Hunter';
     const raw = stats.completions + stats.unplanned.length === 0 ? null : await structuredCompletion({
       system:

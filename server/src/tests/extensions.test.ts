@@ -630,6 +630,20 @@ describe('Hunter extensions', () => {
     });
   });
 
+  describe('per-hunter timezones', () => {
+    it('records completions on the hunter’s local calendar day', async () => {
+      const { cookie } = await register('ext_tz_' + suffix);
+      const complete = (tz: string) => fetch(`${BASE_URL}/api/quests/DQ-01/complete`, { method: 'PATCH', headers: { Cookie: cookie, 'X-Timezone': tz } }).then(r => r.json());
+      const local = (tz: string) => new Intl.DateTimeFormat('en-CA', { timeZone: tz, year: 'numeric', month: '2-digit', day: '2-digit' }).format(new Date());
+      // UTC+14 and UTC-12 are always on different calendar dates.
+      assert.strictEqual((await complete('Pacific/Kiritimati')).action, 'completed');
+      assert.strictEqual((await complete('Etc/GMT+12')).action, 'completed', 'a different local day is a fresh daily quest');
+      const quests = await (await fetch(`${BASE_URL}/api/quests`, { headers: { Cookie: cookie } })).json();
+      const dates = quests.find((q: any) => q.quest_id === 'DQ-01').completions.map((c: any) => c.completion_date).sort();
+      assert.deepStrictEqual(dates, [local('Etc/GMT+12'), local('Pacific/Kiritimati')].sort());
+    });
+  });
+
   describe('launch hardening: sessions, CORS, CSRF origin guard, login lockout', () => {
     const uname = 'ext_sec_' + suffix;
 
