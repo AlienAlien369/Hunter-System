@@ -139,6 +139,7 @@ export async function initDatabase() {
     // Single-use account recovery code (bcrypt hash) — there is no email reset.
     await client.query('ALTER TABLE users ADD COLUMN IF NOT EXISTS recovery_hash TEXT');
     await client.query('ALTER TABLE users ADD COLUMN IF NOT EXISTS recovery_created_at TIMESTAMPTZ');
+    await client.query('ALTER TABLE push_subscriptions ADD COLUMN IF NOT EXISTS last_recap DATE');
 
     // Idempotent migration: record exactly how much XP each completion awarded
     // (level-scaled hidden quests award more than the quest's base xp_reward).

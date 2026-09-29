@@ -1,8 +1,9 @@
 import webpush from 'web-push';
 import { pool } from './db.js';
-import { currentStreak, localDate } from './time.js';
+import { addDays, currentStreak, localDate } from './time.js';
+import { weekStart } from './routes/leaderboard.js';
 
-// Web Push reminders. The one nudge that matters: at 8pm in the hunter's own
+// Web Push reminders. A Monday-morning weekly recap, and the nudge that matters most: at 8pm in the hunter's own
 // timezone, if they haven't completed a quest today, remind them before the
 // day (and their streak) resets at midnight. At most one per device per day.
 
@@ -37,11 +38,13 @@ export async function initPush(): Promise<string> {
   return publicKey;
 }
 
+const localHour = (tz: string, now: Date) =>
+  Number(new Intl.DateTimeFormat('en-US', { timeZone: tz, hour: 'numeric', hourCycle: 'h23' }).format(now));
+
 /** Is it nudge time for this device (8pm+ local, not yet nudged today)? Pure; unit-tested. */
 export function nudgeDue(timezone: string, lastNudged: string | null, now = new Date()): { due: boolean; today: string } {
   const today = localDate(timezone, now);
-  const hour = Number(new Intl.DateTimeFormat('en-US', { timeZone: timezone, hour: 'numeric', hourCycle: 'h23' }).format(now));
-  return { due: hour >= NUDGE_HOUR && lastNudged !== today, today };
+  return { due: localHour(timezone, now) >= NUDGE_HOUR && lastNudged !== today, today };
 }
 
 export function nudgeMessage(streak: number): { title: string; body: string } {
@@ -50,11 +53,68 @@ export function nudgeMessage(streak: number): { title: string; body: string } {
     : { title: '⚔️ Your quests are waiting', body: 'One quest today starts a new streak. The System is watching.' };
 }
 
+/** Monday 9am+ local, not yet recapped today. Pure; unit-tested. */
+export function recapDue(timezone: string, lastRecap: string | null, now = new Date()): { due: boolean; today: string } {
+  const today = localDate(timezone, now);
+  const monday = new Date(`${today}T00:00:00Z`).getUTCDay() === 1;
+  return { due: monday && localHour(timezone, now) >= 9 && lastRecap !== today, today };
+}
+
+export function recapMessage(xp: number, position: number | null, circle: number): { title: string; body: string } {
+  const place = position && circle > 1 ? ` · #${position} of ${circle} friends` : '';
+  return xp > 0
+    ? { title: `📜 Weekly report: +${xp.toLocaleString('en-US')} XP${place}`, body: 'A new week just started. Beat your last one.' }
+    : { title: '📜 A new week begins', body: 'Last week was quiet. Clear one quest today to get back on the board.' };
+}
+
+/** Last week's XP for the hunter and their followed circle (same sources as the weekly leaderboard). */
+async function lastWeekStanding(userId: number, now: Date): Promise<{ xp: number; position: number | null; circle: number }> {
+  const until = weekStart(now);
+  const since = addDays(until, -7);
+  const r = await pool.query(
+    `WITH circle AS (
+       SELECT $1::int AS id
+       UNION SELECT f.followee_id FROM friendships f JOIN users u ON u.id = f.followee_id
+         WHERE f.follower_id = $1 AND u.name_set AND u.show_on_leaderboard
+     )
+     SELECT c.id, COALESCE((SELECT SUM(COALESCE(xp_awarded, 0)) FROM quest_completions
+                             WHERE user_id = c.id AND completion_date >= $2::date AND completion_date < $3::date), 0)
+                + COALESCE((SELECT SUM(COALESCE(xp_awarded, 0)) FROM unplanned_activities
+                             WHERE user_id = c.id AND status = 'accepted' AND resolved_at >= $2::date AND resolved_at < $3::date), 0) AS xp
+     FROM circle c ORDER BY xp DESC, c.id`,
+    [userId, since, until],
+  );
+  const idx = r.rows.findIndex((x: any) => x.id === userId);
+  return { xp: Number(r.rows[idx]?.xp ?? 0), position: idx + 1 || null, circle: r.rows.length };
+}
+
 export async function runStreakNudges(now = new Date()): Promise<number> {
   await initPush();
-  const subs = (await pool.query(`SELECT id, user_id, endpoint, keys, timezone, last_nudged::text FROM push_subscriptions`)).rows;
+  const subs = (await pool.query(`SELECT id, user_id, endpoint, keys, timezone, last_nudged::text, last_recap::text FROM push_subscriptions`)).rows;
   let sent = 0;
+  const send = async (s: any, msg: { title: string; body: string }, url: string) => {
+    try {
+      await webpush.sendNotification({ endpoint: s.endpoint, keys: s.keys }, JSON.stringify({ ...msg, url }), { TTL: 4 * 3600 });
+      sent++;
+    } catch (e: any) {
+      if (e?.statusCode === 404 || e?.statusCode === 410) await pool.query('DELETE FROM push_subscriptions WHERE id = $1', [s.id]);
+      else console.error('Push send failed:', e?.statusCode ?? e?.message ?? e);
+    }
+  };
   for (const s of subs) {
+    // Monday weekly recap (claimed per device per day, like the nudge)
+    const recap = recapDue(s.timezone, s.last_recap, now);
+    if (recap.due) {
+      const claimed = await pool.query(
+        `UPDATE push_subscriptions SET last_recap = $2::date WHERE id = $1 AND last_recap IS DISTINCT FROM $2::date`,
+        [s.id, recap.today],
+      );
+      if (claimed.rowCount) {
+        const st = await lastWeekStanding(s.user_id, now);
+        await send(s, recapMessage(st.xp, st.position, st.circle), '/rank');
+      }
+    }
+
     const { due, today } = nudgeDue(s.timezone, s.last_nudged, now);
     if (!due) continue;
     // Claim the slot first so overlapping runs never double-send.
@@ -68,14 +128,7 @@ export async function runStreakNudges(now = new Date()): Promise<number> {
       [s.user_id, today],
     )).rows.map((r: any) => r.d));
     if (days.has(today)) continue; // already played today — no nudge
-    const { title, body } = nudgeMessage(currentStreak(days, today));
-    try {
-      await webpush.sendNotification({ endpoint: s.endpoint, keys: s.keys }, JSON.stringify({ title, body, url: '/quests' }), { TTL: 4 * 3600 });
-      sent++;
-    } catch (e: any) {
-      if (e?.statusCode === 404 || e?.statusCode === 410) await pool.query('DELETE FROM push_subscriptions WHERE id = $1', [s.id]);
-      else console.error('Push send failed:', e?.statusCode ?? e);
-    }
+    await send(s, nudgeMessage(currentStreak(days, today)), '/quests');
   }
   return sent;
 }

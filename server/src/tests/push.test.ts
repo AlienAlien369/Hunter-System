@@ -1,6 +1,6 @@
 import { test } from 'node:test';
 import assert from 'node:assert';
-import { nudgeDue, nudgeMessage } from '../push.js';
+import { nudgeDue, nudgeMessage, recapDue, recapMessage } from '../push.js';
 import { currentStreak } from '../time.js';
 
 test('nudge fires once, at/after 8pm in the hunter’s own timezone', () => {
@@ -19,4 +19,15 @@ test('streak counts back from today, or from yesterday before today’s first qu
   assert.strictEqual(currentStreak(days, '2026-09-30'), 0);
   assert.match(nudgeMessage(3).title, /3-day streak/);
   assert.match(nudgeMessage(0).title, /waiting/);
+});
+
+test('weekly recap: Monday 9am+ local, once', () => {
+  const mon = new Date('2026-09-28T04:00:00Z'); // Mon 09:30 Kolkata; Sun 21:00 Los Angeles
+  assert.deepStrictEqual(recapDue('Asia/Kolkata', null, mon), { due: true, today: '2026-09-28' });
+  assert.strictEqual(recapDue('Asia/Kolkata', '2026-09-28', mon).due, false);
+  assert.strictEqual(recapDue('America/Los_Angeles', null, mon).due, false, 'still Sunday there');
+  assert.strictEqual(recapDue('Asia/Kolkata', null, new Date('2026-09-28T02:00:00Z')).due, false, '07:30 is too early');
+  assert.match(recapMessage(340, 2, 5).title, /\+340 XP · #2 of 5 friends/);
+  assert.doesNotMatch(recapMessage(340, 1, 1).title, /friends/);
+  assert.match(recapMessage(0, 1, 1).title, /new week/);
 });
