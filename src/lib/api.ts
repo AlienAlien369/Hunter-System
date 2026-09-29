@@ -589,6 +589,8 @@ export const api = {
   changePassword: (currentPassword: string, newPassword: string) =>
     request<{ message: string }>('/auth/change-password', { method: 'POST', body: JSON.stringify({ currentPassword, newPassword }) }),
 
+  exportData: () => request<Record<string, unknown>>('/auth/export'),
+
   deleteAccount: (password: string, confirm: string) =>
     request<{ message: string }>('/auth/account', { method: 'DELETE', body: JSON.stringify({ password, confirm }) }),
 

@@ -653,6 +653,27 @@ describe('Hunter extensions', () => {
     });
   });
 
+  describe('data export', () => {
+    it('exports the hunter’s own data without secrets', async () => {
+      const E = client((await register('ext_exp_' + suffix)).cookie);
+      await E.patch('/quests/DQ-01/complete');
+      await E.post('/modules', { name: 'Reading', acknowledged: true, tasks: [{ title: 'Read', difficulty: 1 }] });
+      const res = await fetch(`${BASE_URL}/api/auth/export`, { headers: { Cookie: (await register('ext_exp2_' + suffix)).cookie } });
+      assert.strictEqual(res.status, 200);
+      const mine = await E.get('/auth/export');
+      assert.strictEqual(mine.status, 200);
+      const d = mine.body;
+      assert.strictEqual(d.format, 'hunter-system-export/v1');
+      assert.strictEqual(d.profile.username, 'ext_exp_' + suffix);
+      assert.ok(!JSON.stringify(d).includes('password_hash'), 'no password hash');
+      assert.ok(d.completions.some((c: any) => c.quest_id === 'DQ-01'));
+      assert.deepStrictEqual(d.modules.map((m: any) => m.slug), ['reading']);
+      assert.ok(d.xpHistory.some((h: any) => h.action === 'quest_complete'));
+      const other = await res.json();
+      assert.strictEqual(other.completions.length, 0, 'another hunter sees only their own data');
+    });
+  });
+
   describe('launch hardening: sessions, CORS, CSRF origin guard, login lockout', () => {
     const uname = 'ext_sec_' + suffix;
 

@@ -32,6 +32,24 @@ export default function AccountPanel() {
     }
   };
 
+  const [exporting, setExporting] = useState(false);
+  const exportData = async () => {
+    setExporting(true);
+    try {
+      const data = await api.exportData();
+      const url = URL.createObjectURL(new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' }));
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `hunter-export-${user?.username ?? 'me'}.json`;
+      a.click();
+      setTimeout(() => URL.revokeObjectURL(url), 5000);
+    } catch (err) {
+      setPwMsg({ ok: false, text: (err as Error).message });
+    } finally {
+      setExporting(false);
+    }
+  };
+
   const deleteAccount = async () => {
     setBusy(true);
     setDelError('');
@@ -70,6 +88,14 @@ export default function AccountPanel() {
           {pwMsg && <span className={`text-xs font-mono ${pwMsg.ok ? 'text-green-400' : 'text-red-400'}`}>{pwMsg.text}</span>}
         </div>
       </form>
+
+      <div className="flex flex-wrap items-center justify-between gap-2 rounded-lg bg-[#161b22]/80 border border-purple-500/15 p-3">
+        <div>
+          <p className="text-sm text-white font-mono">Download my data</p>
+          <p className="text-[11px] text-gray-500 font-mono">Everything Hunter stores about you — profile, timetable, modules, quests, XP history — as a JSON file.</p>
+        </div>
+        <Btn variant="ghost" onClick={exportData} disabled={exporting}>{exporting ? 'PREPARING…' : 'DOWNLOAD'}</Btn>
+      </div>
 
       <div className="rounded-lg border border-red-500/30 bg-red-500/5 p-4 space-y-3">
         <div className="flex flex-wrap items-center justify-between gap-2">

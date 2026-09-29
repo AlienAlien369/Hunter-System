@@ -341,6 +341,47 @@ router.post("/change-password", authenticateToken, async (req: Request, res: Res
 });
 
 /**
+ * GET /api/auth/export — everything Hunter stores about the signed-in hunter,
+ * as a downloadable JSON file (data portability). Never includes the password
+ * hash or other users' private data (friends are listed by Hunter name only).
+ */
+router.get("/export", authenticateToken, async (req: Request, res: Response) => {
+  try {
+    const id = req.user!.id;
+    const q = async (sql: string) => (await pool.query(sql, [id])).rows;
+    const [user] = await q(
+      `SELECT id, username, name, name_set, xp, hp, mp, str, agi, vit, int, sen, show_on_leaderboard, created_at, updated_at FROM users WHERE id = $1`,
+    );
+    if (!user) return res.status(404).json({ error: "User not found" });
+    const data = {
+      exportedAt: new Date().toISOString(),
+      format: "hunter-system-export/v1",
+      profile: { ...user, level: calculateLevel(user.xp), rank: calculateRank(user.xp) },
+      routine: (await q(`SELECT items, timezone, confirmed_at, updated_at FROM routines WHERE user_id = $1`))[0] ?? null,
+      modules: await q(`SELECT slug, name, icon, kind, status, goals, created_at FROM user_modules WHERE user_id = $1 ORDER BY id`),
+      customTasks: await q(`SELECT quest_id, title, category, difficulty, xp_reward, schedule_time, time_of_day, recurrence, metadata, archived, created_at FROM quests WHERE user_id = $1 ORDER BY id`),
+      completions: await q(
+        `SELECT q.quest_id, q.title, qc.completion_date, qc.xp_awarded, qc.completed_at
+         FROM quest_completions qc JOIN quests q ON q.id = qc.quest_id WHERE qc.user_id = $1 ORDER BY qc.completed_at`,
+      ),
+      xpHistory: await q(`SELECT action, entity, details, created_at FROM activity_log WHERE user_id = $1 ORDER BY created_at, id`),
+      unplannedActivities: await q(`SELECT description, analysis, source, status, xp_awarded, created_at FROM unplanned_activities WHERE user_id = $1 ORDER BY id`),
+      contentChannels: await q(`SELECT name, platform, category, status, posting_frequency, target_per_week, created_at FROM content_channels WHERE user_id = $1 ORDER BY id`),
+      nutritionLogs: await q(`SELECT log_date, food_name, protein, cost FROM nutrition_logs WHERE user_id = $1 ORDER BY log_date, id`),
+      penalties: await q(`SELECT penalty_date, missed_days, broken_streak, xp_lost, hp_lost, recovered FROM penalties WHERE user_id = $1 ORDER BY penalty_date`),
+      coachReviews: await q(`SELECT week_start, review, created_at FROM coach_reviews WHERE user_id = $1 ORDER BY week_start`),
+      following: (await q(`SELECT u.name FROM friendships f JOIN users u ON u.id = f.followee_id WHERE f.follower_id = $1 ORDER BY u.name`)).map((r: any) => r.name),
+    };
+    await logActivity(id, "data_export", user.username);
+    res.setHeader("Content-Disposition", `attachment; filename="hunter-export-${user.username}.json"`);
+    res.json(data);
+  } catch (error) {
+    console.error("Export error:", error);
+    res.status(500).json({ error: "Failed to export data" });
+  }
+});
+
+/**
  * DELETE /api/auth/account { password, confirm } — confirm must equal the username.
  * Permanently deletes the hunter and all their data.
  */
