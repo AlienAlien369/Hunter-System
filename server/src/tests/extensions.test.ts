@@ -693,6 +693,25 @@ describe('Hunter extensions', () => {
     });
   });
 
+  describe('public profiles', () => {
+    it('shows named, visible hunters only — no private fields', async () => {
+      const P = client((await register('ext_pub_' + suffix)).cookie);
+      const pname = 'Public' + String(suffix).slice(-6);
+      assert.strictEqual((await fetch(`${BASE_URL}/api/public/hunters/ext_pub_${suffix}`)).status, 404, 'no chosen name yet');
+      await P.post('/auth/set-name', { name: pname });
+      await P.patch('/quests/DQ-01/complete');
+      const res = await fetch(`${BASE_URL}/api/public/hunters/${pname.toLowerCase()}`);
+      assert.strictEqual(res.status, 200);
+      const p = await res.json();
+      assert.strictEqual(p.name, pname);
+      assert.strictEqual(p.streak, 1);
+      assert.ok(p.weeklyXp > 0 && p.level >= 1 && p.rank);
+      assert.ok(!('username' in p) && !('id' in p), 'no username or id');
+      await P.patch('/leaderboard/visibility', { visible: false });
+      assert.strictEqual((await fetch(`${BASE_URL}/api/public/hunters/${pname}`)).status, 404, 'opted out');
+    });
+  });
+
   describe('cloud game state', () => {
     it('saves whitelisted progress per hunter and caps size', async () => {
       const S = client((await register('ext_st_' + suffix)).cookie);

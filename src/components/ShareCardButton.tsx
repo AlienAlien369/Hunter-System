@@ -17,16 +17,17 @@ export default function ShareCardButton() {
     setNote('');
     try {
       const { profile, stats } = useGameStore.getState();
-      const weekly = await api.getLeaderboard('week').then(l => l.me.score).catch(() => 0);
+      const me = await api.getLeaderboard('week').then(l => l.me).catch(() => null);
+      // Public hunters link to their profile page (with a "race me" button); others to the app.
       const data: CardData = {
         name: profile.name,
         rank: calculateRank(profile.xp),
         level: profile.level,
         xp: profile.xp,
         streak: stats?.streak ?? 0,
-        weeklyXp: weekly,
+        weeklyXp: me?.score ?? 0,
         modules: useModuleStore.getState().modules.filter(m => m.status === 'active').map(m => `${m.icon} ${m.name}`),
-        url: window.location.origin,
+        url: me?.nameSet && me.visible ? `${window.location.origin}/h/${encodeURIComponent(profile.name)}` : window.location.origin,
       };
       const blob = await drawHunterCard(data);
       setPreview({ url: URL.createObjectURL(blob), blob, data });

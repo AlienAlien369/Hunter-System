@@ -400,6 +400,17 @@ export interface CoachWeekly {
   generatedAt: string | null;
 }
 
+export interface PublicHunter {
+  name: string;
+  level: number;
+  rank: string;
+  xp: number;
+  weeklyXp: number;
+  streak: number;
+  modules: string[];
+  joined: string;
+}
+
 /** Body of a 409 "confirm the XP impact" response. */
 export type XpConfirmation = RoutinePreview & { requiresConfirmation: true };
 
@@ -590,6 +601,8 @@ export const api = {
     request<{ message: string }>('/auth/change-password', { method: 'POST', body: JSON.stringify({ currentPassword, newPassword }) }),
 
   exportData: () => request<Record<string, unknown>>('/auth/export'),
+
+  getPublicHunter: (name: string) => request<PublicHunter>(`/public/hunters/${encodeURIComponent(name)}`),
 
   // Cloud save for inventory / loadout / freezes / unlocks
   getGameState: () => request<{ state: Record<string, unknown> | null; updatedAt: string | null }>('/state'),

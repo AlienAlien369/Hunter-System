@@ -34,6 +34,7 @@ function lazyPage<T extends React.ComponentType>(load: () => Promise<{ default: 
 // code-split and downloaded on first visit (smaller initial bundle on mobile).
 import Dashboard from './pages/Dashboard';
 const QuestLog = lazyPage(() => import('./pages/QuestLog'));
+const PublicProfile = lazyPage(() => import('./pages/PublicProfile'));
 const QuestDetail = lazyPage(() => import('./pages/QuestDetail'));
 const SkillTree = lazyPage(() => import('./components/SkillTree'));
 const Rank = lazyPage(() => import('./pages/Rank'));
@@ -252,6 +253,7 @@ function App() {
     <AuthProvider>
       <Routes>
         <Route path="/login" element={<Login />} />
+        <Route path="/h/:name" element={<Suspense fallback={null}><PublicProfile /></Suspense>} />
         <Route path="*" element={<AppContent />} />
       </Routes>
     </AuthProvider>
