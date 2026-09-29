@@ -70,21 +70,40 @@ async function anthropic(opts: StructuredRequest, key: string): Promise<unknown 
  * errors move on to the next candidate instead of failing the feature.
  */
 export function geminiModels(): string[] {
-  return [...new Set([process.env.GEMINI_MODEL, 'gemini-3.8-flash', 'gemini-3.5-flash', 'gemini-flash-latest'].filter((m): m is string => !!m))];
+  // Flash-Lite first: fast, cheap, built for structured output, and far less
+  // often overloaded than the flagship Flash models, which follow as fallbacks.
+  return [...new Set([process.env.GEMINI_MODEL, 'gemini-3.1-flash-lite', 'gemini-3.5-flash', 'gemini-3.8-flash', 'gemini-flash-latest'].filter((m): m is string => !!m))];
 }
+
+/**
+ * Keep thinking short: these are simple structured-extraction tasks, and
+ * default "dynamic"/high thinking made responses slow enough to time out.
+ * gemini-3.8-flash doesn't support "minimal", so it gets "low".
+ */
+export const thinkingLevelFor = (model: string) => (model.includes('3.8') ? 'low' : 'minimal');
 
 /** Statuses where another attempt (same model after a pause, or another model) may succeed. */
 const RETRYABLE = new Set([404, 429, 500, 503]);
 const sleep = (ms: number) => new Promise(r => setTimeout(r, ms));
+/** Total time budget across all Gemini attempts, so the user never waits minutes. */
+const GEMINI_BUDGET_MS = 50_000;
 
 /** Gemini: structure is enforced with responseMimeType + responseSchema. */
 async function gemini(opts: StructuredRequest, key: string): Promise<unknown | null> {
+  const deadline = Date.now() + GEMINI_BUDGET_MS;
   for (const model of geminiModels()) {
+    let thinking = true;
     // Overload/rate-limit: one quick retry on the same model, then the next model.
     for (let attempt = 1; attempt <= 2; attempt++) {
-      const r = await geminiOnce(opts, key, model);
+      const remaining = deadline - Date.now();
+      if (remaining < 3000) return null;
+      const r = await geminiOnce(opts, key, model, thinking, Math.min(opts.timeoutMs ?? 25000, remaining));
       if (r.ok) return r.value;
       console.error(`Gemini ${model} attempt ${attempt} failed: ${r.error}`);
+      if (r.status === 400 && thinking) {
+        thinking = false; // this model may not accept the thinking setting — retry without it
+        continue;
+      }
       if (!r.retryable) return null; // e.g. invalid key or bad request — other models won't help
       if (r.status !== 503 && r.status !== 429) break; // gone/timeout/garbled → next model
       if (attempt === 1) await sleep(1500);
@@ -95,7 +114,7 @@ async function gemini(opts: StructuredRequest, key: string): Promise<unknown | n
 
 type Attempt = { ok: true; value: unknown } | { ok: false; retryable: boolean; status?: number; error: string };
 
-async function geminiOnce(opts: StructuredRequest, key: string, model: string): Promise<Attempt> {
+async function geminiOnce(opts: StructuredRequest, key: string, model: string, thinking: boolean, timeoutMs: number): Promise<Attempt> {
   try {
     const res = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${encodeURIComponent(model)}:generateContent`, {
       method: 'POST',
@@ -103,10 +122,14 @@ async function geminiOnce(opts: StructuredRequest, key: string, model: string): 
       body: JSON.stringify({
         systemInstruction: { parts: [{ text: opts.system }] },
         contents: [{ role: 'user', parts: [{ text: opts.prompt }] }],
-        // Newer models spend output tokens on thinking first, so leave generous headroom.
-        generationConfig: { responseMimeType: 'application/json', responseSchema: toGeminiSchema(opts.schema), maxOutputTokens: 8192 },
+        generationConfig: {
+          responseMimeType: 'application/json',
+          responseSchema: toGeminiSchema(opts.schema),
+          maxOutputTokens: 8192,
+          ...(thinking ? { thinkingConfig: { thinkingLevel: thinkingLevelFor(model) } } : {}),
+        },
       }),
-      signal: AbortSignal.timeout(opts.timeoutMs ?? 20000),
+      signal: AbortSignal.timeout(timeoutMs),
     });
     if (!res.ok) {
       const body = (await res.text().catch(() => '')).slice(0, 300);
