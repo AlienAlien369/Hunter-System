@@ -7,8 +7,8 @@
     "build": "tsc",
     "start": "node dist/index.js",
     "migrate": "node-pg-migrate up",
-    "test": "tsx --test src/tests/rules.test.ts src/tests/security.test.ts && node --test src/tests/auth.test.ts src/tests/isolation.test.ts src/tests/progress.test.ts src/tests/extensions.test.ts",
-    "test:unit": "tsx --test src/tests/rules.test.ts src/tests/security.test.ts"
+    "test": "tsx --test src/tests/rules.test.ts src/tests/security.test.ts src/tests/push.test.ts && node --test src/tests/auth.test.ts src/tests/isolation.test.ts src/tests/progress.test.ts src/tests/extensions.test.ts",
+    "test:unit": "tsx --test src/tests/rules.test.ts src/tests/security.test.ts src/tests/push.test.ts"
   },
   "dependencies": {
     "bcrypt": "^6.0.0",
@@ -17,7 +17,8 @@
     "dotenv": "^16.4.5",
     "express": "^4.18.2",
     "jsonwebtoken": "^9.0.3",
-    "pg": "^8.12.0"
+    "pg": "^8.12.0",
+    "web-push": "^3.6.7"
   },
   "devDependencies": {
     "@types/bcrypt": "^6.0.0",
@@ -26,6 +27,7 @@
     "@types/express": "^4.17.21",
     "@types/jsonwebtoken": "^9.0.10",
     "@types/pg": "^8.11.6",
+    "@types/web-push": "^3.6.4",
     "tsx": "^4.23.13",
     "typescript": "^5.4.5"
   }

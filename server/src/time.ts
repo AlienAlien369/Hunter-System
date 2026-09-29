@@ -41,3 +41,11 @@ export function addDays(day: string, n: number): string {
   d.setUTCDate(d.getUTCDate() + n);
   return d.toISOString().split('T')[0];
 }
+
+/** Consecutive active days ending today — or yesterday, so a streak isn't shown as 0 before today's first quest. */
+export function currentStreak(days: Set<string>, today: string): number {
+  let day = days.has(today) ? today : addDays(today, -1);
+  let n = 0;
+  while (days.has(day)) { n++; day = addDays(day, -1); }
+  return n;
+}

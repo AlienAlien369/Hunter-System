@@ -49,6 +49,19 @@ self.addEventListener('fetch', event => {
   }
 });
 
+// Server push (e.g. the 8pm "streak at risk" nudge).
+self.addEventListener('push', event => {
+  let data = {};
+  try { data = event.data ? event.data.json() : {}; } catch { /* non-JSON payload */ }
+  event.waitUntil(self.registration.showNotification(data.title || 'Hunter System', {
+    body: data.body || '',
+    icon: '/icon-192.png',
+    badge: '/icon-192.png',
+    tag: 'hunter-nudge',
+    data: { url: data.url || '/quests' },
+  }));
+});
+
 // Tapping a reminder opens (or focuses) Hunter on the relevant page.
 self.addEventListener('notificationclick', event => {
   event.notification.close();

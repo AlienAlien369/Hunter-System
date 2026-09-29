@@ -609,6 +609,16 @@ export const api = {
   recover: (username: string, code: string, newPassword: string) =>
     request<AuthResponse>('/auth/recover', { method: 'POST', body: JSON.stringify({ username, code, newPassword }) }),
 
+  // Web Push (8pm streak nudges)
+  getPushKey: () => request<{ publicKey: string }>('/push/key'),
+  subscribePush: (subscription: PushSubscriptionJSON) =>
+    request<{ ok: true }>('/push/subscribe', { method: 'POST', body: JSON.stringify({ subscription }) }),
+  unsubscribePush: (endpoint: string) =>
+    fetch(`${API_URL}/push/subscribe`, {
+      method: 'DELETE', credentials: 'include',
+      headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ endpoint }),
+    }).then(() => undefined),
+
   getPublicHunter: (name: string) => request<PublicHunter>(`/public/hunters/${encodeURIComponent(name)}`),
 
   // Cloud save for inventory / loadout / freezes / unlocks

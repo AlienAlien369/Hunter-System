@@ -91,7 +91,7 @@ export default function AppSettingsPanel() {
         <div className="min-w-0">
           <p className="text-sm text-white font-mono">Timetable reminders</p>
           <p className="text-[11px] text-gray-500 font-mono">
-            {remindersSupported() ? 'A notification when each of today\'s timetable quests is due (while Hunter is open or installed).' : 'This browser does not support notifications.'}
+            {remindersSupported() ? 'A notification when each of today\'s timetable quests is due, plus an 8pm heads-up if your streak is at risk — even when Hunter is closed.' : 'This browser does not support notifications.'}
           </p>
         </div>
         {remindersSupported() && (

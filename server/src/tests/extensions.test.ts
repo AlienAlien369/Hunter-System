@@ -740,6 +740,25 @@ describe('Hunter extensions', () => {
     });
   });
 
+  describe('web push reminders', () => {
+    it('serves a VAPID key and manages device subscriptions', async () => {
+      const key = await (await fetch(`${BASE_URL}/api/push/key`)).json();
+      assert.match(key.publicKey, /^[A-Za-z0-9_-]{80,}$/);
+      const W = client((await register('ext_push_' + suffix)).cookie);
+      const sub = { endpoint: `https://push.example.com/ext_${suffix}`, keys: { p256dh: 'BPk', auth: 'au' } };
+      assert.strictEqual((await W.post('/push/subscribe', { subscription: { ...sub, endpoint: 'http://insecure' } })).status, 400);
+      assert.strictEqual((await W.post('/push/subscribe', { subscription: { endpoint: sub.endpoint } })).status, 400);
+      assert.strictEqual((await W.post('/push/subscribe', { subscription: sub })).status, 201);
+      assert.strictEqual((await W.post('/push/subscribe', { subscription: sub })).status, 201, 'idempotent');
+      const res = await fetch(`${BASE_URL}/api/push/subscribe`, {
+        method: 'DELETE', headers: { Cookie: (await register('ext_push2_' + suffix)).cookie, 'Content-Type': 'application/json' },
+        body: JSON.stringify({ endpoint: sub.endpoint }),
+      });
+      assert.strictEqual(res.status, 204);
+      assert.strictEqual((await fetch(`${BASE_URL}/api/push/subscribe`, { method: 'POST' })).status, 401);
+    });
+  });
+
   describe('cloud game state', () => {
     it('saves whitelisted progress per hunter and caps size', async () => {
       const S = client((await register('ext_st_' + suffix)).cookie);

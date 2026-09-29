@@ -2,6 +2,7 @@ import { useEffect } from 'react';
 import { useGameStore } from '../store/gameStore';
 import { todaysBoard } from './dailyBoard';
 import { localDateKey } from './date';
+import { api } from '../lib/api';
 
 // Timetable reminders: a notification when each of today's timetable quests
 // is due. Scheduled in the browser while Hunter is open (or installed and
@@ -26,12 +27,37 @@ export async function enableReminders(): Promise<boolean> {
   const permission = Notification.permission === 'granted' ? 'granted' : await Notification.requestPermission();
   try { localStorage.setItem(KEY, permission === 'granted' ? 'on' : 'off'); } catch { /* storage unavailable */ }
   window.dispatchEvent(new Event('hunter-reminders'));
+  if (permission === 'granted') syncPushSubscription();
   return permission === 'granted';
 }
 
 export function disableReminders() {
   try { localStorage.setItem(KEY, 'off'); } catch { /* storage unavailable */ }
   window.dispatchEvent(new Event('hunter-reminders'));
+  syncPushSubscription();
+}
+
+const b64ToBytes = (b64: string) => Uint8Array.from(atob(b64.replace(/-/g, '+').replace(/_/g, '/')), c => c.charCodeAt(0));
+
+/**
+ * Keep this device's Web Push subscription in step with the reminders setting,
+ * so the 8pm streak nudge arrives even when Hunter is closed. Best-effort.
+ */
+export async function syncPushSubscription(): Promise<void> {
+  try {
+    const reg = await navigator.serviceWorker?.getRegistration();
+    if (!reg?.pushManager) return;
+    const existing = await reg.pushManager.getSubscription();
+    if (!remindersEnabled()) {
+      if (existing) { await api.unsubscribePush(existing.endpoint); await existing.unsubscribe(); }
+      return;
+    }
+    const { publicKey } = await api.getPushKey();
+    const sub = existing ?? await reg.pushManager.subscribe({ userVisibleOnly: true, applicationServerKey: b64ToBytes(publicKey) });
+    await api.subscribePush(sub.toJSON());
+  } catch {
+    // Push unsupported/blocked (e.g. iOS outside an installed PWA) — in-app reminders still work.
+  }
 }
 
 export async function notify(title: string, body: string, url = '/quests') {
@@ -52,6 +78,7 @@ export function msUntil(time: string, now = new Date()): number {
 /** Schedules today's remaining timetable reminders; reschedules when quests or the setting change. */
 export function useTimetableReminders() {
   const dailyQuests = useGameStore(s => s.dailyQuests);
+  useEffect(() => { syncPushSubscription(); }, []); // refreshes the device's timezone + re-subscribes after key/browser resets
   useEffect(() => {
     let timers: number[] = [];
     const schedule = () => {

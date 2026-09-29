@@ -237,6 +237,23 @@ export async function initDatabase() {
         updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
       );
 
+      -- Web Push: one row per browser/device that opted into reminders
+      CREATE TABLE IF NOT EXISTS push_subscriptions (
+        id SERIAL PRIMARY KEY,
+        user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+        endpoint TEXT NOT NULL UNIQUE,
+        keys JSONB NOT NULL,
+        timezone VARCHAR(64) NOT NULL DEFAULT 'UTC',
+        last_nudged DATE,
+        created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+      );
+
+      -- Server-generated settings (e.g. VAPID keys when not set in the environment)
+      CREATE TABLE IF NOT EXISTS app_settings (
+        key VARCHAR(64) PRIMARY KEY,
+        value TEXT NOT NULL
+      );
+
       -- Friends: one-way follows between hunters
       CREATE TABLE IF NOT EXISTS friendships (
         follower_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,

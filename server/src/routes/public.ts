@@ -3,20 +3,12 @@ import { pool } from '../db.js';
 import { hit } from '../middleware/security.js';
 import { calculateLevel, calculateRank } from '../progression.js';
 import { weekStart } from './leaderboard.js';
-import { addDays, isValidTimeZone, localDate } from '../time.js';
+import { currentStreak, isValidTimeZone, localDate } from '../time.js';
 
 // Public hunter profiles (/h/<name>) — the landing page for shared cards and
 // invite links. Same privacy as the leaderboard: only hunters who chose a name
 // and haven't opted out, and only name, level/rank, streak and XP totals.
 const router = Router();
-
-/** Consecutive active days ending today — or yesterday, so a streak isn't shown as 0 before today's first quest. */
-export function currentStreak(days: Set<string>, today: string): number {
-  let day = days.has(today) ? today : addDays(today, -1);
-  let n = 0;
-  while (days.has(day)) { n++; day = addDays(day, -1); }
-  return n;
-}
 
 // GET /api/public/hunters/:name
 router.get('/hunters/:name', async (req: Request, res: Response) => {
