@@ -764,6 +764,61 @@ describe('Hunter extensions', () => {
     });
   });
 
+  describe('streak freezes (server-owned)', () => {
+    const day = (n: number) => new Date(Date.now() + n * 86_400_000).toISOString().slice(0, 10); // UTC, like the server without X-Timezone
+
+    it('costs real XP and is capped', async () => {
+      const { cookie, id } = await register('ext_frz_' + suffix);
+      const F = client(cookie);
+      await db.query('UPDATE users SET xp = 150 WHERE id = $1', [id]);
+      const buy = await F.post('/stats/freeze/buy');
+      assert.strictEqual(buy.status, 200);
+      assert.deepStrictEqual(buy.body, { xp: 50, freezeCount: 1 });
+      assert.strictEqual((await F.xp()).xp, 50, 'XP really spent on the server');
+      assert.strictEqual((await F.post('/stats/freeze/buy')).status, 400, 'not enough XP');
+      await db.query('UPDATE users SET xp = 10000, freeze_count = 5 WHERE id = $1', [id]);
+      assert.strictEqual((await F.post('/stats/freeze/buy')).status, 400, 'max 5 held');
+    });
+
+    it('auto-covers a missed gap it can fully cover, otherwise the penalty applies', async () => {
+      const setup = async (name: string, freezes: number) => {
+        const { cookie, id } = await register(name);
+        const C = client(cookie);
+        await C.patch('/quests/DQ-01/complete');
+        await db.query('UPDATE quest_completions SET completion_date = $2 WHERE user_id = $1', [id, day(-3)]);
+        await db.query('UPDATE users SET freeze_count = $2 WHERE id = $1', [id, freezes]);
+        return { C, id };
+      };
+      const { C: A } = await setup('ext_frza_' + suffix, 2); // missed day(-2) and day(-1)
+      const a = (await A.get('/stats')).body;
+      assert.strictEqual(a.penalty, null);
+      assert.strictEqual(a.freeze.used, 2);
+      assert.strictEqual(a.freezeCount, 0);
+      assert.deepStrictEqual(a.freezeDates, [day(-2), day(-1)]);
+      assert.strictEqual(a.streak, 3, 'done day + two frozen days');
+      assert.strictEqual((await A.get('/stats')).body.freeze, null, 'spent once');
+
+      const { C: B, id: bId } = await setup('ext_frzb_' + suffix, 1); // 1 freeze can't cover 2 days
+      const b = (await B.get('/stats')).body;
+      assert.strictEqual(b.penalty.applied, true);
+      assert.strictEqual(b.freeze, null);
+      assert.strictEqual((await db.query('SELECT freeze_count FROM users WHERE id = $1', [bId])).rows[0].freeze_count, 1, 'kept');
+    });
+
+    it('can be placed by hand on a recent missed day', async () => {
+      const { cookie, id } = await register('ext_frzm_' + suffix);
+      const M = client(cookie);
+      assert.strictEqual((await M.post('/stats/freeze/use', { date: day(-1) })).status, 400, 'none owned');
+      await db.query('UPDATE users SET freeze_count = 1 WHERE id = $1', [id]);
+      assert.strictEqual((await M.post('/stats/freeze/use', { date: day(0) })).status, 400, 'not today');
+      assert.strictEqual((await M.post('/stats/freeze/use', { date: day(-30) })).status, 400, 'too old');
+      const used = await M.post('/stats/freeze/use', { date: day(-1) });
+      assert.deepStrictEqual(used.body, { freezeCount: 0, date: day(-1) });
+      await M.patch('/quests/DQ-01/complete');
+      assert.strictEqual((await M.get('/stats')).body.streak, 2);
+    });
+  });
+
   describe('cloud game state', () => {
     it('saves whitelisted progress per hunter and caps size', async () => {
       const S = client((await register('ext_st_' + suffix)).cookie);
@@ -773,12 +828,12 @@ describe('Hunter extensions', () => {
       const put = await S.put('/state', { state: { inventory: [{ itemId: 'potion', instanceId: 'a1' }], freezeCount: 2, unlockedTitles: ['Shadow'], xp: 99999 } });
       assert.strictEqual(put.status, 200);
       const got = await S.get('/state');
-      assert.deepStrictEqual(got.body.state, { inventory: [{ itemId: 'potion', instanceId: 'a1' }], freezeCount: 2, unlockedTitles: ['Shadow'] });
+      assert.deepStrictEqual(got.body.state, { inventory: [{ itemId: 'potion', instanceId: 'a1' }], unlockedTitles: ['Shadow'] }, 'freezes/xp are server-owned, dropped');
       const other = client((await register('ext_st2_' + suffix)).cookie);
       assert.strictEqual((await other.get('/state')).body.state, null, 'isolated per hunter');
       assert.strictEqual((await S.put('/state', { state: { inventory: ['x'.repeat(70_000)] } })).status, 413);
       assert.strictEqual((await S.put('/state', { state: [1] })).status, 400);
-      assert.strictEqual((await S.get('/auth/export')).body.gameState.state.freezeCount, 2);
+      assert.deepStrictEqual((await S.get('/auth/export')).body.gameState.state.unlockedTitles, ['Shadow']);
     });
   });
 

@@ -3,6 +3,7 @@ import { pool } from '../db.js';
 import { hit } from '../middleware/security.js';
 import { calculateLevel, calculateRank } from '../progression.js';
 import { weekStart } from './leaderboard.js';
+import { activeDays } from './stats.js';
 import { currentStreak, isValidTimeZone, localDate } from '../time.js';
 
 // Public hunter profiles (/h/<name>) — the landing page for shared cards and
@@ -22,7 +23,7 @@ router.get('/hunters/:name', async (req: Request, res: Response) => {
     if (!u) return res.status(404).json({ error: 'No hunter with that name' });
     const tz = u.timezone && isValidTimeZone(u.timezone) ? u.timezone : 'UTC';
     const [days, week, modules] = await Promise.all([
-      pool.query(`SELECT DISTINCT completion_date::text AS d FROM quest_completions WHERE user_id = $1 AND completion_date >= CURRENT_DATE - 400`, [u.id]),
+      activeDays(u.id),
       pool.query(
         `SELECT COALESCE(SUM(xp), 0)::int AS xp FROM (
            SELECT COALESCE(xp_awarded, 0) AS xp FROM quest_completions WHERE user_id = $1 AND completion_date >= $2::date
@@ -40,7 +41,7 @@ router.get('/hunters/:name', async (req: Request, res: Response) => {
       rank: calculateRank(u.xp),
       xp: u.xp,
       weeklyXp: week.rows[0].xp,
-      streak: currentStreak(new Set(days.rows.map((r: any) => r.d)), localDate(tz)),
+      streak: currentStreak(days, localDate(tz)),
       modules: modules.rows.map((m: any) => `${m.icon} ${m.name}`),
       joined: u.created_at,
     });

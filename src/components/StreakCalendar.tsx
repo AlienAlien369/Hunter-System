@@ -309,7 +309,7 @@ export default function StreakCalendar() {
           <button
             onClick={() => {
               if (canBuyFreeze) {
-                buyFreeze(FREEZE_COST);
+                buyFreeze();
                 sfx.complete();
               }
             }}

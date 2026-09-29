@@ -4,12 +4,13 @@ import { authenticateToken } from '../middleware/auth.js';
 
 // Cloud save for client-side game progress (inventory, loadout, streak
 // freezes, unlocked titles/achievements) so it follows the hunter across
-// devices. XP stays server-authoritative elsewhere; this is only cosmetic /
-// consumable state the client already owned.
+// devices. XP and streak freezes stay server-authoritative elsewhere; this is
+// only cosmetic / consumable state the client already owned.
 const router = Router();
 router.use(authenticateToken);
 
-export const STATE_KEYS = ['inventory', 'equipped', 'freezeCount', 'freezeDates', 'unlockedTitles', 'unlockedAchievements'] as const;
+// Streak freezes are server-owned (routes/stats.ts), so they're not part of this blob.
+export const STATE_KEYS = ['inventory', 'equipped', 'unlockedTitles', 'unlockedAchievements'] as const;
 const MAX_BYTES = 64 * 1024;
 
 // GET /api/state → { state, updatedAt } (state null if never saved)

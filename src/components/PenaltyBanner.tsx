@@ -14,7 +14,7 @@ import { dailyHistoryQuests } from '../utils/dailyBoard';
  * Fresh penalties / recoveries play their sound exactly once.
  */
 export default function PenaltyBanner() {
-  const { penalty, recovery, dailyQuests, profile } = useGameStore();
+  const { penalty, recovery, freezeNotice, dailyQuests, profile } = useGameStore();
   const [dismissed, setDismissed] = useState(false);
   const lastSound = useRef<string | null>(null);
 
@@ -30,7 +30,30 @@ export default function PenaltyBanner() {
     }
   }, [penalty, recovery]);
 
-  if (dismissed || (!penalty && !recovery)) return null;
+  if (dismissed || (!penalty && !recovery && !freezeNotice)) return null;
+
+  // Streak freezes just saved the streak — a calm, blue notice.
+  if (freezeNotice && !penalty && !recovery) {
+    return (
+      <motion.div
+        initial={{ opacity: 0, y: -20 }}
+        animate={{ opacity: 1, y: 0 }}
+        className="relative rounded-xl border border-cyan-400/40 bg-cyan-500/10 px-4 py-3 backdrop-blur-xl"
+        role="status"
+      >
+        <div className="flex items-start justify-between gap-3">
+          <div className="flex items-start gap-3 min-w-0">
+            <span className="text-2xl shrink-0">❄️</span>
+            <div className="min-w-0">
+              <p className="font-display text-sm font-bold tracking-widest uppercase text-cyan-300">Streak protected</p>
+              <p className="text-gray-300 text-sm mt-0.5">{freezeNotice.message}</p>
+            </div>
+          </div>
+          <button type="button" onClick={() => setDismissed(true)} aria-label="Dismiss" className="text-gray-400 hover:text-white">✕</button>
+        </div>
+      </motion.div>
+    );
+  }
 
   const today = todayKey();
   const todayDone = dailyHistoryQuests(dailyQuests)

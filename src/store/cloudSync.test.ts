@@ -2,14 +2,12 @@ import { describe, expect, it } from 'vitest';
 import { mergeCloudState, useGameStore } from './gameStore';
 
 describe('game progress persistence', () => {
-  it('merges the cloud copy: unlocks union, inventory/loadout/freezes from the server', () => {
+  it('merges the cloud copy: unlocks union, inventory/loadout from the server', () => {
     const merged = mergeCloudState(
       { inventory: [], freezeCount: 0, freezeDates: ['2026-09-01'], unlockedTitles: ['A'], unlockedAchievements: ['x'] },
       { inventory: [{ itemId: 'potion', instanceId: 'p1' }], freezeCount: 2, freezeDates: ['2026-09-02'], unlockedTitles: ['B', 'A'] },
     );
     expect(merged.inventory).toHaveLength(1);
-    expect(merged.freezeCount).toBe(2);
-    expect(merged.freezeDates).toEqual(['2026-09-01', '2026-09-02']);
     expect(merged.unlockedTitles).toEqual(['A', 'B']);
     expect(merged.unlockedAchievements).toEqual(['x']);
   });

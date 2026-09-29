@@ -139,6 +139,8 @@ export async function initDatabase() {
     // Single-use account recovery code (bcrypt hash) — there is no email reset.
     await client.query('ALTER TABLE users ADD COLUMN IF NOT EXISTS recovery_hash TEXT');
     await client.query('ALTER TABLE users ADD COLUMN IF NOT EXISTS recovery_created_at TIMESTAMPTZ');
+    // Streak freezes are server-owned (bought with real XP, spent on missed days).
+    await client.query('ALTER TABLE users ADD COLUMN IF NOT EXISTS freeze_count INTEGER NOT NULL DEFAULT 0');
 
     // Idempotent migration: record exactly how much XP each completion awarded
     // (level-scaled hidden quests award more than the quest's base xp_reward).
@@ -235,6 +237,14 @@ export async function initDatabase() {
         user_id INTEGER PRIMARY KEY REFERENCES users(id) ON DELETE CASCADE,
         state JSONB NOT NULL,
         updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+      );
+
+      -- Days covered by a streak freeze (count as active for streaks and penalties)
+      CREATE TABLE IF NOT EXISTS freeze_days (
+        user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+        day DATE NOT NULL,
+        created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+        PRIMARY KEY (user_id, day)
       );
 
       -- Web Push: one row per browser/device that opted into reminders

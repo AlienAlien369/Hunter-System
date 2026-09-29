@@ -34,6 +34,9 @@ export const XP_RULES = {
   /** Completing every timetable quest scheduled today (at least minQuests) pays a one-time bonus. */
   perfectDay: { bonus: 25, minQuests: 3 },
 
+  /** Streak freezes: bought with XP, auto-spent to cover a missed gap they fully cover. */
+  freeze: { cost: 100, maxOwned: 5, manualWindowDays: 7 },
+
   unplanned: {
     xpPerHour: { easy: 15, medium: 30, hard: 45, extreme: 60 } as Record<Difficulty, number>,
     minMinutes: 5,

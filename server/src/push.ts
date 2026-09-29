@@ -2,6 +2,7 @@ import webpush from 'web-push';
 import { pool } from './db.js';
 import { addDays, currentStreak, localDate } from './time.js';
 import { weekStart } from './routes/leaderboard.js';
+import { activeDays } from './routes/stats.js';
 
 // Web Push reminders. A Monday-morning weekly recap, and the nudge that matters most: at 8pm in the hunter's own
 // timezone, if they haven't completed a quest today, remind them before the
@@ -123,10 +124,7 @@ export async function runStreakNudges(now = new Date()): Promise<number> {
       [s.id, today],
     );
     if (!claimed.rowCount) continue;
-    const days = new Set((await pool.query(
-      `SELECT DISTINCT completion_date::text AS d FROM quest_completions WHERE user_id = $1 AND completion_date >= $2::date - 400`,
-      [s.user_id, today],
-    )).rows.map((r: any) => r.d));
+    const days = await activeDays(s.user_id);
     if (days.has(today)) continue; // already played today — no nudge
     await send(s, nudgeMessage(currentStreak(days, today)), '/quests');
   }

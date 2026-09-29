@@ -6,6 +6,7 @@ import type {
   Level,
   PenaltyInfo,
   RecoveryInfo,
+  FreezeInfo,
 } from "../lib/api";
 import { api } from "../lib/api";
 import { useAuthStore } from "./authStore";
@@ -350,6 +351,8 @@ export interface GameState {
   penalty: PenaltyInfo | null;
   // Streak-recovery bonus granted after rebuilding 3 days post-penalty.
   recovery: RecoveryInfo | null;
+  // Streak freezes the server just auto-spent on missed days (null = none).
+  freezeNotice: FreezeInfo | null;
 
   // Loading states
   loading: boolean;
@@ -379,9 +382,9 @@ export interface GameState {
   /** Reveal today's hidden quest (once per day). */
   revealHiddenQuest: () => void;
   /** Purchase a streak freeze for the given XP cost. */
-  buyFreeze: (cost: number) => void;
+  buyFreeze: () => Promise<void>;
   /** Use a freeze on a specific date to preserve the streak. */
-  useFreeze: (date: string) => void;
+  useFreeze: (date: string) => Promise<void>;
   /** Allocate a stat point (str/agi/vit/int/sen). */
   allocateStat: (stat: "str" | "agi" | "vit" | "int" | "sen") => void;
   /** Deallocate a stat point (refund). */
@@ -469,7 +472,8 @@ const PERSISTED_KEYS = [
   "inventory", "equipped", "unlockedTitles", "unlockedAchievements",
 ] as const;
 /** Progress that lives only on the client — cloud-saved so it follows the hunter across devices. */
-const CLOUD_KEYS = ["inventory", "equipped", "freezeCount", "freezeDates", "unlockedTitles", "unlockedAchievements"] as const;
+// (Streak freezes are server-owned and come from /api/stats instead.)
+const CLOUD_KEYS = ["inventory", "equipped", "unlockedTitles", "unlockedAchievements"] as const;
 
 // Partial saves merge onto the current store snapshot, so saving one key never
 // wipes the others.
@@ -513,8 +517,6 @@ export function mergeCloudState(local: Partial<GameState>, cloud: Record<string,
   return {
     inventory: (cloud.inventory as GameState["inventory"]) ?? local.inventory,
     equipped: (cloud.equipped as GameState["equipped"]) ?? local.equipped,
-    freezeCount: typeof cloud.freezeCount === "number" ? cloud.freezeCount : local.freezeCount,
-    freezeDates: union(local.freezeDates, cloud.freezeDates),
     unlockedTitles: union(local.unlockedTitles, cloud.unlockedTitles),
     unlockedAchievements: union(local.unlockedAchievements, cloud.unlockedAchievements),
   };
@@ -566,6 +568,7 @@ export const useGameStore = create<GameState>((set, get) => ({
   hiddenQuest: null,
   penalty: null,
   recovery: null,
+  freezeNotice: null,
   loading: false,
   error: null,
   apiConnected: false,
@@ -649,6 +652,9 @@ export const useGameStore = create<GameState>((set, get) => ({
         hiddenQuest,
         penalty: statsData.penalty ?? null,
         recovery: statsData.recovery ?? null,
+        freezeNotice: statsData.freeze ?? null,
+        freezeCount: statsData.freezeCount ?? 0,
+        freezeDates: statsData.freezeDates ?? [],
         profile: {
           ...get().profile,
           name: statsData.user.name || get().profile.name,
@@ -936,28 +942,28 @@ export const useGameStore = create<GameState>((set, get) => ({
     sfx.hiddenQuest();
   },
 
-  buyFreeze: (cost: number) => {
-    const { profile, freezeCount } = get();
-    if (profile.xp < cost) return;
-    const newProfile = { ...profile, xp: profile.xp - cost };
-    set({ profile: newProfile, freezeCount: freezeCount + 1 });
-    saveToLocalStorage({
-      profile: newProfile,
-      freezeCount: freezeCount + 1,
-      freezeDates: get().freezeDates,
-    });
-    api.updateStats({}).catch(() => {});
+  // Freezes are bought and spent on the server (real XP, counted by penalties
+  // and streaks); the store mirrors the result.
+  buyFreeze: async () => {
+    try {
+      const r = await api.buyFreeze();
+      const profile = { ...get().profile, xp: r.xp };
+      set({ profile, freezeCount: r.freezeCount });
+      saveToLocalStorage({ profile, freezeCount: r.freezeCount });
+    } catch (e) {
+      set({ error: (e as Error).message });
+    }
   },
 
-  useFreeze: (date: string) => {
-    const { freezeCount, freezeDates } = get();
-    if (freezeCount <= 0 || freezeDates.includes(date)) return;
-    const newFreezeDates = [...freezeDates, date];
-    set({ freezeCount: freezeCount - 1, freezeDates: newFreezeDates });
-    saveToLocalStorage({
-      freezeCount: freezeCount - 1,
-      freezeDates: newFreezeDates,
-    });
+  useFreeze: async (date: string) => {
+    try {
+      const r = await api.useFreeze(date);
+      const freezeDates = [...get().freezeDates, r.date];
+      set({ freezeCount: r.freezeCount, freezeDates });
+      saveToLocalStorage({ freezeCount: r.freezeCount, freezeDates });
+    } catch (e) {
+      set({ error: (e as Error).message });
+    }
   },
 
   allocateStat: (stat) => {

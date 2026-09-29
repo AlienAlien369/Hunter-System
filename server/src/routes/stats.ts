@@ -3,11 +3,23 @@ import { pool } from "../db.js";
 import { authenticateToken } from "../middleware/auth.js";
 import { logActivity } from "../activity.js";
 import { calculateRank } from "../progression.js";
-import { addDays, requestToday } from "../time.js";
+import { addDays, currentStreak, requestToday } from "../time.js";
+import { applyXp } from "../xp.js";
+import { XP_RULES } from "../rules.js";
 
 /** A users row minus credential columns — never send these to the client. */
 // eslint-disable-next-line @typescript-eslint/no-unused-vars
 const withoutSecrets = ({ password_hash, recovery_hash, ...user }: Record<string, any>) => user;
+
+/** Every day the hunter was active: any quest completion, or a day covered by a streak freeze. */
+export async function activeDays(userId: number): Promise<Set<string>> {
+  const r = await pool.query(
+    `SELECT DISTINCT completion_date::text AS d FROM quest_completions WHERE user_id = $1
+     UNION SELECT day::text FROM freeze_days WHERE user_id = $1`,
+    [userId],
+  );
+  return new Set(r.rows.map((x: any) => x.d));
+}
 
 const router = Router();
 
@@ -48,31 +60,13 @@ router.get("/", authenticateToken, async (req: Request, res: Response) => {
       [weekAgo.toISOString().split("T")[0], userId],
     );
 
-    // Get streak (scoped to this user)
-    const streakResult = await pool.query(
-      `WITH date_series AS (
-        SELECT generate_series(
-          COALESCE((SELECT MAX(completion_date) FROM quest_completions WHERE user_id = $1), $2::date),
-          $2::date,
-          INTERVAL '1 day'
-        )::date AS date
-      ),
-      completed_dates AS (
-        SELECT DISTINCT completion_date FROM quest_completions WHERE user_id = $1
-      )
-      SELECT COUNT(*) as streak
-      FROM date_series ds
-      JOIN completed_dates cd ON ds.date = cd.completion_date`,
-      [userId, today],
-    );
-
-    const streak = streakResult.rows[0]
-      ? parseInt(streakResult.rows[0].streak)
-      : 0;
-
     // Missed-daily-quest penalty (scaled by the broken streak) + recovery
     // bonus for rebuilding a 3-day streak (both applied lazily on check-in).
-    const { penalty, recovery } = await checkPenaltiesAndRecovery(pool, userId, today);
+    const { penalty, recovery, freeze } = await checkPenaltiesAndRecovery(pool, userId, today);
+
+    // Current streak: consecutive active days (any quest, or a freeze) ending
+    // today/yesterday — after the check above, which may have spent freezes.
+    const streak = currentStreak(await activeDays(userId!), today);
 
     // The penalty/recovery may have adjusted XP/HP — serve the fresh row.
     const fresh = await pool.query("SELECT * FROM users WHERE id = $1", [
@@ -88,6 +82,11 @@ router.get("/", authenticateToken, async (req: Request, res: Response) => {
       rank: calculateRank(freshUser.xp),
       penalty,
       recovery,
+      freeze,
+      freezeCount: freshUser.freeze_count ?? 0,
+      freezeDates: (await pool.query(
+        "SELECT day::text AS d FROM freeze_days WHERE user_id = $1 AND day >= $2::date - 90 ORDER BY day", [userId, today],
+      )).rows.map((r: any) => r.d),
     });
   } catch (error) {
     console.error("Error fetching stats:", error);
@@ -382,9 +381,16 @@ interface RecoveryInfo {
   message: string;
 }
 
+interface FreezeInfo {
+  used: number;
+  remaining: number;
+  message: string;
+}
+
 interface PenaltyOutcome {
   penalty: PenaltyInfo | null;
   recovery: RecoveryInfo | null;
+  freeze?: FreezeInfo | null;
 }
 
 /**
@@ -427,6 +433,8 @@ async function checkPenaltiesAndRecovery(
     [userId],
   );
   const doneSet: Set<string> = new Set(done.rows.map((r: any) => String(r.d)));
+  const frozen = await pool.query("SELECT day::text AS d FROM freeze_days WHERE user_id = $1", [userId]);
+  for (const r of frozen.rows) doneSet.add(String(r.d));
 
   // Walk backward from yesterday (today is still in progress) and count
   // consecutive full days with zero daily-quest completions.
@@ -440,6 +448,23 @@ async function checkPenaltiesAndRecovery(
 
   let penalty: PenaltyInfo | null = null;
   let recovery: RecoveryInfo | null = null;
+  let freeze: FreezeInfo | null = null;
+
+  // Streak freezes: if the hunter owns enough to cover the whole gap (and it
+  // hasn't been penalized yet), spend them automatically — the streak survives.
+  if (missed > 0) {
+    const covered = await autoFreeze(pool, userId, addDays(cursor, 1), missed);
+    if (covered) {
+      for (let i = 1; i <= missed; i++) doneSet.add(addDays(cursor, i));
+      const plural = missed === 1 ? "" : "s";
+      freeze = {
+        used: missed,
+        remaining: covered.remaining,
+        message: `${missed === 1 ? "A streak freeze" : `${missed} streak freezes`} covered your missed day${plural} — your streak is safe. ${covered.remaining} left.`,
+      };
+      missed = 0;
+    }
+  }
 
   if (missed > 0) {
     const missedDays = missed;
@@ -563,7 +588,7 @@ async function checkPenaltiesAndRecovery(
     }
   }
 
-  return { penalty, recovery };
+  return { penalty, recovery, freeze };
 }
 
 /** Consecutive days with a completion ending on (and including) `endDate`. */
@@ -576,5 +601,96 @@ function countStreakEndingAt(doneSet: Set<string>, endDay: string): number {
   }
   return streak;
 }
+
+/**
+ * Spend `days` freezes on the gap starting at `gapStart`, atomically (row lock),
+ * unless the gap was already penalized or the hunter owns too few. Returns the
+ * remaining count when the gap was covered.
+ */
+async function autoFreeze(db: any, userId: number, gapStart: string, days: number): Promise<{ remaining: number } | null> {
+  const client = await db.connect();
+  try {
+    await client.query("BEGIN");
+    const u = await client.query("SELECT freeze_count FROM users WHERE id = $1 FOR UPDATE", [userId]);
+    const owned = u.rows[0]?.freeze_count ?? 0;
+    const penalized = await client.query(
+      "SELECT 1 FROM penalties WHERE user_id = $1 AND penalty_date >= $2::date LIMIT 1", [userId, gapStart],
+    );
+    if (owned < days || penalized.rowCount) {
+      await client.query("ROLLBACK");
+      return null;
+    }
+    const ins = await client.query(
+      `INSERT INTO freeze_days (user_id, day)
+       SELECT $1, d::date FROM generate_series($2::date, $2::date + ($3::int - 1), INTERVAL '1 day') d
+       ON CONFLICT DO NOTHING`,
+      [userId, gapStart, days],
+    );
+    const spent = ins.rowCount ?? 0; // a concurrent request may already have covered some days
+    const r = await client.query("UPDATE users SET freeze_count = freeze_count - $2 WHERE id = $1 RETURNING freeze_count", [userId, spent]);
+    await client.query("COMMIT");
+    if (spent) await logActivity(userId, "freeze_auto_used", "streak", { days: spent, gap_start: gapStart });
+    return { remaining: r.rows[0].freeze_count };
+  } catch (e) {
+    await client.query("ROLLBACK").catch(() => {});
+    throw e;
+  } finally {
+    client.release();
+  }
+}
+
+// POST /api/stats/freeze/buy — spend XP_RULES.freeze.cost XP for one streak freeze
+router.post("/freeze/buy", authenticateToken, async (req: Request, res: Response) => {
+  const userId = req.user!.id;
+  const { cost, maxOwned } = XP_RULES.freeze;
+  const client = await pool.connect();
+  try {
+    await client.query("BEGIN");
+    const u = (await client.query("SELECT xp, freeze_count FROM users WHERE id = $1 FOR UPDATE", [userId])).rows[0];
+    if (u.freeze_count >= maxOwned) {
+      await client.query("ROLLBACK");
+      return res.status(400).json({ error: `You can hold up to ${maxOwned} streak freezes` });
+    }
+    if (u.xp < cost) {
+      await client.query("ROLLBACK");
+      return res.status(400).json({ error: `A streak freeze costs ${cost} XP` });
+    }
+    await applyXp(client, userId, [{ delta: -cost, action: "freeze_purchase", entity: "streak" }]);
+    const r = await client.query("UPDATE users SET freeze_count = freeze_count + 1 WHERE id = $1 RETURNING xp, freeze_count", [userId]);
+    await client.query("COMMIT");
+    res.json({ xp: r.rows[0].xp, freezeCount: r.rows[0].freeze_count });
+  } catch (error) {
+    await client.query("ROLLBACK").catch(() => {});
+    console.error("Freeze purchase error:", error);
+    res.status(500).json({ error: "Failed to buy a streak freeze" });
+  } finally {
+    client.release();
+  }
+});
+
+// POST /api/stats/freeze/use { date } — cover one recent missed day by hand
+router.post("/freeze/use", authenticateToken, async (req: Request, res: Response) => {
+  const userId = req.user!.id;
+  const today = requestToday(req);
+  const date = String(req.body?.date ?? "");
+  const windowDays = XP_RULES.freeze.manualWindowDays;
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(date) || date >= today || date < addDays(today, -windowDays)) {
+    return res.status(400).json({ error: `Pick a missed day from the last ${windowDays} days` });
+  }
+  try {
+    if ((await activeDays(userId)).has(date)) return res.status(400).json({ error: "That day is already covered" });
+    const r = await pool.query(
+      `WITH spend AS (UPDATE users SET freeze_count = freeze_count - 1 WHERE id = $1 AND freeze_count > 0 RETURNING freeze_count)
+       INSERT INTO freeze_days (user_id, day) SELECT $1, $2::date FROM spend
+       ON CONFLICT DO NOTHING RETURNING (SELECT freeze_count FROM spend) AS freeze_count`,
+      [userId, date],
+    );
+    if (!r.rowCount) return res.status(400).json({ error: "No streak freezes left" });
+    res.json({ freezeCount: r.rows[0].freeze_count, date });
+  } catch (error) {
+    console.error("Freeze use error:", error);
+    res.status(500).json({ error: "Failed to use a streak freeze" });
+  }
+});
 
 export default router;

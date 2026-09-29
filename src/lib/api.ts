@@ -194,6 +194,16 @@ export interface Stats {
   rank: string;
   penalty?: PenaltyInfo | null;
   recovery?: RecoveryInfo | null;
+  /** Set when streak freezes were just auto-spent to cover missed days. */
+  freeze?: FreezeInfo | null;
+  freezeCount?: number;
+  freezeDates?: string[];
+}
+
+export interface FreezeInfo {
+  used: number;
+  remaining: number;
+  message: string;
 }
 
 export interface RankProgress {
@@ -618,6 +628,11 @@ export const api = {
       method: 'DELETE', credentials: 'include',
       headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ endpoint }),
     }).then(() => undefined),
+
+  // Streak freezes (server-owned: bought with real XP)
+  buyFreeze: () => request<{ xp: number; freezeCount: number }>('/stats/freeze/buy', { method: 'POST' }),
+  useFreeze: (date: string) =>
+    request<{ freezeCount: number; date: string }>('/stats/freeze/use', { method: 'POST', body: JSON.stringify({ date }) }),
 
   getPublicHunter: (name: string) => request<PublicHunter>(`/public/hunters/${encodeURIComponent(name)}`),
 
