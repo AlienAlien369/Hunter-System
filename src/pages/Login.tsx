@@ -13,8 +13,17 @@ export default function Login() {
   // Return to the page that required login (deep links, refreshes); only same-app paths.
   const from = (location.state as { from?: string } | null)?.from;
   const target = from && from.startsWith('/') && !from.startsWith('//') ? from : '/';
+  // Invite links (/login?invite=<Hunter name>) — remembered in case the visitor wanders off first.
+  const [invite] = useState(() => {
+    const fromUrl = new URLSearchParams(location.search).get('invite')?.trim().slice(0, 30) || '';
+    try {
+      if (fromUrl) localStorage.setItem('hunter.invite', fromUrl);
+      return fromUrl || localStorage.getItem('hunter.invite') || '';
+    } catch { return fromUrl; }
+  });
   // Newcomers land on "create account"; browsers that have signed in before land on login.
   const [mode, setMode] = useState<'login' | 'register'>(() => {
+    if (new URLSearchParams(location.search).get('invite')) return 'register';
     try { return localStorage.getItem('hunter.hasAccount') ? 'login' : 'register'; } catch { return 'login'; }
   });
   const [username, setUsername] = useState('');
@@ -40,8 +49,8 @@ export default function Login() {
         sfx.login();
         navigate(target, { replace: true });
       } else {
-        const response = await api.register(username, password);
-        try { localStorage.setItem('hunter.hasAccount', '1'); } catch { /* storage unavailable */ }
+        const response = await api.register(username, password, invite || undefined);
+        try { localStorage.setItem('hunter.hasAccount', '1'); localStorage.removeItem('hunter.invite'); } catch { /* storage unavailable */ }
         login(response.user);
         sfx.login();
         navigate(target, { replace: true });
@@ -112,6 +121,11 @@ export default function Login() {
             <p className="text-purple-400 font-mono text-sm mt-2">
               {mode === 'login' ? 'ENTER THE DUNGEON' : 'JOIN THE HUNTERS'}
             </p>
+            {invite && mode === 'register' && (
+              <p className="mt-3 text-xs font-mono text-gold border border-yellow-500/30 bg-yellow-500/10 rounded-lg px-3 py-2">
+                ⚔️ {invite} invited you — you'll race each other on weekly XP.
+              </p>
+            )}
           </div>
 
           {/* Mode Toggle */}

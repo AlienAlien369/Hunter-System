@@ -102,6 +102,7 @@ jobs:
           JWT_SECRET=test-secret-key \
           DEMO_USER=demo_user \
           DEMO_PASS=DemoPass123! \
+          REGISTER_LIMIT=1000 \
           nohup npx tsx src/index.ts > /tmp/server.log 2>&1 &
           for i in $(seq 1 30); do
             if curl -sf http://localhost:3000/api/health > /dev/null; then

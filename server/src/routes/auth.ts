@@ -97,6 +97,20 @@ router.post("/register", async (req: Request, res: Response) => {
 
     const user = result.rows[0];
 
+    // Invite link (/login?invite=<Hunter name>): the new hunter and the inviter
+    // follow each other so they race on weekly XP from day one. No XP reward, so
+    // fake sign-ups gain nothing.
+    const invite = typeof req.body.invite === "string" ? req.body.invite.trim().slice(0, 30) : "";
+    if (invite) {
+      await pool.query(
+        `INSERT INTO friendships (follower_id, followee_id)
+         SELECT a, b FROM users t, LATERAL (VALUES ($1::int, t.id), (t.id, $1::int)) v(a, b)
+         WHERE LOWER(t.name) = LOWER($2) AND t.name_set AND t.show_on_leaderboard AND t.id <> $1
+         ON CONFLICT DO NOTHING`,
+        [user.id, invite],
+      ).catch((e) => console.error("Invite follow failed:", e));
+    }
+
     issueSession(req, res, user);
 
     await logActivity(user.id, "register", user.username);

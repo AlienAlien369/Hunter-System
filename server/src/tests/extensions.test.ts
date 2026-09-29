@@ -19,11 +19,11 @@ const db = new pg.Pool({
   database: process.env.DB_NAME || 'hunter_system',
 });
 
-async function register(username: string) {
+async function register(username: string, invite?: string) {
   const res = await fetch(`${BASE_URL}/api/auth/register`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ username, password: 'ExtPass123!' }),
+    body: JSON.stringify({ username, password: 'ExtPass123!', invite }),
   });
   assert.strictEqual(res.status, 201);
   const cookie = (res.headers.get('set-cookie') || '').split(';')[0];
@@ -673,6 +673,23 @@ describe('Hunter extensions', () => {
       assert.ok(d.xpHistory.some((h: any) => h.action === 'quest_complete'));
       const other = await res.json();
       assert.strictEqual(other.completions.length, 0, 'another hunter sees only their own data');
+    });
+  });
+
+  describe('invite links', () => {
+    it('signing up via an invite makes both hunters follow each other', async () => {
+      const Inv = client((await register('ext_inv_' + suffix)).cookie);
+      const invName = 'Inviter' + String(suffix).slice(-6);
+      await Inv.post('/auth/set-name', { name: invName });
+      const New = client((await register('ext_new_' + suffix, invName.toUpperCase())).cookie);
+      const newName = 'Newbie' + String(suffix).slice(-6);
+      await New.post('/auth/set-name', { name: newName });
+      const names = (c: typeof Inv) => c.get('/friends').then(r => r.body.friends.map((f: any) => f.name).sort());
+      assert.deepStrictEqual(await names(New), [invName, newName].sort());
+      assert.deepStrictEqual(await names(Inv), [invName, newName].sort());
+      // Unknown inviter: sign-up still succeeds, nobody followed
+      const Solo = client((await register('ext_solo_' + suffix, 'NoSuchHunter')).cookie);
+      assert.strictEqual((await Solo.get('/friends')).body.friends.length, 1, 'only themselves');
     });
   });
 

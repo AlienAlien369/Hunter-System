@@ -428,10 +428,10 @@ export const api = {
       body: JSON.stringify({ username, password }),
     }),
 
-  register: (username: string, password: string) =>
+  register: (username: string, password: string, invite?: string) =>
     request<AuthResponse>('/auth/register', {
       method: 'POST',
-      body: JSON.stringify({ username, password }),
+      body: JSON.stringify({ username, password, invite }),
     }),
 
   logout: () =>

@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import { api, type Leaderboard } from '../lib/api';
 import { useGameStore } from '../store/gameStore';
+import { useAuthStore } from '../store/authStore';
 import { Btn, Panel, inputCls } from './hunter/ui';
 
 const MEDALS = ['🥇', '🥈', '🥉'];
@@ -98,6 +99,15 @@ function FriendsBoard({ xp }: { xp: number }) {
     await api.removeFriend(n).catch(() => {});
     load();
   };
+  const me = useAuthStore(s => s.user);
+  const invite = async () => {
+    const url = `${window.location.origin}/login?invite=${encodeURIComponent(me?.name ?? '')}`;
+    const text = `Race me on Hunter System — daily quests, XP and ranks for real life.`;
+    try {
+      if (navigator.share) await navigator.share({ title: 'Hunter System', text, url });
+      else { await navigator.clipboard.writeText(`${text} ${url}`); setMsg({ ok: true, text: 'Invite link copied.' }); }
+    } catch { /* share sheet dismissed */ }
+  };
 
   return (
     <div className="space-y-3">
@@ -105,9 +115,14 @@ function FriendsBoard({ xp }: { xp: number }) {
         <input aria-label="Hunter name" className={inputCls} value={name} onChange={e => setName(e.target.value)} placeholder="Add a friend by their Hunter name" maxLength={30} />
         <Btn type="submit" disabled={!name.trim()}>FOLLOW</Btn>
       </form>
+      {me?.name_set ? (
+        <Btn type="button" onClick={invite}>🔗 INVITE A FRIEND</Btn>
+      ) : (
+        <p className="text-[11px] text-gray-500 font-mono">Choose a Hunter name to get your invite link.</p>
+      )}
       {msg && <p className={`text-xs font-mono ${msg.ok ? 'text-green-400' : 'text-yellow-300'}`}>{msg.text}</p>}
       {friends && friends.length <= 1 && (
-        <p className="text-sm text-gray-500 font-mono">Follow friends to race them on weekly XP. Share your Hunter card so they can find you.</p>
+        <p className="text-sm text-gray-500 font-mono">Follow friends to race them on weekly XP. Invite a friend — you'll follow each other automatically.</p>
       )}
       {friends && (
         <ol className="space-y-1.5">
