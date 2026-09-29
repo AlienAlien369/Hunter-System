@@ -227,6 +227,13 @@ export async function initDatabase() {
         UNIQUE (user_id, slug)
       );
 
+      -- Game progress (inventory, loadout, freezes, unlocks) synced across devices
+      CREATE TABLE IF NOT EXISTS user_state (
+        user_id INTEGER PRIMARY KEY REFERENCES users(id) ON DELETE CASCADE,
+        state JSONB NOT NULL,
+        updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+      );
+
       -- Friends: one-way follows between hunters
       CREATE TABLE IF NOT EXISTS friendships (
         follower_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,

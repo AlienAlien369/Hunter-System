@@ -464,35 +464,72 @@ function loadFromLocalStorage(): Partial<GameState> | null {
   return null;
 }
 
+const PERSISTED_KEYS = [
+  "dailyQuests", "profile", "hiddenQuest", "freezeCount", "freezeDates",
+  "inventory", "equipped", "unlockedTitles", "unlockedAchievements",
+] as const;
+/** Progress that lives only on the client — cloud-saved so it follows the hunter across devices. */
+const CLOUD_KEYS = ["inventory", "equipped", "freezeCount", "freezeDates", "unlockedTitles", "unlockedAchievements"] as const;
+
+// Partial saves merge onto the current store snapshot, so saving one key never
+// wipes the others.
 function saveToLocalStorage(state: Partial<GameState>) {
+  const current = useGameStore.getState();
+  const merged: Record<string, unknown> = {};
+  for (const k of PERSISTED_KEYS) merged[k] = state[k] !== undefined ? state[k] : current[k];
   try {
-    const {
-      dailyQuests,
-      profile,
-      hiddenQuest,
-      freezeCount,
-      freezeDates,
-      inventory,
-      equipped,
-      unlockedTitles,
-      unlockedAchievements,
-    } = state;
-    localStorage.setItem(
-      getStorageKey(),
-      JSON.stringify({
-        dailyQuests,
-        profile,
-        hiddenQuest,
-        freezeCount,
-        freezeDates,
-        inventory,
-        equipped,
-        unlockedTitles,
-        unlockedAchievements,
-      }),
-    );
+    localStorage.setItem(getStorageKey(), JSON.stringify(merged));
   } catch (e) {
     console.error("Failed to save to localStorage:", e);
+  }
+  scheduleCloudSave();
+}
+
+// Cloud pushes wait until this session has pulled the server copy once, so a
+// fresh device's empty defaults never overwrite real progress.
+// Keyed by username so switching accounts forces a fresh pull.
+let cloudUser: string | null = null;
+const cloudReady = () => !!cloudUser && cloudUser === useAuthStore.getState().user?.username;
+let cloudTimer: ReturnType<typeof setTimeout> | undefined;
+function cloudSnapshot(): Record<string, unknown> {
+  const s = useGameStore.getState();
+  return Object.fromEntries(CLOUD_KEYS.map((k) => [k, s[k]]));
+}
+function scheduleCloudSave() {
+  if (!cloudReady()) return;
+  clearTimeout(cloudTimer);
+  const user = cloudUser;
+  cloudTimer = setTimeout(() => {
+    if (user !== useAuthStore.getState().user?.username) return;
+    api.saveGameState(cloudSnapshot()).catch(() => {}); // ponytail: offline edits retry on the next change, no queue
+  }, 1500);
+}
+
+const union = (a: unknown, b: unknown): string[] =>
+  [...new Set([...(Array.isArray(a) ? a : []), ...(Array.isArray(b) ? b : [])])];
+
+/** Merge the server copy into the store: unlock lists union, everything else server wins. */
+export function mergeCloudState(local: Partial<GameState>, cloud: Record<string, unknown>): Partial<GameState> {
+  return {
+    inventory: (cloud.inventory as GameState["inventory"]) ?? local.inventory,
+    equipped: (cloud.equipped as GameState["equipped"]) ?? local.equipped,
+    freezeCount: typeof cloud.freezeCount === "number" ? cloud.freezeCount : local.freezeCount,
+    freezeDates: union(local.freezeDates, cloud.freezeDates),
+    unlockedTitles: union(local.unlockedTitles, cloud.unlockedTitles),
+    unlockedAchievements: union(local.unlockedAchievements, cloud.unlockedAchievements),
+  };
+}
+
+async function pullCloudState() {
+  try {
+    const { state } = await api.getGameState();
+    if (state) {
+      useGameStore.setState(mergeCloudState(useGameStore.getState(), state));
+    }
+    cloudUser = useAuthStore.getState().user?.username ?? null;
+    saveToLocalStorage({}); // persists the merge locally and pushes it (seeds the cloud on first sync)
+  } catch {
+    // Server unreachable — keep local progress; sync resumes on the next dashboard load.
   }
 }
 
@@ -645,6 +682,8 @@ export const useGameStore = create<GameState>((set, get) => ({
         freezeCount: get().freezeCount,
         freezeDates: get().freezeDates,
       });
+
+      if (!cloudReady()) await pullCloudState();
 
       // Check achievements after state is updated
       get().checkAchievements();

@@ -369,6 +369,7 @@ router.get("/export", authenticateToken, async (req: Request, res: Response) => 
       contentChannels: await q(`SELECT name, platform, category, status, posting_frequency, target_per_week, created_at FROM content_channels WHERE user_id = $1 ORDER BY id`),
       nutritionLogs: await q(`SELECT log_date, food_name, protein, cost FROM nutrition_logs WHERE user_id = $1 ORDER BY log_date, id`),
       penalties: await q(`SELECT penalty_date, missed_days, broken_streak, xp_lost, hp_lost, recovered FROM penalties WHERE user_id = $1 ORDER BY penalty_date`),
+      gameState: (await q(`SELECT state, updated_at FROM user_state WHERE user_id = $1`))[0] ?? null,
       coachReviews: await q(`SELECT week_start, review, created_at FROM coach_reviews WHERE user_id = $1 ORDER BY week_start`),
       following: (await q(`SELECT u.name FROM friendships f JOIN users u ON u.id = f.followee_id WHERE f.follower_id = $1 ORDER BY u.name`)).map((r: any) => r.name),
     };

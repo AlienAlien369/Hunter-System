@@ -446,11 +446,13 @@ describe('Hunter extensions', () => {
 
     it("ranks this week's earned XP by Hunter name only", async () => {
       const r = (await L2.get('/leaderboard?period=week')).body;
-      const mine = r.entries.filter((e: any) => e.name === n1 || e.name === n2);
-      assert.deepStrictEqual(mine.map((e: any) => [e.name, e.score]), [[n1, 35], [n2, 10]]);
-      assert.ok(mine[0].position < mine[1].position);
-      assert.strictEqual(mine.find((e: any) => e.name === n2).isMe, true);
+      // Only the top 50 are listed (a reused test DB may push n2 out), so check n2 via `me`.
+      const lead = r.entries.find((e: any) => e.name === n1);
+      assert.strictEqual(lead.score, 35);
+      const chase = r.entries.find((e: any) => e.name === n2);
+      if (chase) assert.strictEqual(chase.isMe, true);
       assert.strictEqual(r.me.score, 10);
+      assert.ok(lead.position < r.me.position);
       assert.ok(r.entries.every((e: any) => !('username' in e) && !('id' in e)), 'no usernames or ids leak');
     });
 
@@ -671,6 +673,24 @@ describe('Hunter extensions', () => {
       assert.ok(d.xpHistory.some((h: any) => h.action === 'quest_complete'));
       const other = await res.json();
       assert.strictEqual(other.completions.length, 0, 'another hunter sees only their own data');
+    });
+  });
+
+  describe('cloud game state', () => {
+    it('saves whitelisted progress per hunter and caps size', async () => {
+      const S = client((await register('ext_st_' + suffix)).cookie);
+      const empty = await S.get('/state');
+      assert.strictEqual(empty.status, 200);
+      assert.strictEqual(empty.body.state, null);
+      const put = await S.put('/state', { state: { inventory: [{ itemId: 'potion', instanceId: 'a1' }], freezeCount: 2, unlockedTitles: ['Shadow'], xp: 99999 } });
+      assert.strictEqual(put.status, 200);
+      const got = await S.get('/state');
+      assert.deepStrictEqual(got.body.state, { inventory: [{ itemId: 'potion', instanceId: 'a1' }], freezeCount: 2, unlockedTitles: ['Shadow'] });
+      const other = client((await register('ext_st2_' + suffix)).cookie);
+      assert.strictEqual((await other.get('/state')).body.state, null, 'isolated per hunter');
+      assert.strictEqual((await S.put('/state', { state: { inventory: ['x'.repeat(70_000)] } })).status, 413);
+      assert.strictEqual((await S.put('/state', { state: [1] })).status, 400);
+      assert.strictEqual((await S.get('/auth/export')).body.gameState.state.freezeCount, 2);
     });
   });
 

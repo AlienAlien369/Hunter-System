@@ -591,6 +591,11 @@ export const api = {
 
   exportData: () => request<Record<string, unknown>>('/auth/export'),
 
+  // Cloud save for inventory / loadout / freezes / unlocks
+  getGameState: () => request<{ state: Record<string, unknown> | null; updatedAt: string | null }>('/state'),
+  saveGameState: (state: Record<string, unknown>) =>
+    request<{ updatedAt: string }>('/state', { method: 'PUT', body: JSON.stringify({ state }) }),
+
   deleteAccount: (password: string, confirm: string) =>
     request<{ message: string }>('/auth/account', { method: 'DELETE', body: JSON.stringify({ password, confirm }) }),
 
