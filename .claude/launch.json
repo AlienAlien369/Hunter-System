@@ -1,0 +1,6 @@
+{
+  "version": "0.0.1",
+  "configurations": [
+    { "name": "web", "runtimeExecutable": "npx", "runtimeArgs": ["vite", "--port", "4173"], "port": 4173, "env": { "VITE_API_URL": "http://localhost:3000/api" } }
+  ]
+}
