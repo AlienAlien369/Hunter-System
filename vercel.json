@@ -2,5 +2,8 @@
   "installCommand": "npm install",
   "buildCommand": "npm run build",
   "outputDirectory": "dist",
-  "rewrites": [{ "source": "/(.*)", "destination": "/index.html" }]
+  "rewrites": [
+    { "source": "/h/:name", "destination": "/api/profile-preview?name=:name" },
+    { "source": "/((?!api/).*)", "destination": "/index.html" }
+  ]
 }
