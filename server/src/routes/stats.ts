@@ -5,6 +5,10 @@ import { logActivity } from "../activity.js";
 import { calculateRank } from "../progression.js";
 import { addDays, requestToday } from "../time.js";
 
+/** A users row minus credential columns — never send these to the client. */
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
+const withoutSecrets = ({ password_hash, recovery_hash, ...user }: Record<string, any>) => user;
+
 const router = Router();
 
 // GET /api/stats - Get all stats
@@ -74,7 +78,7 @@ router.get("/", authenticateToken, async (req: Request, res: Response) => {
     const fresh = await pool.query("SELECT * FROM users WHERE id = $1", [
       userId,
     ]);
-    const { password_hash: _ph, ...freshUser } = fresh.rows[0];
+    const freshUser = withoutSecrets(fresh.rows[0]);
 
     res.json({
       user: freshUser,
@@ -115,7 +119,7 @@ router.patch("/", authenticateToken, async (req: Request, res: Response) => {
     const result = await pool.query("SELECT * FROM users WHERE id = $1", [
       userId,
     ]);
-    const { password_hash: _passwordHash, ...user } = result.rows[0];
+    const user = withoutSecrets(result.rows[0]);
     await logActivity(userId, "stats_update", "profile", updates);
     res.json(user);
   } catch (error) {

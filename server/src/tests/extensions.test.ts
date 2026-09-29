@@ -721,6 +721,11 @@ describe('Hunter extensions', () => {
       const { code } = (await R.post('/auth/recovery-code', { password: 'ExtPass123!' })).body;
       assert.match(code, /^[A-Z2-9]{4}(-[A-Z2-9]{4}){3}$/);
       assert.ok((await R.get('/auth/recovery-code')).body.createdAt);
+      for (const path of ['/stats', '/auth/me']) {
+        const body = JSON.stringify((await R.get(path)).body);
+        assert.ok(!body.includes('recovery_hash') && !body.includes('password_hash'), `${path} leaks no credential hashes`);
+      }
+      assert.ok(!JSON.stringify((await R.patch('/stats', { str: 11 })).body).includes('recovery_hash'));
 
       const recover = (body: object) => fetch(`${BASE_URL}/api/auth/recover`, {
         method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body),
