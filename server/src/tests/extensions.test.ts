@@ -712,6 +712,34 @@ describe('Hunter extensions', () => {
     });
   });
 
+  describe('account recovery codes', () => {
+    it('resets a forgotten password with a single-use code', async () => {
+      const uname = 'ext_rec_' + suffix;
+      const R = client((await register(uname)).cookie);
+      assert.strictEqual((await R.get('/auth/recovery-code')).body.createdAt, null);
+      assert.strictEqual((await R.post('/auth/recovery-code', { password: 'wrong' })).status, 401);
+      const { code } = (await R.post('/auth/recovery-code', { password: 'ExtPass123!' })).body;
+      assert.match(code, /^[A-Z2-9]{4}(-[A-Z2-9]{4}){3}$/);
+      assert.ok((await R.get('/auth/recovery-code')).body.createdAt);
+
+      const recover = (body: object) => fetch(`${BASE_URL}/api/auth/recover`, {
+        method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body),
+      });
+      assert.strictEqual((await recover({ username: uname, code: 'AAAA-AAAA-AAAA-AAAA', newPassword: 'NewPass123!' })).status, 401);
+      assert.strictEqual((await recover({ username: uname, code, newPassword: '123' })).status, 400);
+      // Case/dash-insensitive entry works and signs the hunter in
+      const ok = await recover({ username: uname, code: code.toLowerCase().replace(/-/g, ' '), newPassword: 'NewPass123!' });
+      assert.strictEqual(ok.status, 200);
+      assert.ok((ok.headers.get('set-cookie') || '').includes('token='));
+      const login = (password: string) => fetch(`${BASE_URL}/api/auth/login`, {
+        method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ username: uname, password }),
+      });
+      assert.strictEqual((await login('NewPass123!')).status, 200);
+      assert.strictEqual((await login('ExtPass123!')).status, 401);
+      assert.strictEqual((await recover({ username: uname, code, newPassword: 'Other123!' })).status, 401, 'code is single-use');
+    });
+  });
+
   describe('cloud game state', () => {
     it('saves whitelisted progress per hunter and caps size', async () => {
       const S = client((await register('ext_st_' + suffix)).cookie);

@@ -22,12 +22,13 @@ export default function Login() {
     } catch { return fromUrl; }
   });
   // Newcomers land on "create account"; browsers that have signed in before land on login.
-  const [mode, setMode] = useState<'login' | 'register'>(() => {
+  const [mode, setMode] = useState<'login' | 'register' | 'recover'>(() => {
     if (new URLSearchParams(location.search).get('invite')) return 'register';
     try { return localStorage.getItem('hunter.hasAccount') ? 'login' : 'register'; } catch { return 'login'; }
   });
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
+  const [code, setCode] = useState('');
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
 
@@ -42,7 +43,12 @@ export default function Login() {
     setLoading(true);
 
     try {
-      if (mode === 'login') {
+      if (mode === 'recover') {
+        const response = await api.recover(username, code, password);
+        login(response.user);
+        sfx.login();
+        navigate('/settings', { replace: true }); // straight to Account to make a fresh code
+      } else if (mode === 'login') {
         const response = await api.login(username, password);
         try { localStorage.setItem('hunter.hasAccount', '1'); } catch { /* storage unavailable */ }
         login(response.user);
@@ -119,7 +125,7 @@ export default function Login() {
               HUNTER SYSTEM
             </h1>
             <p className="text-purple-400 font-mono text-sm mt-2">
-              {mode === 'login' ? 'ENTER THE DUNGEON' : 'JOIN THE HUNTERS'}
+              {mode === 'login' ? 'ENTER THE DUNGEON' : mode === 'recover' ? 'RECOVER YOUR ACCOUNT' : 'JOIN THE HUNTERS'}
             </p>
             {invite && mode === 'register' && (
               <p className="mt-3 text-xs font-mono text-gold border border-yellow-500/30 bg-yellow-500/10 rounded-lg px-3 py-2">
@@ -169,9 +175,26 @@ export default function Login() {
               />
             </div>
 
+            {mode === 'recover' && (
+              <div>
+                <label className="block text-gray-400 font-mono text-xs uppercase tracking-wider mb-2">
+                  Recovery code
+                </label>
+                <input
+                  type="text"
+                  value={code}
+                  onChange={(e) => setCode(e.target.value)}
+                  className="w-full bg-[#0d1117] border border-purple-500/20 rounded-lg px-4 py-3 text-white font-mono tracking-widest uppercase focus:outline-none focus:border-purple-500/50 focus:ring-1 focus:ring-purple-500/50 transition-all"
+                  placeholder="XXXX-XXXX-XXXX-XXXX"
+                  autoComplete="off"
+                  required
+                />
+              </div>
+            )}
+
             <div>
               <label className="block text-gray-400 font-mono text-xs uppercase tracking-wider mb-2">
-                Password
+                {mode === 'recover' ? 'New password' : 'Password'}
               </label>
               <input
                 type="password"
@@ -210,10 +233,20 @@ export default function Login() {
                   PROCESSING...
                 </span>
               ) : (
-                mode === 'login' ? 'ENTER SYSTEM' : 'CREATE ACCOUNT'
+                mode === 'login' ? 'ENTER SYSTEM' : mode === 'recover' ? 'RESET PASSWORD' : 'CREATE ACCOUNT'
               )}
             </button>
           </form>
+
+          {mode !== 'register' && (
+            <button
+              type="button"
+              onClick={() => { setMode(mode === 'login' ? 'recover' : 'login'); setError(''); }}
+              className="block mx-auto mt-4 text-xs font-mono text-gray-500 hover:text-purple-300"
+            >
+              {mode === 'login' ? 'Forgot password? Use your recovery code' : '← Back to login'}
+            </button>
+          )}
 
         </div>
 

@@ -3,8 +3,9 @@ import { motion } from 'framer-motion';
 import { api } from '../lib/api';
 import { useAuthStore } from '../store/authStore';
 import { Btn, inputCls } from './hunter/ui';
+import RecoveryCodeCard from './RecoveryCodeCard';
 
-/** Settings → Account: change password, and permanently delete the account. */
+/** Settings → Account: change password, recovery code, data export, and account deletion. */
 export default function AccountPanel() {
   const user = useAuthStore(s => s.user);
   const [current, setCurrent] = useState('');
@@ -88,6 +89,8 @@ export default function AccountPanel() {
           {pwMsg && <span className={`text-xs font-mono ${pwMsg.ok ? 'text-green-400' : 'text-red-400'}`}>{pwMsg.text}</span>}
         </div>
       </form>
+
+      <RecoveryCodeCard />
 
       <div className="flex flex-wrap items-center justify-between gap-2 rounded-lg bg-[#161b22]/80 border border-purple-500/15 p-3">
         <div>

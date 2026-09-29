@@ -1,5 +1,6 @@
 import { Router, Request, Response } from "express";
 import bcrypt from "bcrypt";
+import { randomInt } from "crypto";
 import jwt from "jsonwebtoken";
 import { pool } from "../db.js";
 import { authenticateToken, jwtSecret } from "../middleware/auth.js";
@@ -351,6 +352,61 @@ router.post("/change-password", authenticateToken, async (req: Request, res: Res
   } catch (error) {
     console.error("Change password error:", error);
     res.status(500).json({ error: "Failed to change password" });
+  }
+});
+
+// ── Account recovery (no email): a single-use code the hunter saves offline ──
+const CODE_ALPHABET = "ABCDEFGHJKMNPQRSTUVWXYZ23456789"; // no 0/O/1/I/L
+const normalizeCode = (c: unknown) => (typeof c === "string" ? c.toUpperCase().replace(/[^A-Z0-9]/g, "") : "");
+
+/** GET /api/auth/recovery-code → { createdAt } (null when none is set). */
+router.get("/recovery-code", authenticateToken, async (req: Request, res: Response) => {
+  const r = await pool.query("SELECT recovery_created_at FROM users WHERE id = $1", [req.user!.id]).catch(() => null);
+  if (!r) return res.status(500).json({ error: "Failed to load recovery status" });
+  res.json({ createdAt: r.rows[0]?.recovery_created_at ?? null });
+});
+
+/** POST /api/auth/recovery-code { password } → { code } — shown once; replaces any previous code. */
+router.post("/recovery-code", authenticateToken, async (req: Request, res: Response) => {
+  try {
+    const user = await verifyPassword(req, res, req.body?.password);
+    if (!user) return;
+    const raw = Array.from({ length: 16 }, () => CODE_ALPHABET[randomInt(CODE_ALPHABET.length)]).join("");
+    await pool.query("UPDATE users SET recovery_hash = $1, recovery_created_at = NOW() WHERE id = $2", [await bcrypt.hash(raw, 10), user.id]);
+    await logActivity(user.id, "recovery_code_created", user.username);
+    res.json({ code: raw.match(/.{4}/g)!.join("-") });
+  } catch (error) {
+    console.error("Recovery code error:", error);
+    res.status(500).json({ error: "Failed to create recovery code" });
+  }
+});
+
+/** POST /api/auth/recover { username, code, newPassword } — resets the password and signs in; the code is used up. */
+router.post("/recover", async (req: Request, res: Response) => {
+  try {
+    const { username, newPassword } = req.body ?? {};
+    const code = normalizeCode(req.body?.code);
+    if (typeof username !== "string" || !username || !code) return res.status(400).json({ error: "Username and recovery code are required" });
+    if (typeof newPassword !== "string" || newPassword.length < 6) return res.status(400).json({ error: "New password must be at least 6 characters" });
+    const failKey = `recover-fail:${req.ip}:${username.toLowerCase()}`;
+    const locked = blockedFor(failKey, LIMITS.failedLogins.max);
+    if (locked) return tooMany(res, locked, "failed recovery attempts");
+    const user = (await pool.query("SELECT id, username, name, recovery_hash FROM users WHERE username = $1", [username])).rows[0];
+    if (!user?.recovery_hash || !(await bcrypt.compare(code, user.recovery_hash))) {
+      hit(failKey, LIMITS.failedLogins.max, LIMITS.failedLogins.windowMs);
+      return res.status(401).json({ error: "Username or recovery code is incorrect" });
+    }
+    clearKey(failKey);
+    await pool.query(
+      "UPDATE users SET password_hash = $1, recovery_hash = NULL, recovery_created_at = NULL, updated_at = NOW() WHERE id = $2",
+      [await bcrypt.hash(newPassword, 10), user.id],
+    );
+    await logActivity(user.id, "password_recovered", user.username);
+    issueSession(req, res, user);
+    res.json({ message: "Password reset", user: { id: user.id, username: user.username, name: user.name } });
+  } catch (error) {
+    console.error("Recover error:", error);
+    res.status(500).json({ error: "Failed to recover account" });
   }
 });
 

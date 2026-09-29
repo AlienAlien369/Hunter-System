@@ -602,6 +602,13 @@ export const api = {
 
   exportData: () => request<Record<string, unknown>>('/auth/export'),
 
+  // Recovery code (no email reset): create in Settings, redeem on the login screen
+  getRecoveryStatus: () => request<{ createdAt: string | null }>('/auth/recovery-code'),
+  createRecoveryCode: (password: string) =>
+    request<{ code: string }>('/auth/recovery-code', { method: 'POST', body: JSON.stringify({ password }) }),
+  recover: (username: string, code: string, newPassword: string) =>
+    request<AuthResponse>('/auth/recover', { method: 'POST', body: JSON.stringify({ username, code, newPassword }) }),
+
   getPublicHunter: (name: string) => request<PublicHunter>(`/public/hunters/${encodeURIComponent(name)}`),
 
   // Cloud save for inventory / loadout / freezes / unlocks
