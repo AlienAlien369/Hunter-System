@@ -22,7 +22,7 @@ export default function Admin() {
   useEffect(() => { api.getBusiness(days).then(setBiz).catch(() => setBiz(null)); }, [days]);
 
   if (error) return <Panel title="ADMIN"><p className="text-sm text-yellow-300 font-mono" role="alert">{error}</p></Panel>;
-  if (!report) return <p className="text-gray-500 font-mono text-sm">Loading funnel…</p>;
+  if (!report) return <p className="text-gray-400 font-mono text-sm">Loading funnel…</p>;
 
   const steps = funnelSteps(report.totals);
   const top = Math.max(1, report.totals.signups);
@@ -45,7 +45,7 @@ export default function Admin() {
           </div>
         }
       >
-        <p className="text-[11px] text-gray-500 font-mono mb-4">
+        <p className="text-[11px] text-gray-400 font-mono mb-4">
           Hunters who signed up in the last {report.days} days{report.region ? ` · region ${report.region}` : ''}. Derived from existing data — no extra tracking of individuals.
         </p>
         <ol className="space-y-3">
@@ -53,12 +53,12 @@ export default function Admin() {
             <li key={s.key}>
               <div className="flex justify-between text-sm font-mono">
                 <span className="text-gray-200">{s.label}</span>
-                <span className="text-white">{s.count.toLocaleString()} <span className="text-gray-500">{s.fromPrev === null ? '' : `· ${fmtPct(s.fromPrev)}`}</span></span>
+                <span className="text-white">{s.count.toLocaleString()} <span className="text-gray-400">{s.fromPrev === null ? '' : `· ${fmtPct(s.fromPrev)}`}</span></span>
               </div>
               <div className="h-2 mt-1 rounded bg-white/5 overflow-hidden" role="presentation">
                 <div className="h-full bg-gradient-to-r from-purple-500 to-blue-500" style={{ width: `${Math.min(100, (s.count / top) * 100)}%` }} />
               </div>
-              {s.note && <p className="text-[11px] text-gray-500 font-mono mt-1">{s.note}</p>}
+              {s.note && <p className="text-[11px] text-gray-400 font-mono mt-1">{s.note}</p>}
             </li>
           ))}
         </ol>
@@ -71,7 +71,7 @@ export default function Admin() {
           <Stat label="PRICING" value={report.visits.pricing.toLocaleString()} />
           <Stat label="UPGRADE CLICKS" value={report.visits.upgradeClicks.toLocaleString()} />
         </div>
-        <p className="text-[11px] text-gray-500 font-mono mt-3">Visit → signup: {fmtPct(conv)}. Visitors who send Do Not Track or Global Privacy Control are not counted, so this reads high.</p>
+        <p className="text-[11px] text-gray-400 font-mono mt-3">Visit → signup: {fmtPct(conv)}. Visitors who send Do Not Track or Global Privacy Control are not counted, so this reads high.</p>
       </Panel>
 
       {biz && (
@@ -98,14 +98,14 @@ export default function Admin() {
             <Stat label="AVG CLASS SIZE" value={String(biz.classes.avgSize)} />
             <Stat label="HIT AI LIMIT (7D)" value={biz.aiLimitHitters7d.toLocaleString()} />
           </div>
-          <p className="mt-3 text-[11px] text-gray-500 font-mono">“Hit AI limit” counts free hunters who used all of a day’s AI suggestions: people who may want Pro. Aggregates only.</p>
+          <p className="mt-3 text-[11px] text-gray-400 font-mono">“Hit AI limit” counts free hunters who used all of a day’s AI suggestions: people who may want Pro. Aggregates only.</p>
         </Panel>
       )}
 
       <Panel title="BY REGION">
         <div className="overflow-x-auto">
           <table className="w-full text-xs font-mono text-left">
-            <thead className="text-gray-500">
+            <thead className="text-gray-400">
               <tr><th className="py-1">Region</th><th>Signups</th><th>Timetable</th><th>1st quest</th><th>Day 7</th><th>Upgraded</th></tr>
             </thead>
             <tbody className="text-gray-200">
@@ -119,7 +119,7 @@ export default function Admin() {
                   <td>{r.upgraded}</td>
                 </tr>
               ))}
-              {report.byRegion.length === 0 && <tr><td colSpan={6} className="py-3 text-gray-500">No signups in this window.</td></tr>}
+              {report.byRegion.length === 0 && <tr><td colSpan={6} className="py-3 text-gray-400">No signups in this window.</td></tr>}
             </tbody>
           </table>
         </div>

@@ -30,7 +30,7 @@ export default function Legal({ kind }: { kind: LegalKind }) {
         </nav>
         <article className="bg-[#0d1117]/90 backdrop-blur-xl rounded-xl border border-purple-500/30 p-6 sm:p-8">
           <h1 className="font-display text-2xl sm:text-3xl text-white font-bold tracking-wider">{doc.title}</h1>
-          <p className="text-[11px] font-mono text-gray-500 mt-1">Version {LEGAL.version} · effective {LEGAL.effective}</p>
+          <p className="text-[11px] font-mono text-gray-400 mt-1">Version {LEGAL.version} · effective {LEGAL.effective}</p>
           {!legalConfigured && (
             <p role="note" className="mt-4 text-xs font-mono text-yellow-300 border border-yellow-500/30 bg-yellow-500/10 rounded-lg px-3 py-2">
               The operator’s name, address and contact details have not been filled in yet. They must be added before this service is launched to the public.

@@ -80,10 +80,10 @@ export const useAuthStore = create<AuthState>(set => ({
   checkAuth: async () => {
     set({ loading: true });
     try {
-      const response = await api.getMe();
+      const response = await api.getSession();
       set({
         user: response.user,
-        isAuthenticated: true,
+        isAuthenticated: !!response.user,
         loading: false,
       });
     } catch (error) {

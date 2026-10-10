@@ -18,15 +18,24 @@ export function weekStart(now = new Date()): string {
   return d.toISOString().split('T')[0];
 }
 
-// GET /api/leaderboard?period=week|all&scope=global|country
+// GET /api/leaderboard?period=week|all&scope=global|country|class&classId=N
+//  scope=class ranks only the members of a class the requester belongs to (or teaches).
 //  scope=country ranks only hunters from the requester's own country (their
 //  profile country, which they can set); without one the response asks for it.
 router.get('/', async (req: Request, res: Response) => {
   try {
     const userId = req.user!.id;
     const period = req.query.period === 'all' ? 'all' : 'week';
-    const scope = req.query.scope === 'country' ? 'country' : 'global';
+    const scope = req.query.scope === 'country' ? 'country' : req.query.scope === 'class' ? 'class' : 'global';
     const since = weekStart();
+    let classId: number | null = null;
+    if (scope === 'class') {
+      classId = Number(req.query.classId);
+      const ok = Number.isInteger(classId) && classId > 0 && (await pool.query(
+        `SELECT 1 FROM classes c WHERE c.id = $1 AND NOT c.archived
+           AND (c.owner_id = $2 OR EXISTS (SELECT 1 FROM class_members m WHERE m.class_id = c.id AND m.user_id = $2))`, [classId, userId])).rowCount;
+      if (!ok) return res.status(404).json({ error: 'Class not found' });
+    }
     const mine = (await pool.query('SELECT region, name_set, show_on_leaderboard FROM users WHERE id = $1', [userId])).rows[0];
     if (scope === 'country' && !mine?.region) {
       return res.json({ period, scope, region: null, needsRegion: true, weekStart: since, entries: [], me: { score: 0, position: null, visible: !!mine?.show_on_leaderboard, nameSet: !!mine?.name_set } });
@@ -35,9 +44,9 @@ router.get('/', async (req: Request, res: Response) => {
     const scores = period === 'all'
       ? `SELECT id AS user_id, xp AS score FROM users`
       : `SELECT user_id, SUM(xp)::int AS score FROM (
-           SELECT user_id, COALESCE(xp_awarded, 0) AS xp FROM quest_completions WHERE completion_date >= $3::date
+           SELECT user_id, COALESCE(xp_awarded, 0) AS xp FROM quest_completions WHERE completion_date >= $4::date
            UNION ALL
-           SELECT user_id, COALESCE(xp_awarded, 0) FROM unplanned_activities WHERE status = 'accepted' AND resolved_at >= $3::date
+           SELECT user_id, COALESCE(xp_awarded, 0) FROM unplanned_activities WHERE status = 'accepted' AND resolved_at >= $4::date
          ) e GROUP BY user_id`;
     const r = await pool.query(
       `WITH s AS (${scores}),
@@ -46,9 +55,10 @@ router.get('/', async (req: Request, res: Response) => {
          FROM s JOIN users u ON u.id = s.user_id
          WHERE u.name_set AND u.show_on_leaderboard AND s.score > 0
            AND ($2::text IS NULL OR u.region = $2)
+           AND ($3::int IS NULL OR u.id IN (SELECT user_id FROM class_members WHERE class_id = $3))
        )
        SELECT * FROM ranked WHERE pos <= 50 OR id = $1 ORDER BY pos, id`,
-      period === 'all' ? [userId, region] : [userId, region, since],
+      period === 'all' ? [userId, region, classId] : [userId, region, classId, since],
     );
     const mineRow = r.rows.find((x: any) => x.id === userId);
     let myScore = mineRow?.score;
@@ -65,6 +75,7 @@ router.get('/', async (req: Request, res: Response) => {
       period,
       scope,
       region,
+      classId,
       weekStart: since,
       entries: r.rows.filter((x: any) => Number(x.pos) <= 50).map((x: any) => ({
         position: Number(x.pos),

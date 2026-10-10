@@ -168,7 +168,7 @@ export default function Pricing() {
             ))}
           </div>
         </div>
-        <p id="region-hint" className="mt-2 text-center text-[11px] font-mono text-gray-500">{t('pricing.region.hint')}</p>
+        <p id="region-hint" className="mt-2 text-center text-[11px] font-mono text-gray-400">{t('pricing.region.hint')}</p>
 
         <div className="mt-8 grid gap-5 md:grid-cols-2">
           <section aria-labelledby="plan-free" className="rounded-2xl p-6 border border-purple-500/20 bg-[#0d1117]/80">

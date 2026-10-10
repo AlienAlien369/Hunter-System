@@ -238,6 +238,8 @@ export const hinglish: Messages = {
   'country.hint': 'Country leaderboard aur tumhari local price ke liye. Doosre hunters ise kabhi nahi dekhte.',
   'country.choose': 'Apna desh chuno',
   'leaderboard.scope.world': 'DUNIYA',
+  'leaderboard.scope.class': 'MERI CLASS',
+  'leaderboard.classEmpty': 'Is board par abhi koi classmate nahi hai.',
   'leaderboard.scope.country': 'MERA DESH',
   'leaderboard.needsCountry': 'Apne desh mein apni rank dekhne ke liye apna desh chuno.',
   'leaderboard.countryEmpty': '{country} ka koi hunter abhi board par nahi hai. Pehle bano.',

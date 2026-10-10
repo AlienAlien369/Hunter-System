@@ -103,6 +103,42 @@ describe('Segmented leaderboard', () => {
     assert.deepStrictEqual(r.entries.map((e: any) => e.name), [a.name]);
   });
 
+  describe('class board', () => {
+    let teacher: Awaited<ReturnType<typeof hunter>>;
+    let classId: number;
+    it('ranks only the members of a class, visible to members and the teacher', async () => {
+      teacher = await hunter('lbteach', null, 0);
+      made.push(teacher.id);
+      const cls = await (await fetch(`${BASE_URL}/api/classes`, { method: 'POST', headers: { ...json, Cookie: teacher.cookie }, body: JSON.stringify({ name: 'Board class' }) })).json();
+      classId = cls.id;
+      await db.query('INSERT INTO class_members (class_id, user_id) VALUES ($1, $2), ($1, $3)', [classId, a.id, c.id]);
+      const asMember = (await board(a.cookie, `period=all&scope=class&classId=${classId}`)).body;
+      assert.strictEqual(asMember.scope, 'class');
+      assert.deepStrictEqual(asMember.entries.map((e: any) => e.name), [c.name, a.name], 'only classmates, ranked among themselves');
+      assert.ok(!asMember.entries.some((e: any) => e.name === b.name), 'a hunter outside the class is not shown');
+      assert.strictEqual(asMember.me.position, 2);
+      const asTeacher = (await board(teacher.cookie, `period=all&scope=class&classId=${classId}`)).body;
+      assert.deepStrictEqual(asTeacher.entries.map((e: any) => e.name), [c.name, a.name]);
+    });
+    it('is closed to outsiders and bad ids', async () => {
+      assert.strictEqual((await board(b.cookie, `period=all&scope=class&classId=${classId}`)).status, 404, 'not a member');
+      assert.strictEqual((await board(a.cookie, 'period=all&scope=class&classId=999999')).status, 404);
+      assert.strictEqual((await board(a.cookie, 'period=all&scope=class&classId=abc')).status, 404);
+      assert.strictEqual((await board(a.cookie, 'period=all&scope=class')).status, 404);
+    });
+    it('respects a classmate\'s opt-out and works for the weekly period', async () => {
+      await db.query('UPDATE users SET show_on_leaderboard = false WHERE id = $1', [c.id]);
+      const r = (await board(a.cookie, `period=all&scope=class&classId=${classId}`)).body;
+      assert.deepStrictEqual(r.entries.map((e: any) => e.name), [a.name]);
+      assert.strictEqual((await board(a.cookie, `period=week&scope=class&classId=${classId}`)).status, 200);
+      await db.query('UPDATE users SET show_on_leaderboard = true WHERE id = $1', [c.id]);
+    });
+    it('stops showing a class that was archived', async () => {
+      await db.query('UPDATE classes SET archived = true WHERE id = $1', [classId]);
+      assert.strictEqual((await board(a.cookie, `period=all&scope=class&classId=${classId}`)).status, 404);
+    });
+  });
+
   describe('country setting', () => {
     const put = (cookie: string, region: unknown) => fetch(`${BASE_URL}/api/auth/region`, { method: 'PUT', headers: { ...json, Cookie: cookie }, body: JSON.stringify({ region }) }).then(async r => ({ status: r.status, body: (await r.json()) as any }));
     it('lets a hunter set their own country, which moves them to that board', async () => {

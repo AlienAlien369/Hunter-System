@@ -15,20 +15,30 @@ export default function LeaderboardPanel() {
   const t = useT();
   const locale = useLocaleStore(s => s.locale);
   const [period, setPeriod] = useState<'week' | 'all' | 'friends'>('week');
-  const [scope, setScope] = useState<'global' | 'country'>('global');
+  const [scope, setScope] = useState<'global' | 'country' | 'class'>('global');
+  const [classes, setClasses] = useState<{ id: number; name: string }[]>([]);
+  const [classId, setClassId] = useState<number | null>(null);
+  useEffect(() => {
+    api.getClasses().then(r => {
+      const all = [...r.joined.map(c => ({ id: c.id, name: c.name })), ...r.teaching.filter(c => !c.archived).map(c => ({ id: c.id, name: c.name }))];
+      setClasses(all);
+      setClassId(cur => cur ?? all[0]?.id ?? null);
+    }).catch(() => {});
+  }, []);
   const [data, setData] = useState<Leaderboard | null>(null);
   const [error, setError] = useState('');
   const xp = useGameStore(s => s.profile.xp);
 
   useEffect(() => {
     if (period === 'friends') return;
-    api.getLeaderboard(period, scope).then(d => { setData(d); setError(''); }).catch(e => setError((e as Error).message));
-  }, [period, scope, xp]);
+    if (scope === 'class' && !classId) return;
+    api.getLeaderboard(period, scope, classId ?? undefined).then(d => { setData(d); setError(''); }).catch(e => setError((e as Error).message));
+  }, [period, scope, classId, xp]);
 
   const toggleVisible = async () => {
     if (!data || period === 'friends') return;
     await api.setLeaderboardVisibility(!data.me.visible);
-    setData(await api.getLeaderboard(period, scope));
+    setData(await api.getLeaderboard(period, scope, classId ?? undefined));
   };
 
   const tab = (p: 'week' | 'all' | 'friends', label: string) => (
@@ -44,13 +54,18 @@ export default function LeaderboardPanel() {
       {error && <p className="text-sm text-red-400 font-mono">{error}</p>}
       {period !== 'friends' && (
         <div className="mb-3 flex gap-1.5" role="group" aria-label="Board">
-          {(['global', 'country'] as const).map(sc => (
+          {(classes.length ? (['global', 'country', 'class'] as const) : (['global', 'country'] as const)).map(sc => (
             <button key={sc} type="button" onClick={() => setScope(sc)} aria-pressed={scope === sc}
               className={`px-2.5 py-1 rounded-md text-[11px] font-mono border ${scope === sc ? 'bg-blue-500/20 border-blue-400/50 text-blue-100' : 'border-gray-700 text-gray-500 hover:text-gray-300'}`}>
-              {t(sc === 'global' ? 'leaderboard.scope.world' : 'leaderboard.scope.country')}
+              {t(sc === 'global' ? 'leaderboard.scope.world' : sc === 'country' ? 'leaderboard.scope.country' : 'leaderboard.scope.class')}
               {sc === 'country' && data?.region ? ` · ${data.region}` : ''}
             </button>
           ))}
+          {scope === 'class' && classes.length > 1 && (
+            <select aria-label="Class" value={classId ?? ''} onChange={e => setClassId(Number(e.target.value))} className="bg-[#0d1117] border border-purple-500/30 rounded-md px-2 py-1 text-[11px] font-mono text-gray-200">
+              {classes.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
+            </select>
+          )}
         </div>
       )}
       {period !== 'friends' && scope === 'country' && data?.needsRegion && (
@@ -63,7 +78,7 @@ export default function LeaderboardPanel() {
       {period !== 'friends' && data && !data.needsRegion && (
         <div className="space-y-3">
           {data.entries.length === 0 ? (
-            <p className="text-sm text-gray-500 font-mono">{scope === 'country' && data.region ? t('leaderboard.countryEmpty', { country: regionName(localeInfo(locale).intl, data.region) }) : `No hunters on the board yet${period === 'week' ? ' this week' : ''}. Complete a quest to claim the top spot.`}</p>
+            <p className="text-sm text-gray-500 font-mono">{scope === 'class' ? t('leaderboard.classEmpty') : scope === 'country' && data.region ? t('leaderboard.countryEmpty', { country: regionName(localeInfo(locale).intl, data.region) }) : `No hunters on the board yet${period === 'week' ? ' this week' : ''}. Complete a quest to claim the top spot.`}</p>
           ) : (
             <ol className="space-y-1.5">
               {data.entries.map(e => (

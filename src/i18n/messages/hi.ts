@@ -239,6 +239,8 @@ export const hi: Messages = {
   'country.hint': 'देश के लीडरबोर्ड और तुम्हारी स्थानीय क़ीमत के लिए। दूसरे हंटर्स इसे कभी नहीं देखते।',
   'country.choose': 'अपना देश चुनो',
   'leaderboard.scope.world': 'दुनिया',
+  'leaderboard.scope.class': 'मेरी क्लास',
+  'leaderboard.classEmpty': 'इस बोर्ड पर अभी कोई सहपाठी नहीं है।',
   'leaderboard.scope.country': 'मेरा देश',
   'leaderboard.needsCountry': 'अपने देश में अपनी रैंक देखने के लिए अपना देश चुनो।',
   'leaderboard.countryEmpty': '{country} का कोई हंटर अभी बोर्ड पर नहीं है। पहले बनो।',

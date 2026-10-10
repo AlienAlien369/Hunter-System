@@ -47,7 +47,7 @@ export default function BillingPanel() {
   return (
     <section aria-labelledby="billing-title" className="bg-[#0d1117]/80 backdrop-blur-xl rounded-xl border border-accent-border p-5 space-y-3">
       <h2 id="billing-title" className="font-display text-white font-bold tracking-widest text-sm">{t('billing.title')}</h2>
-      {!state ? <p className="text-xs font-mono text-gray-500">{t('billing.loading')}</p> : <p className="text-sm font-mono text-gray-300">{line}</p>}
+      {!state ? <p className="text-xs font-mono text-gray-400">{t('billing.loading')}</p> : <p className="text-sm font-mono text-gray-300">{line}</p>}
       {state && <p className="text-xs font-mono text-gray-400">{t('billing.aiUsed', { used: state.aiUsedToday, limit: state.limits.aiPerDay })}</p>}
       <div className="flex flex-wrap items-center gap-3">
         {state && !live && <Link to="/pricing" className="px-4 py-2 rounded-lg bg-purple-600 hover:bg-purple-500 text-white font-display text-sm tracking-wider">{t('billing.upgrade')}</Link>}

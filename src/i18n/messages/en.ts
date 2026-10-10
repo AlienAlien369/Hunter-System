@@ -250,6 +250,8 @@ export const en = {
   'country.hint': 'Used for the country leaderboard and your local price. Other hunters never see it.',
   'country.choose': 'Choose your country',
   'leaderboard.scope.world': 'WORLD',
+  'leaderboard.scope.class': 'MY CLASS',
+  'leaderboard.classEmpty': 'No classmates on this board yet.',
   'leaderboard.scope.country': 'MY COUNTRY',
   'leaderboard.needsCountry': 'Choose your country to see how you rank at home.',
   'leaderboard.countryEmpty': 'No hunters from {country} on the board yet. Be the first.',

@@ -36,7 +36,7 @@ export default function ReferralCard() {
       {me?.name_set ? (
         <button onClick={invite} className="px-4 py-2 rounded-lg bg-purple-600 hover:bg-purple-500 text-white font-display text-sm tracking-wider">{t('referral.copy')}</button>
       ) : (
-        <p className="text-xs font-mono text-gray-500">{t('referral.needName')}</p>
+        <p className="text-xs font-mono text-gray-400">{t('referral.needName')}</p>
       )}
       {note && <p role="status" className="text-xs font-mono text-green-400">{note}</p>}
     </section>

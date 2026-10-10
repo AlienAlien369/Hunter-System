@@ -3,7 +3,7 @@ import bcrypt from "bcrypt";
 import { randomInt } from "crypto";
 import jwt from "jsonwebtoken";
 import { pool } from "../db.js";
-import { authenticateToken, jwtSecret } from "../middleware/auth.js";
+import { authenticateToken, jwtSecret, optionalAuth } from "../middleware/auth.js";
 import { logActivity } from "../activity.js";
 import { calculateLevel, calculateRank } from "../progression.js";
 import { detectRegion, isRealRegion } from "../region.js";
@@ -238,7 +238,7 @@ router.post("/logout", (req: Request, res: Response) => {
  * GET /api/auth/me
  * Get current user info (requires authentication)
  */
-router.get("/me", authenticateToken, async (req: Request, res: Response) => {
+async function currentUser(req: Request, res: Response) {
   try {
     const userId = req.user?.id;
 
@@ -276,7 +276,17 @@ router.get("/me", authenticateToken, async (req: Request, res: Response) => {
     console.error("Get me error:", error);
     res.status(500).json({ error: "Failed to get user info" });
   }
-});
+}
+
+router.get("/me", authenticateToken, currentUser);
+
+/**
+ * GET /api/auth/session — like /me, but "nobody is signed in" is a normal answer
+ * ({ user: null }, HTTP 200) instead of a 401, so signed-out visitors do not
+ * produce a console error on every page load. An invalid or expired cookie also
+ * reads as signed out.
+ */
+router.get("/session", optionalAuth, (req: Request, res: Response) => (req.user ? currentUser(req, res) : res.json({ user: null })));
 
 /**
  * POST /api/auth/set-name

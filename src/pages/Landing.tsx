@@ -94,7 +94,7 @@ export default function Landing({ variant }: { variant: LandingVariant }) {
             <h1 className="mt-4 font-display text-3xl sm:text-5xl font-bold leading-tight">{t(`landing.h1.${variant}` as MessageKey)}</h1>
             <p className="mt-5 text-base sm:text-lg text-gray-300 leading-relaxed max-w-2xl mx-auto">{t(`landing.sub.${variant}` as MessageKey)}</p>
             {cta}
-            <p className="mt-10 text-[11px] font-mono text-gray-500 tracking-widest">{t('landing.for.title').toUpperCase()}</p>
+            <p className="mt-10 text-[11px] font-mono text-gray-400 tracking-widest">{t('landing.for.title').toUpperCase()}</p>
             <ul className="mt-3 flex flex-wrap justify-center gap-2">
               {FOR[variant].map(k => <li key={k} className="px-3 py-1 rounded-full border border-purple-500/30 bg-purple-500/10 text-sm font-mono text-purple-100">{t(k)}</li>)}
             </ul>
@@ -175,7 +175,7 @@ export default function Landing({ variant }: { variant: LandingVariant }) {
 
         <footer className="max-w-5xl mx-auto px-4 pb-10 text-center">
           <LegalLinks />
-          <p className="mt-3 text-[11px] font-mono text-gray-600">{t('auth.footer')}</p>
+          <p className="mt-3 text-[11px] font-mono text-gray-400">{t('auth.footer')}</p>
         </footer>
       </div>
     </div>

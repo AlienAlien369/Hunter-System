@@ -491,7 +491,7 @@ export interface LeaderboardEntry {
 
 export interface Leaderboard {
   period: 'week' | 'all';
-  scope?: 'global' | 'country';
+  scope?: 'global' | 'country' | 'class';
   region?: string | null;
   needsRegion?: boolean;
   weekStart: string;
@@ -615,6 +615,10 @@ export const api = {
     request<{ message: string }>('/auth/logout', {
       method: 'POST',
     }),
+
+  // Like getMe, but a signed-out visitor gets { user: null } (HTTP 200) instead of a 401 console error.
+  getSession: () =>
+    request<{ user: (User & { name_set?: boolean }) | null }>('/auth/session'),
 
   getMe: () =>
     request<{ user: User & { name_set?: boolean } }>('/auth/me'),
@@ -753,7 +757,8 @@ export const api = {
     request<ModuleDraft>('/modules/ai/draft', { method: 'POST', body: JSON.stringify({ prompt, moduleId }) }),
 
   // Leaderboard
-  getLeaderboard: (period: 'week' | 'all', scope: 'global' | 'country' = 'global') => request<Leaderboard>(`/leaderboard?period=${period}&scope=${scope}`),
+  getLeaderboard: (period: 'week' | 'all', scope: 'global' | 'country' | 'class' = 'global', classId?: number) =>
+    request<Leaderboard>(`/leaderboard?period=${period}&scope=${scope}${scope === 'class' && classId ? `&classId=${classId}` : ''}`),
   setRegion: (region: string) => request<{ region: string }>('/auth/region', { method: 'PUT', body: JSON.stringify({ region }) }),
 
   setLeaderboardVisibility: (visible: boolean) =>

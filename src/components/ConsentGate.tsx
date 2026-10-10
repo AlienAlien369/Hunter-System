@@ -72,7 +72,7 @@ export default function ConsentGate() {
             <p className="text-sm text-gray-300 font-mono leading-relaxed">
               {user.parentEmailMasked ? t('consent.pending.body', { email: user.parentEmailMasked }) : t('consent.pending.bodyNoEmail')}
             </p>
-            <p className="text-xs text-gray-500 font-mono">{t('consent.pending.expiry')}</p>
+            <p className="text-xs text-gray-400 font-mono">{t('consent.pending.expiry')}</p>
             <label className="block text-xs font-mono uppercase tracking-wider text-gray-400" htmlFor="pe">{t('consent.pending.emailLabel')}</label>
             <input id="pe" type="email" className={field} value={parentEmail} onChange={e => setParentEmail(e.target.value)} autoComplete="off" />
             <button className={button} disabled={busy || (!!parentEmail && !looksLikeEmail(parentEmail))} onClick={resend}>{busy ? t('consent.pending.sending') : t('consent.pending.send')}</button>

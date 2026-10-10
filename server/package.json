@@ -7,7 +7,7 @@
     "build": "tsc",
     "start": "node dist/index.js",
     "migrate": "node-pg-migrate up",
-    "test": "tsx --test src/tests/rules.test.ts src/tests/security.test.ts src/tests/push.test.ts src/tests/analytics.unit.test.ts src/tests/age.unit.test.ts src/tests/billing.unit.test.ts src/tests/billing.test.ts src/tests/classes.unit.test.ts src/tests/paylinks.test.ts && node --test src/tests/auth.test.ts src/tests/isolation.test.ts src/tests/progress.test.ts src/tests/extensions.test.ts src/tests/analytics.test.ts src/tests/consent.test.ts src/tests/leaderboard.test.ts src/tests/referrals.test.ts src/tests/classes.test.ts",
+    "test": "tsx --test src/tests/rules.test.ts src/tests/security.test.ts src/tests/push.test.ts src/tests/analytics.unit.test.ts src/tests/age.unit.test.ts src/tests/billing.unit.test.ts src/tests/billing.test.ts src/tests/classes.unit.test.ts src/tests/paylinks.test.ts && node --test src/tests/auth.test.ts src/tests/isolation.test.ts src/tests/progress.test.ts src/tests/extensions.test.ts src/tests/analytics.test.ts src/tests/consent.test.ts src/tests/leaderboard.test.ts src/tests/referrals.test.ts src/tests/classes.test.ts src/tests/session.test.ts",
     "test:unit": "tsx --test src/tests/rules.test.ts src/tests/security.test.ts src/tests/push.test.ts src/tests/analytics.unit.test.ts src/tests/age.unit.test.ts src/tests/billing.unit.test.ts src/tests/classes.unit.test.ts"
   },
   "dependencies": {

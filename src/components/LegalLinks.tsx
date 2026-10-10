@@ -13,7 +13,7 @@ const LINKS: { kind: string; to: string; label: MessageKey }[] = [
 export default function LegalLinks({ className = '' }: { className?: string }) {
   const t = useT();
   return (
-    <p className={`text-[11px] font-mono text-gray-500 ${className}`}>
+    <p className={`text-[11px] font-mono text-gray-400 ${className}`}>
       {LINKS.map((l, i) => (
         <span key={l.kind}>
           {i > 0 && ' · '}
