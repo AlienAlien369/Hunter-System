@@ -627,6 +627,17 @@ export const en = {
   'mod.remove': "REMOVE",
   'mod.history': "MODULE HISTORY",
   'mod.noChanges': "No module changes yet.",
+  'qc.cat.discipline': "DISCIPLINE",
+  'qc.cat.skill': "SKILL",
+  'qc.cat.physical': "PHYSICAL",
+  'qc.cat.nutrition': "NUTRITION",
+  'qc.cat.saas': "SAAS",
+  'qc.cat.architecture': "ARCHITECTURE",
+  'qc.cat.mindset': "MINDSET",
+  'qc.cat.spiritual': "SPIRITUAL",
+  'qc.cat.health': "HEALTH",
+  'qc.cat.routine': "ROUTINE",
+  'qc.timetable': "TIMETABLE",
 } as const;
 
 export type MessageKey = keyof typeof en;

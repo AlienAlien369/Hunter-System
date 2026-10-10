@@ -1,4 +1,6 @@
 import { motion } from 'framer-motion';
+import { useT } from '../i18n';
+import { en, type MessageKey } from '../i18n/messages/en';
 
 interface DailyQuest {
   id: string;
@@ -31,6 +33,7 @@ const CATEGORY_CONFIG = {
 };
 
 export default function QuestCard({ quest, onComplete, showXP = true }: QuestCardProps) {
+  const t = useT();
   const config = CATEGORY_CONFIG[quest.category as keyof typeof CATEGORY_CONFIG] || CATEGORY_CONFIG.discipline;
 
   return (
@@ -90,8 +93,8 @@ export default function QuestCard({ quest, onComplete, showXP = true }: QuestCar
               ${config.bg} ${config.color} ${config.border}
             `}>
               {quest.category === 'routine'
-                ? [quest.time, quest.module].filter(Boolean).join(' · ').toUpperCase() || 'TIMETABLE'
-                : quest.category.toUpperCase()}
+                ? [quest.time, quest.module].filter(Boolean).join(' · ').toUpperCase() || t('qc.timetable')
+                : (`qc.cat.${quest.category}` in en ? t(`qc.cat.${quest.category}` as MessageKey) : quest.category.toUpperCase())}
             </span>
           </div>
         </div>
