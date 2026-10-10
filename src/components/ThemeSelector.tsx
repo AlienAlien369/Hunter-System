@@ -1,13 +1,17 @@
 import { motion } from "framer-motion";
 import { useEffect, useRef, useState } from "react";
-import { useThemeStore, THEMES, applyTheme } from "../store/themeStore";
-
-type ThemeId = "purple-monarch" | "gold" | "crimson";
+import { useNavigate } from "react-router-dom";
+import { useThemeStore, THEMES, applyTheme, isPremiumTheme, effectiveTheme, type ThemeId } from "../store/themeStore";
+import { useBillingStore } from "../store/billingStore";
 import { sfx } from "../utils/sounds";
 import { createPortal } from "react-dom";
 
 export default function ThemeSelector() {
-  const currentTheme = useThemeStore((s) => s.theme);
+  const navigate = useNavigate();
+  const premiumOk = useBillingStore((s) => s.premiumCosmetics);
+  const billingLoaded = useBillingStore((s) => s.loaded);
+  const chosenTheme = useThemeStore((s) => s.theme);
+  const currentTheme = effectiveTheme(chosenTheme, premiumOk, billingLoaded);
   const setTheme = useThemeStore((s) => s.setTheme);
   const [open, setOpen] = useState(false);
   const btnRef = useRef<HTMLButtonElement>(null);
@@ -21,8 +25,10 @@ export default function ThemeSelector() {
 
   const handleSelect = (themeId: ThemeId) => {
     sfx.click();
-    setTheme(themeId);
     setOpen(false);
+    // Premium themes are part of Pro: send free hunters to the plans instead of switching.
+    if (isPremiumTheme(themeId) && !premiumOk) { navigate("/pricing"); return; }
+    setTheme(themeId);
   };
 
   const themeList = Object.values(THEMES);
@@ -129,6 +135,9 @@ export default function ThemeSelector() {
                             <span className="text-[10px] font-mono text-accent px-1.5 py-0.5 bg-accent-bg/50 rounded">
                               ACTIVE
                             </span>
+                          )}
+                          {isPremiumTheme(theme.id) && !premiumOk && (
+                            <span className="text-[10px] font-mono text-yellow-300 px-1.5 py-0.5 bg-yellow-500/10 rounded" title="Included with Pro">🔒 PRO</span>
                           )}
                         </div>
                         <div className="flex gap-1 mt-1">

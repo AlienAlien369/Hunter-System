@@ -149,7 +149,7 @@ export const hinglish: Messages = {
   'pricing.feature.free.4': 'Roz {count} AI suggestions',
   'pricing.feature.pro.1': 'Free ki saari cheezein',
   'pricing.feature.pro.2': 'Roz {count} AI suggestions',
-  'pricing.feature.pro.3': 'Premium themes aur sound packs',
+  'pricing.feature.pro.3': 'Premium themes',
   'pricing.feature.pro.4': 'Hunter ko sabke liye free aur ad-free rakhne mein madad',
   'billing.title': 'PLAN AUR BILLING',
   'billing.plan.free': 'Tum Free plan par ho.',

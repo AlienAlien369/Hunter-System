@@ -150,7 +150,7 @@ export const hi: Messages = {
   'pricing.feature.free.4': 'रोज़ {count} AI सुझाव',
   'pricing.feature.pro.1': 'फ़्री की सारी सुविधाएँ',
   'pricing.feature.pro.2': 'रोज़ {count} AI सुझाव',
-  'pricing.feature.pro.3': 'प्रीमियम थीम और साउंड पैक',
+  'pricing.feature.pro.3': 'प्रीमियम थीम',
   'pricing.feature.pro.4': 'Hunter को सबके लिए मुफ़्त और विज्ञापन-रहित रखने में मदद',
   'billing.title': 'प्लान और बिलिंग',
   'billing.plan.free': 'तुम फ़्री प्लान पर हो।',

@@ -83,5 +83,5 @@ export const PLAN_LIMITS: Record<PlanId, PlanLimits> = {
 /** The free tier is real and stays free. */
 export const PLAN_FEATURES: Record<'free' | 'pro', string[]> = {
   free: ['Unlimited quests, XP, ranks and streaks', 'Timetable, modules and the weekly report', 'Leaderboard, friends and shareable cards', '10 AI suggestions per day'],
-  pro: ['Everything in Free', '150 AI suggestions per day', 'Premium themes and sound packs', 'Helps keep Hunter free and ad-free for everyone'],
+  pro: ['Everything in Free', '150 AI suggestions per day', 'Premium themes', 'Helps keep Hunter free and ad-free for everyone'],
 };

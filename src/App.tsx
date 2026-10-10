@@ -4,7 +4,8 @@ import { Suspense, lazy, useEffect, useState } from 'react';
 import { useAuthStore } from './store/authStore';
 import { useGameStore } from './store/gameStore';
 import { useSoundStore } from './store/soundStore';
-import { useThemeStore, applyTheme } from './store/themeStore';
+import { useThemeStore, applyTheme, effectiveTheme } from './store/themeStore';
+import { useBillingStore } from './store/billingStore';
 import { sfx } from './utils/sounds';
 import './index.css';
 
@@ -128,7 +129,11 @@ function AppContent() {
   const location = useLocation();
   const t = useT();
   const { user, logout, setHunterName } = useAuthStore();
-  const theme = useThemeStore(s => s.theme);
+  const chosenTheme = useThemeStore(s => s.theme);
+  const premiumOk = useBillingStore(s => s.premiumCosmetics);
+  const billingLoaded = useBillingStore(s => s.loaded);
+  const theme = effectiveTheme(chosenTheme, premiumOk, billingLoaded);
+  useEffect(() => { if (user?.id) void useBillingStore.getState().load(); else useBillingStore.getState().reset(); }, [user?.id]);
   const [sidebarOpen, setSidebarOpen] = useState(false);
 
   // Apply theme on mount

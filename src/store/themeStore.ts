@@ -1,7 +1,7 @@
 import { create } from "zustand";
 
 // Theme color configurations
-const THEMES = {
+const FREE_THEMES = {
   "purple-monarch": {
     id: "purple-monarch",
     name: "Purple Monarch",
@@ -76,15 +76,58 @@ const THEMES = {
   },
 };
 
+// Premium themes (Pro). Built from a handful of colours so they stay consistent
+// with the free ones; the free themes above are untouched and stay free.
+function premiumTheme(id: string, name: string, icon: string, c: { accent: string; light: string; text: string; end: string; rgb: string; bgBase: string; bgCard: string; rgb2: string }) {
+  return {
+    id, name, icon,
+    accent: c.accent, accentLight: c.light, accentGlow: c.accent,
+    accentBg: `rgba(${c.rgb}, 0.1)`, accentBorder: `rgba(${c.rgb}, 0.4)`, textAccent: c.text,
+    gradientStart: c.accent, gradientEnd: c.end, scrollbar: c.accent,
+    bgBase: c.bgBase, bgCard: c.bgCard,
+    aurora1: `rgba(${c.rgb}, 0.22)`, aurora2: `rgba(${c.rgb2}, 0.18)`, aurora3: `rgba(${c.rgb}, 0.12)`,
+    particleColor: c.light, particleGlow: `rgba(${c.rgb}, 0.8)`,
+    gridColor: `rgba(${c.rgb}, 0.10)`, scanColor: `rgba(${c.rgb}, 0.08)`,
+  };
+}
+
+const PREMIUM_THEMES = {
+  aurora: premiumTheme("aurora", "Aurora", "🌌", { accent: "#14B8A6", light: "#5EEAD4", text: "#99F6E4", end: "#2563EB", rgb: "20, 184, 166", rgb2: "37, 99, 235", bgBase: "#04100f", bgCard: "#0b1a19" }),
+  ember: premiumTheme("ember", "Ember", "🔥", { accent: "#F97316", light: "#FDBA74", text: "#FED7AA", end: "#DC2626", rgb: "249, 115, 22", rgb2: "220, 38, 38", bgBase: "#0f0804", bgCard: "#1c1209" }),
+  glacier: premiumTheme("glacier", "Glacier", "🧊", { accent: "#38BDF8", light: "#BAE6FD", text: "#E0F2FE", end: "#6366F1", rgb: "56, 189, 248", rgb2: "99, 102, 241", bgBase: "#050d14", bgCard: "#0c1a26" }),
+  sakura: premiumTheme("sakura", "Sakura", "🌸", { accent: "#F472B6", light: "#FBCFE8", text: "#FCE7F3", end: "#A855F7", rgb: "244, 114, 182", rgb2: "168, 85, 247", bgBase: "#10060b", bgCard: "#1f0c15" }),
+};
+
+type FreeThemeId = keyof typeof FREE_THEMES;
+type PremiumThemeId = keyof typeof PREMIUM_THEMES;
+export type ThemeId = FreeThemeId | PremiumThemeId;
+type ThemeColors = (typeof FREE_THEMES)[FreeThemeId];
+
+const ALL_THEMES: Record<ThemeId, ThemeColors> = { ...FREE_THEMES, ...PREMIUM_THEMES };
+const DEFAULT_THEME: ThemeId = "purple-monarch";
+
+export const isPremiumTheme = (id: string): id is PremiumThemeId => id in PREMIUM_THEMES;
+
+/**
+ * The theme to actually show. A premium theme is shown only to a hunter on a
+ * paid plan; if Pro lapses they fall back to the default (their choice is kept,
+ * so renewing restores it). Until billing has loaded we do not flash the default.
+ * Cosmetic only: this is a UI courtesy, not access control.
+ */
+export function effectiveTheme(theme: ThemeId, premiumAllowed: boolean, billingLoaded: boolean): ThemeId {
+  if (!(theme in ALL_THEMES)) return DEFAULT_THEME;
+  if (isPremiumTheme(theme) && billingLoaded && !premiumAllowed) return DEFAULT_THEME;
+  return theme;
+}
+
 const THEME_KEY = "hunter_theme";
-type ThemeId = keyof typeof THEMES;
 
 // Theme store
 const useThemeStore = create<{
   theme: ThemeId;
   setTheme: (theme: ThemeId) => void;
 }>((set) => ({
-  theme: (localStorage.getItem(THEME_KEY) as ThemeId) || "purple-monarch",
+  theme: ((): ThemeId => { const saved = localStorage.getItem(THEME_KEY); return saved && saved in ALL_THEMES ? (saved as ThemeId) : DEFAULT_THEME; })(),
   setTheme: (theme: ThemeId) => {
     localStorage.setItem(THEME_KEY, theme);
     set({ theme });
@@ -93,7 +136,7 @@ const useThemeStore = create<{
 
 // Apply theme colors to CSS variables with animation effects
 function applyTheme(themeId: ThemeId, animate = true) {
-  const colors = THEMES[themeId];
+  const colors = ALL_THEMES[themeId];
   if (!colors) return;
 
   const root = document.documentElement;
@@ -160,4 +203,4 @@ function triggerThemeAnimation(accentGlow: string) {
   setTimeout(() => ripple.remove(), 900);
 }
 
-export { useThemeStore, THEMES, applyTheme };
+export { useThemeStore, ALL_THEMES as THEMES, applyTheme };

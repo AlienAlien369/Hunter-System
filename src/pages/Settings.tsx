@@ -1,5 +1,7 @@
 import { motion } from "framer-motion";
-import { useThemeStore, THEMES, applyTheme } from "../store/themeStore";
+import { useNavigate } from "react-router-dom";
+import { useThemeStore, THEMES, applyTheme, isPremiumTheme, effectiveTheme } from "../store/themeStore";
+import { useBillingStore } from "../store/billingStore";
 import { useSoundStore } from "../store/soundStore";
 import type { SoundPackId } from "../data/soundPacks";
 import { sfx } from "../utils/sounds";
@@ -18,7 +20,11 @@ type ThemeId = keyof typeof THEMES;
 export default function Settings() {
   const t = useT();
   const user = useAuthStore(s => s.user);
-  const currentTheme = useThemeStore((s) => s.theme);
+  const navigate = useNavigate();
+  const premiumOk = useBillingStore((s) => s.premiumCosmetics);
+  const billingLoaded = useBillingStore((s) => s.loaded);
+  const chosenTheme = useThemeStore((s) => s.theme);
+  const currentTheme = effectiveTheme(chosenTheme, premiumOk, billingLoaded);
   const setTheme = useThemeStore((s) => s.setTheme);
   const muted = useSoundStore((s) => s.muted);
   const toggleMuted = useSoundStore((s) => s.toggleMuted);
@@ -31,6 +37,8 @@ export default function Settings() {
 
   const handleThemeChange = (themeId: ThemeId) => {
     sfx.click();
+    // Premium themes are part of Pro: send free hunters to the plans instead of switching.
+    if (isPremiumTheme(themeId) && !premiumOk) { navigate("/pricing"); return; }
     setTheme(themeId);
     applyTheme(themeId, true);
   };
@@ -101,7 +109,7 @@ export default function Settings() {
             </span>
           </div>
 
-          <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
             {Object.values(THEMES).map((theme) => {
               const isSelected = theme.id === currentTheme;
               return (
@@ -138,6 +146,9 @@ export default function Settings() {
                       >
                         {theme.name}
                       </span>
+                      {isPremiumTheme(theme.id) && !premiumOk && (
+                        <span className="text-[10px] font-mono text-yellow-300 px-2 py-0.5 bg-yellow-500/10 rounded-full">🔒 PRO</span>
+                      )}
                       {isSelected && (
                         <motion.span
                           layoutId="activeBadge"

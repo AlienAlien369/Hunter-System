@@ -161,7 +161,7 @@ export const en = {
   'pricing.feature.free.4': '{count} AI suggestions per day',
   'pricing.feature.pro.1': 'Everything in Free',
   'pricing.feature.pro.2': '{count} AI suggestions per day',
-  'pricing.feature.pro.3': 'Premium themes and sound packs',
+  'pricing.feature.pro.3': 'Premium themes',
   'pricing.feature.pro.4': 'Helps keep Hunter free and ad-free for everyone',
   'billing.title': 'PLAN & BILLING',
   'billing.plan.free': 'You are on the Free plan.',
