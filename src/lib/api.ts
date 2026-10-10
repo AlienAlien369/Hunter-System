@@ -577,7 +577,7 @@ export const api = {
   resendParentEmail: (parentEmail?: string) =>
     request<{ parentMailSent: boolean; parentEmailMasked: string }>('/auth/parent-email', { method: 'POST', body: JSON.stringify({ parentEmail }) }),
   getParentConsent: (token: string) =>
-    request<{ username: string; status: ConsentStatus }>(`/consent/parent?token=${encodeURIComponent(token)}`),
+    request<{ username: string; status: ConsentStatus }>('/consent/parent/lookup', { method: 'POST', body: JSON.stringify({ token }) }),
   decideParentConsent: (token: string, decision: 'grant' | 'decline') =>
     request<{ status: 'granted' | 'deleted' }>('/consent/parent', { method: 'POST', body: JSON.stringify({ token, decision }) }),
 

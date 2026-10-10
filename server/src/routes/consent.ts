@@ -17,11 +17,12 @@ async function findByToken(raw: unknown) {
   return r.rows[0] ?? null;
 }
 
-// GET /api/consent/parent?token=… — what the parent is being asked to approve.
-router.get('/parent', async (req: Request, res: Response) => {
+// POST /api/consent/parent/lookup { token } — what the parent is being asked to approve.
+// POST rather than GET so the token never appears in a request URL (and so in logs).
+router.post('/parent/lookup', async (req: Request, res: Response) => {
   if (hit(`consent:${req.ip}`, 30, 60 * 60_000)) return res.status(429).json({ error: 'Too many requests' });
   try {
-    const u = await findByToken(req.query.token);
+    const u = await findByToken(req.body?.token);
     if (!u) return res.status(404).json({ error: 'This link is not valid or has already been used.' });
     res.set('Cache-Control', 'no-store');
     res.json({ username: u.username, status: u.consent_status });

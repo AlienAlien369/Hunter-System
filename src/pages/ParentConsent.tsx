@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { Link, useSearchParams } from 'react-router-dom';
+import { Link } from 'react-router-dom';
 import { api } from '../lib/api';
 import BackgroundFX from '../components/BackgroundFX';
 import LegalLinks from '../components/LegalLinks';
@@ -8,11 +8,11 @@ import { useT } from '../i18n';
 
 type View = 'loading' | 'ready' | 'granted' | 'deleted' | 'invalid';
 
-/** The page a parent or guardian lands on from the consent email (/parent-consent?token=…). No account needed. */
+/** The page a parent or guardian lands on from the consent email (/parent-consent#token=…). No account needed. */
 export default function ParentConsent() {
   const t = useT();
-  const [params] = useSearchParams();
-  const token = params.get('token') ?? '';
+  // The link is /parent-consent#token=…: the fragment never reaches any server or log.
+  const token = new URLSearchParams(window.location.hash.replace(/^#/, '')).get('token') ?? '';
   const [view, setView] = useState<View>(token ? 'loading' : 'invalid');
   const [username, setUsername] = useState('');
   const [status, setStatus] = useState('');

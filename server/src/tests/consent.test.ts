@@ -132,8 +132,9 @@ describe('Age gate and parental consent', () => {
       assert.strictEqual(me.user.consentStatus, 'pending');
     });
     it('shows the parent only the username, with a bad link rejected', async () => {
-      assert.strictEqual((await get('/consent/parent?token=short')).status, 404);
-      const r = await get(`/consent/parent?token=${token}`);
+      assert.strictEqual((await post('/consent/parent/lookup', { token: 'short' })).status, 404);
+      assert.strictEqual((await get(`/consent/parent?token=${token}`)).status, 404, 'a token in the URL is not accepted');
+      const r = await post('/consent/parent/lookup', { token });
       assert.strictEqual(r.status, 200);
       assert.deepStrictEqual(await r.json(), { username: `gate_${suffix}`, status: 'pending' });
     });
@@ -150,7 +151,7 @@ describe('Age gate and parental consent', () => {
       assert.strictEqual((await d.json()).status, 'deleted');
       assert.strictEqual((await db.query('SELECT 1 FROM users WHERE id = $1', [teen.id])).rowCount, 0);
       assert.strictEqual((await post('/auth/login', { username: `gate_${suffix}`, password: PASS })).status, 401);
-      assert.strictEqual((await get(`/consent/parent?token=${token}`)).status, 404, 'the link is dead afterwards');
+      assert.strictEqual((await post('/consent/parent/lookup', { token })).status, 404, 'the link is dead afterwards');
     });
   });
 

@@ -106,8 +106,10 @@ router.post("/register", async (req: Request, res: Response) => {
     }
 
     // Check if user already exists
+    // Case-insensitive: "Alien" must not be registrable next to "alien" (look-alike
+    // accounts and lookalike admin names).
     const existing = await pool.query(
-      "SELECT id FROM users WHERE username = $1",
+      "SELECT id FROM users WHERE LOWER(username) = LOWER($1)",
       [username],
     );
     if (existing.rows.length > 0) {

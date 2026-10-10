@@ -94,6 +94,11 @@ describe('Measurement', () => {
   });
 
   describe('admin funnel', () => {
+    it('does not treat a case-variant of the admin username as the admin', async () => {
+      // Registering "ADMIN_E2E" next to "admin_e2e" is refused outright, so there is no look-alike to escalate with.
+      const res = await fetch(`${BASE_URL}/api/auth/register`, { method: 'POST', headers: json, body: JSON.stringify({ username: ADMIN.toUpperCase(), password: PASS, birthMonth: '1990-01', acceptTerms: true }) });
+      assert.strictEqual(res.status, 409);
+    });
     it('is closed to anonymous visitors and ordinary hunters', async () => {
       assert.strictEqual((await fetch(`${BASE_URL}/api/admin/funnel`)).status, 401);
       assert.strictEqual((await fetch(`${BASE_URL}/api/admin/funnel`, { headers: { Cookie: u1.cookie } })).status, 403);

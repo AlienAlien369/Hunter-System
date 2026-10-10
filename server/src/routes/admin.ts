@@ -4,10 +4,13 @@ import { computeFunnel } from '../analytics.js';
 
 // Admin = a username listed in ADMIN_USERNAMES (comma-separated env var).
 // With the variable unset nobody is an admin, so a fresh deploy exposes nothing.
+// The match is EXACT (case-sensitive), like username uniqueness itself: a
+// case-insensitive match would let anyone register "ALIEN" and be treated as
+// the admin "alien".
 export function isAdminUsername(username: string | undefined): boolean {
   if (!username) return false;
-  const list = (process.env.ADMIN_USERNAMES || '').split(',').map(s => s.trim().toLowerCase()).filter(Boolean);
-  return list.includes(username.toLowerCase());
+  const list = (process.env.ADMIN_USERNAMES || '').split(',').map(s => s.trim()).filter(Boolean);
+  return list.includes(username);
 }
 
 export function requireAdmin(req: Request, res: Response, next: NextFunction) {

@@ -50,15 +50,18 @@ describe('analytics allowlist', () => {
 });
 
 describe('admin allowlist', () => {
-  it('is empty by default and case-insensitive when set', () => {
+  it('is empty by default and matches the exact username when set', () => {
     const prev = process.env.ADMIN_USERNAMES;
     delete process.env.ADMIN_USERNAMES;
     assert.ok(!isAdminUsername('anyone'));
-    process.env.ADMIN_USERNAMES = ' Boss , second ';
+    process.env.ADMIN_USERNAMES = ' boss , second ';
     assert.ok(isAdminUsername('boss'));
-    assert.ok(isAdminUsername('SECOND'));
+    assert.ok(isAdminUsername('second'));
     assert.ok(!isAdminUsername('third'));
     assert.ok(!isAdminUsername(undefined));
+    // A different-case look-alike is a different account and must not inherit admin.
+    assert.ok(!isAdminUsername('BOSS'));
+    assert.ok(!isAdminUsername('Boss'));
     if (prev === undefined) delete process.env.ADMIN_USERNAMES; else process.env.ADMIN_USERNAMES = prev;
   });
 });

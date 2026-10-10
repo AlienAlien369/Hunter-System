@@ -26,7 +26,8 @@ export async function issueParentConsent(userId: number, username: string, paren
     [userId, parentEmail, hashToken(token)],
   );
   invalidateStatus(userId);
-  const link = `${appUrl()}/parent-consent?token=${token}`;
+  // In the URL fragment: browsers never send it to any server, so it stays out of hosting logs and Referer headers.
+  const link = `${appUrl()}/parent-consent#token=${token}`;
   return sendMail({
     to: parentEmail,
     subject: 'Your child asked to join Hunter System — parental consent needed',
