@@ -18,18 +18,26 @@ export function weekStart(now = new Date()): string {
   return d.toISOString().split('T')[0];
 }
 
-// GET /api/leaderboard?period=week|all
+// GET /api/leaderboard?period=week|all&scope=global|country
+//  scope=country ranks only hunters from the requester's own country (their
+//  profile country, which they can set); without one the response asks for it.
 router.get('/', async (req: Request, res: Response) => {
   try {
     const userId = req.user!.id;
     const period = req.query.period === 'all' ? 'all' : 'week';
+    const scope = req.query.scope === 'country' ? 'country' : 'global';
     const since = weekStart();
+    const mine = (await pool.query('SELECT region, name_set, show_on_leaderboard FROM users WHERE id = $1', [userId])).rows[0];
+    if (scope === 'country' && !mine?.region) {
+      return res.json({ period, scope, region: null, needsRegion: true, weekStart: since, entries: [], me: { score: 0, position: null, visible: !!mine?.show_on_leaderboard, nameSet: !!mine?.name_set } });
+    }
+    const region: string | null = scope === 'country' ? mine.region : null;
     const scores = period === 'all'
       ? `SELECT id AS user_id, xp AS score FROM users`
       : `SELECT user_id, SUM(xp)::int AS score FROM (
-           SELECT user_id, COALESCE(xp_awarded, 0) AS xp FROM quest_completions WHERE completion_date >= $2::date
+           SELECT user_id, COALESCE(xp_awarded, 0) AS xp FROM quest_completions WHERE completion_date >= $3::date
            UNION ALL
-           SELECT user_id, COALESCE(xp_awarded, 0) FROM unplanned_activities WHERE status = 'accepted' AND resolved_at >= $2::date
+           SELECT user_id, COALESCE(xp_awarded, 0) FROM unplanned_activities WHERE status = 'accepted' AND resolved_at >= $3::date
          ) e GROUP BY user_id`;
     const r = await pool.query(
       `WITH s AS (${scores}),
@@ -37,13 +45,13 @@ router.get('/', async (req: Request, res: Response) => {
          SELECT u.id, u.name, u.xp, s.score::int AS score, RANK() OVER (ORDER BY s.score DESC) AS pos
          FROM s JOIN users u ON u.id = s.user_id
          WHERE u.name_set AND u.show_on_leaderboard AND s.score > 0
+           AND ($2::text IS NULL OR u.region = $2)
        )
        SELECT * FROM ranked WHERE pos <= 50 OR id = $1 ORDER BY pos, id`,
-      period === 'all' ? [userId] : [userId, since],
+      period === 'all' ? [userId, region] : [userId, region, since],
     );
-    const me = (await pool.query('SELECT name_set, show_on_leaderboard FROM users WHERE id = $1', [userId])).rows[0];
-    const mine = r.rows.find((x: any) => x.id === userId);
-    let myScore = mine?.score;
+    const mineRow = r.rows.find((x: any) => x.id === userId);
+    let myScore = mineRow?.score;
     if (myScore === undefined) {
       const own = await pool.query(
         period === 'all' ? 'SELECT xp AS score FROM users WHERE id = $1'
@@ -55,6 +63,8 @@ router.get('/', async (req: Request, res: Response) => {
     }
     res.json({
       period,
+      scope,
+      region,
       weekStart: since,
       entries: r.rows.filter((x: any) => Number(x.pos) <= 50).map((x: any) => ({
         position: Number(x.pos),
@@ -66,9 +76,9 @@ router.get('/', async (req: Request, res: Response) => {
       })),
       me: {
         score: myScore,
-        position: mine ? Number(mine.pos) : null,
-        visible: !!me?.show_on_leaderboard,
-        nameSet: !!me?.name_set,
+        position: mineRow ? Number(mineRow.pos) : null,
+        visible: !!mine?.show_on_leaderboard,
+        nameSet: !!mine?.name_set,
       },
     });
   } catch (error) {

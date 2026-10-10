@@ -1,6 +1,6 @@
-# Hunter System — Solo Leveling Quest Tracker
+# Hunter System — Quest Tracker
 
-A gamified habit tracker inspired by Solo Leveling's Hunter system with full authentication.
+A gamified habit tracker with a dark, system-window theme with full authentication.
 
 ## Tech Stack
 

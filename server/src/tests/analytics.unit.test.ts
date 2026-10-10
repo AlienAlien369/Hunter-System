@@ -5,7 +5,7 @@
 import { describe, it } from 'node:test';
 import assert from 'node:assert';
 import type { Request } from 'express';
-import { detectRegion, regionFromAcceptLanguage } from '../region.js';
+import { detectRegion, isRealRegion, regionFromAcceptLanguage } from '../region.js';
 import { isClientEvent, sanitizeProps } from '../analytics.js';
 import { isAdminUsername } from '../routes/admin.js';
 
@@ -25,6 +25,13 @@ describe('region detection', () => {
     assert.strictEqual(detectRegion(req({ 'accept-language': 'en', 'x-timezone': 'Asia/Calcutta' })), 'IN');
     assert.strictEqual(detectRegion(req({ 'accept-language': 'en', 'x-timezone': 'Europe/Berlin' })), null);
     assert.strictEqual(detectRegion(req({ 'x-region': 'not-a-region' })), null);
+  });
+});
+
+describe('real regions', () => {
+  it('accepts ISO countries and rejects arbitrary letters', () => {
+    for (const ok of ['IN', 'US', 'GB', 'NZ', 'AE', 'BR']) assert.ok(isRealRegion(ok), ok);
+    for (const bad of ['ZZ', 'QQ', 'XX', 'in', 'USA', '', null, 7]) assert.ok(!isRealRegion(bad), String(bad));
   });
 });
 

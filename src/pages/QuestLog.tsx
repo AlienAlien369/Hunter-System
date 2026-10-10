@@ -165,7 +165,7 @@ export default function QuestLog() {
 
   return (
     <div className="space-y-6">
-      {/* Solo Leveling-style hidden quest — new challenge every day */}
+      {/* System-window-style hidden quest — new challenge every day */}
       <HiddenQuestCard />
 
       {/* Header */}

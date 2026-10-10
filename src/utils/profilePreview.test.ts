@@ -17,7 +17,19 @@ describe('shared profile link previews', () => {
     expect(out).not.toContain('<King>');
   });
 
-  it('leaves the page untouched for private/unknown hunters', () => {
-    expect(injectProfileMeta(html, null, 'u')).toBe(html);
+  it('keeps private/unknown hunters out of search results and off the home page canonical', () => {
+    const out: string = injectProfileMeta(html, null, 'https://x.app/h/nobody');
+    expect(out).toContain('<meta name="robots" content="noindex"');
+    expect(out).not.toContain('rel="canonical"');
+    expect(out).not.toContain('hreflang');
+    expect(out).not.toContain('application/ld+json');
+  });
+
+  it("points a public profile's canonical at itself, not at the home page", () => {
+    const out: string = injectProfileMeta(html, hunter, 'https://x.app/h/Shadow');
+    expect(out.match(/rel="canonical"/g)).toHaveLength(1);
+    expect(out).toContain('<link rel="canonical" href="https://x.app/h/Shadow" />');
+    expect(out).not.toContain('hreflang');
+    expect(out).not.toContain('SoftwareApplication');
   });
 });

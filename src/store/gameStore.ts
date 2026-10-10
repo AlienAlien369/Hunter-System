@@ -311,7 +311,7 @@ export interface GameState {
   budgetItems: BudgetItem[];
   archChallenges: ArchChallenge[];
 
-  // Solo Leveling-style hidden quest: one random challenge per day, only
+  // System-window-style hidden quest: one random challenge per day, only
   // completable that same day. Picked server-side from the 200+ tiered pool,
   // scaled to the hunter's level. `revealed` flips when the player accepts it.
   hiddenQuest: {

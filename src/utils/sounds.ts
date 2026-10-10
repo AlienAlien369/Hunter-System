@@ -173,7 +173,7 @@ class SFXEngine {
   }
 
   /**
-   * Solo Leveling-style "system window" opening — a soft airy whoosh that
+   * System-window-style "system window" opening — a soft airy whoosh that
    * resolves into the iconic bright metallic chime.
    */
   systemWindow(startAt = 0) {
@@ -225,7 +225,7 @@ class SFXEngine {
   }
 
   // ------------------------------------------------------------------
-  // Background theme music — dark epic "Solo Leveling" style loop
+  // Background theme music — dark epic "System" style loop
   // ------------------------------------------------------------------
 
   get themePlaying(): boolean {

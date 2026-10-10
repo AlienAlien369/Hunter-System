@@ -1,2 +1,8 @@
 User-agent: *
 Allow: /
+Disallow: /api/
+Disallow: /parent-consent
+Disallow: /settings
+Disallow: /admin
+
+Sitemap: https://hunters-system.vercel.app/sitemap.xml

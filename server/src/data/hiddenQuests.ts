@@ -1,5 +1,5 @@
 /**
- * Solo Leveling-style HIDDEN QUEST pool — the single source of truth.
+ * System-window-style HIDDEN QUEST pool — the single source of truth.
  *
  * One challenge is picked per hunter per day (deterministic per username +
  * date) and must be completed the same day. The pool is tiered by hunter

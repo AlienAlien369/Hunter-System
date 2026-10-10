@@ -4,7 +4,7 @@ import { api } from './api';
 // server stores the event name, a coarse country and the day. Do Not Track
 // and Global Privacy Control switch it off entirely. Never throws.
 
-export type TrackEvent = 'landing_view' | 'login_view' | 'profile_view' | 'pricing_view' | 'upgrade_click' | 'share_click' | 'invite_click';
+export type TrackEvent = 'landing_view' | 'cta_click' | 'login_view' | 'profile_view' | 'pricing_view' | 'upgrade_click' | 'share_click' | 'invite_click';
 
 type PrivacyNavigator = Pick<Navigator, 'doNotTrack'> & { globalPrivacyControl?: boolean };
 

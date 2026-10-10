@@ -1,4 +1,4 @@
-# Hunter System — Solo Leveling Quest Tracker
+# Hunter System — Quest Tracker
 
 **Project Status**: Production-Ready MVP  
 **Last Updated**: 2026-09-08  
@@ -8,7 +8,7 @@
 
 ## Executive Summary
 
-A gamified habit-tracking application inspired by Solo Leveling's Hunter system. The platform transforms daily discipline into an RPG-like progression system with character stats, quest tracking, rank advancement, and analytics — all backed by a secure authentication system and persistent database.
+A gamified habit-tracking application with a dark, system-window theme. The platform transforms daily discipline into an RPG-like progression system with character stats, quest tracking, rank advancement, and analytics — all backed by a secure authentication system and persistent database.
 
 ---
 
@@ -410,7 +410,7 @@ curl -X POST http://localhost:3000/api/auth/login \
 - [x] Quest completion tracking
 - [x] XP calculation & rank progression
 - [x] 90+ quests (including LeetCode 75)
-- [x] Responsive UI with Solo Leveling theme
+- [x] Responsive UI with a dark system-window theme
 - [x] Data persistence (DB + localStorage fallback)
 - [x] Docker deployment
 - [x] TypeScript strict mode

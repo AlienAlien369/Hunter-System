@@ -7,7 +7,7 @@ import { getActiveBuffs } from '../utils/xp';
 import { dailyHistoryQuests } from '../utils/dailyBoard';
 
 /**
- * Solo Leveling-style System notice banner. Shows:
+ * System-window-style System notice banner. Shows:
  *  - a green recovery reward when a rebuilt streak pays back a penalty,
  *  - an amber danger warning when 1 daily-quest day was skipped,
  *  - a red penalty notice when 2+ consecutive days were missed.

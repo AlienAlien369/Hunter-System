@@ -54,6 +54,7 @@ const Admin = lazyPage(() => import('./pages/Admin'));
 const Legal = lazyPage(() => import('./pages/Legal'));
 const ParentConsent = lazyPage(() => import('./pages/ParentConsent'));
 const Pricing = lazyPage(() => import('./pages/Pricing'));
+const Landing = lazyPage(() => import('./pages/Landing'));
 import ConsentGate from './components/ConsentGate';
 import XpConfirmHost from './components/hunter/XpConfirmHost';
 import PerfectDayBanner from './components/PerfectDayBanner';
@@ -101,7 +102,7 @@ function PageLoading() {
 const BOOT_EVENTS = ['pointerdown', 'keydown', 'touchstart'] as const;
 
 /**
- * Starts the Solo Leveling-style theme music and plays the system-window
+ * Starts the System-window-style theme music and plays the system-window
  * opening chime on the first user interaction (browsers block audio until
  * a gesture, so we boot the audio engine lazily on that first click).
  */
@@ -267,6 +268,21 @@ function AccessGate({ children }: { children: React.ReactNode }) {
   return <>{children}</>;
 }
 
+/** "/" is the app for signed-in hunters and the public landing page for everyone else. */
+function HomeRoute() {
+  const { user, loading } = useAuthStore();
+  if (loading) return <PageLoading />;
+  if (user) return <AccessGate><AppContent /></AccessGate>;
+  return <Suspense fallback={<PageLoading />}><Landing variant="global" /></Suspense>;
+}
+
+/** "/in": the India-focused landing page. Signed-in hunters have no use for it, so they go home. */
+function IndiaRoute() {
+  const user = useAuthStore(s => s.user);
+  if (user) return <Navigate to="/" replace />;
+  return <Suspense fallback={<PageLoading />}><Landing variant="india" /></Suspense>;
+}
+
 function App() {
   useScreenOpenAudio();
   // Keep <html lang> and <html dir> in step with the chosen language (screen readers, RTL layouts).
@@ -275,6 +291,8 @@ function App() {
   return (
     <AuthProvider>
       <Routes>
+        <Route path="/" element={<HomeRoute />} />
+        <Route path="/in" element={<IndiaRoute />} />
         <Route path="/login" element={<Login />} />
         <Route path="/terms" element={<Suspense fallback={null}><Legal kind="terms" /></Suspense>} />
         <Route path="/privacy" element={<Suspense fallback={null}><Legal kind="privacy" /></Suspense>} />

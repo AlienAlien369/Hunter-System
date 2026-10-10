@@ -32,3 +32,16 @@ export function detectRegion(req: Request): string | null {
   if (INDIA_ZONES.has(tz)) return 'IN';
   return null;
 }
+
+const names = new Intl.DisplayNames(['en'], { type: 'region' });
+
+/** Is this a real ISO 3166 country/region code (as opposed to two arbitrary letters)? */
+export function isRealRegion(code: unknown): code is string {
+  if (typeof code !== 'string' || !REGION.test(code)) return false;
+  try {
+    const name = names.of(code);
+    return !!name && name !== code && name !== 'Unknown Region';
+  } catch {
+    return false;
+  }
+}

@@ -70,6 +70,12 @@ export const useLocaleStore = create<LocaleState>(set => ({
   },
 }));
 
+/** Offer a locale to a visitor who has never chosen one, without remembering it as their choice. */
+export function suggestLocale(code: LocaleCode) {
+  try { if (localStorage.getItem(STORAGE_KEY)) return; } catch { /* storage unavailable */ }
+  useLocaleStore.setState({ locale: code });
+}
+
 export const localeInfo = (code: LocaleCode): LocaleInfo => byCode(code) ?? LOCALES[0];
 
 /** Reflect the locale on <html> so screen readers, hyphenation and RTL layout follow it. */

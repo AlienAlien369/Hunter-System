@@ -3,7 +3,17 @@
   "buildCommand": "npm run build",
   "outputDirectory": "dist",
   "rewrites": [
-    { "source": "/h/:name", "destination": "/api/profile-preview?name=:name" },
-    { "source": "/((?!api/).*)", "destination": "/index.html" }
+    {
+      "source": "/h/:name",
+      "destination": "/api/profile-preview?name=:name"
+    },
+    {
+      "source": "/in",
+      "destination": "/in.html"
+    },
+    {
+      "source": "/((?!api/).*)",
+      "destination": "/index.html"
+    }
   ]
 }

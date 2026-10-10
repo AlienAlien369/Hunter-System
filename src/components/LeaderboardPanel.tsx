@@ -4,25 +4,31 @@ import { useGameStore } from '../store/gameStore';
 import { useAuthStore } from '../store/authStore';
 import { Btn, Panel, inputCls } from './hunter/ui';
 import { trackEvent } from '../lib/track';
+import CountryPicker from './CountryPicker';
+import { localeInfo, useLocaleStore, useT } from '../i18n';
+import { regionName } from '../utils/regions';
 
 const MEDALS = ['🥇', '🥈', '🥉'];
 
 /** Hunter leaderboard: this week's earned XP (resets Monday UTC) or all-time XP. */
 export default function LeaderboardPanel() {
+  const t = useT();
+  const locale = useLocaleStore(s => s.locale);
   const [period, setPeriod] = useState<'week' | 'all' | 'friends'>('week');
+  const [scope, setScope] = useState<'global' | 'country'>('global');
   const [data, setData] = useState<Leaderboard | null>(null);
   const [error, setError] = useState('');
   const xp = useGameStore(s => s.profile.xp);
 
   useEffect(() => {
     if (period === 'friends') return;
-    api.getLeaderboard(period).then(d => { setData(d); setError(''); }).catch(e => setError((e as Error).message));
-  }, [period, xp]);
+    api.getLeaderboard(period, scope).then(d => { setData(d); setError(''); }).catch(e => setError((e as Error).message));
+  }, [period, scope, xp]);
 
   const toggleVisible = async () => {
     if (!data || period === 'friends') return;
     await api.setLeaderboardVisibility(!data.me.visible);
-    setData(await api.getLeaderboard(period));
+    setData(await api.getLeaderboard(period, scope));
   };
 
   const tab = (p: 'week' | 'all' | 'friends', label: string) => (
@@ -36,11 +42,28 @@ export default function LeaderboardPanel() {
   return (
     <Panel title="🏆 HUNTER LEADERBOARD" right={<div className="flex gap-1.5">{tab('week', 'THIS WEEK')}{tab('all', 'ALL TIME')}{tab('friends', 'FRIENDS')}</div>}>
       {error && <p className="text-sm text-red-400 font-mono">{error}</p>}
+      {period !== 'friends' && (
+        <div className="mb-3 flex gap-1.5" role="group" aria-label="Board">
+          {(['global', 'country'] as const).map(sc => (
+            <button key={sc} type="button" onClick={() => setScope(sc)} aria-pressed={scope === sc}
+              className={`px-2.5 py-1 rounded-md text-[11px] font-mono border ${scope === sc ? 'bg-blue-500/20 border-blue-400/50 text-blue-100' : 'border-gray-700 text-gray-500 hover:text-gray-300'}`}>
+              {t(sc === 'global' ? 'leaderboard.scope.world' : 'leaderboard.scope.country')}
+              {sc === 'country' && data?.region ? ` · ${data.region}` : ''}
+            </button>
+          ))}
+        </div>
+      )}
+      {period !== 'friends' && scope === 'country' && data?.needsRegion && (
+        <div className="space-y-3">
+          <p className="text-sm text-gray-400 font-mono">{t('leaderboard.needsCountry')}</p>
+          <CountryPicker onSaved={() => api.getLeaderboard(period, 'country').then(setData)} />
+        </div>
+      )}
       {period === 'friends' && <FriendsBoard xp={xp} />}
-      {period !== 'friends' && data && (
+      {period !== 'friends' && data && !data.needsRegion && (
         <div className="space-y-3">
           {data.entries.length === 0 ? (
-            <p className="text-sm text-gray-500 font-mono">No hunters on the board yet{period === 'week' ? ' this week' : ''}. Complete a quest to claim the top spot.</p>
+            <p className="text-sm text-gray-500 font-mono">{scope === 'country' && data.region ? t('leaderboard.countryEmpty', { country: regionName(localeInfo(locale).intl, data.region) }) : `No hunters on the board yet${period === 'week' ? ' this week' : ''}. Complete a quest to claim the top spot.`}</p>
           ) : (
             <ol className="space-y-1.5">
               {data.entries.map(e => (

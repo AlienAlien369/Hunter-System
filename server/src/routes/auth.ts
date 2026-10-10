@@ -6,7 +6,7 @@ import { pool } from "../db.js";
 import { authenticateToken, jwtSecret } from "../middleware/auth.js";
 import { logActivity } from "../activity.js";
 import { calculateLevel, calculateRank } from "../progression.js";
-import { detectRegion } from "../region.js";
+import { detectRegion, isRealRegion } from "../region.js";
 import { ageFromBirthMonth, classifyAge, initialConsentStatus, isValidEmail, maskEmail, parseBirthMonth } from "../age.js";
 import { PRIVACY_VERSION, TERMS_VERSION, deleteUserData, invalidateStatus, issueParentConsent, recordConsent } from "../consent.js";
 import { isAdminUsername } from "./admin.js";
@@ -239,7 +239,7 @@ router.get("/me", authenticateToken, async (req: Request, res: Response) => {
     const userId = req.user?.id;
 
     const result = await pool.query(
-      `SELECT id, username, name, name_set, rank, xp, hp, mp, str, agi, vit, int, sen, created_at, consent_status, parent_email
+      `SELECT id, username, name, name_set, rank, xp, hp, mp, str, agi, vit, int, sen, created_at, consent_status, parent_email, region
        FROM users WHERE id = $1`,
       [userId],
     );
@@ -484,6 +484,23 @@ router.post("/age", authenticateToken, async (req: Request, res: Response) => {
   } catch (error) {
     console.error("Age error:", error);
     res.status(500).json({ error: "Failed to record age" });
+  }
+});
+
+/**
+ * PUT /api/auth/region { region } — the hunter's country. Detected at signup
+ * from browser language and can be wrong or missing, so it is theirs to set.
+ * Drives the country leaderboard and the default price; never shown to others.
+ */
+router.put("/region", authenticateToken, async (req: Request, res: Response) => {
+  try {
+    const raw = typeof req.body?.region === "string" ? req.body.region.toUpperCase() : "";
+    if (!isRealRegion(raw)) return res.status(400).json({ error: "Choose a valid country" });
+    await pool.query("UPDATE users SET region = $2, updated_at = NOW() WHERE id = $1", [req.user!.id, raw]);
+    res.json({ region: raw });
+  } catch (error) {
+    console.error("Region error:", error);
+    res.status(500).json({ error: "Failed to save country" });
   }
 });
 

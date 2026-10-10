@@ -170,6 +170,7 @@ export interface User {
   created_at: string;
   updated_at: string;
   isAdmin?: boolean;
+  region?: string | null;
   consentStatus?: ConsentStatus;
   parentEmailMasked?: string | null;
 }
@@ -442,6 +443,9 @@ export interface LeaderboardEntry {
 
 export interface Leaderboard {
   period: 'week' | 'all';
+  scope?: 'global' | 'country';
+  region?: string | null;
+  needsRegion?: boolean;
   weekStart: string;
   entries: LeaderboardEntry[];
   me: { score: number; position: number | null; visible: boolean; nameSet: boolean };
@@ -677,7 +681,8 @@ export const api = {
     request<ModuleDraft>('/modules/ai/draft', { method: 'POST', body: JSON.stringify({ prompt, moduleId }) }),
 
   // Leaderboard
-  getLeaderboard: (period: 'week' | 'all') => request<Leaderboard>(`/leaderboard?period=${period}`),
+  getLeaderboard: (period: 'week' | 'all', scope: 'global' | 'country' = 'global') => request<Leaderboard>(`/leaderboard?period=${period}&scope=${scope}`),
+  setRegion: (region: string) => request<{ region: string }>('/auth/region', { method: 'PUT', body: JSON.stringify({ region }) }),
 
   setLeaderboardVisibility: (visible: boolean) =>
     request<{ visible: boolean }>('/leaderboard/visibility', { method: 'PATCH', body: JSON.stringify({ visible }) }),

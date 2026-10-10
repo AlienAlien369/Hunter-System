@@ -28,7 +28,7 @@ const TIER_COLORS: Record<number, string> = {
 };
 
 /**
- * Solo Leveling-style HIDDEN QUEST — a random daily challenge picked from the
+ * System-window-style HIDDEN QUEST — a random daily challenge picked from the
  * server's 200+ tiered pool and scaled to the hunter's level. It must be
  * completed the same day. It appears as "???" until the hunter accepts it.
  */

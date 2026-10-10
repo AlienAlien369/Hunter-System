@@ -13,7 +13,7 @@ import { pool } from './db.js';
 
 /** Events the browser may report. `upgrade_completed` is deliberately absent: only the payment webhook may emit it. */
 export const CLIENT_EVENTS = [
-  'landing_view', 'login_view', 'profile_view', 'pricing_view', 'upgrade_click', 'share_click', 'invite_click',
+  'landing_view', 'cta_click', 'login_view', 'profile_view', 'pricing_view', 'upgrade_click', 'share_click', 'invite_click',
 ] as const;
 export type ClientEvent = (typeof CLIENT_EVENTS)[number];
 

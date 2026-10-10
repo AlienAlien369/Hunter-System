@@ -30,7 +30,8 @@ export default function Login() {
   });
   // Newcomers land on "create account"; browsers that have signed in before land on login.
   const [mode, setMode] = useState<'login' | 'register' | 'recover'>(() => {
-    if (new URLSearchParams(location.search).get('invite')) return 'register';
+    const q = new URLSearchParams(location.search);
+    if (q.get('invite') || q.get('mode') === 'register') return 'register';
     try { return localStorage.getItem('hunter.hasAccount') ? 'login' : 'register'; } catch { return 'login'; }
   });
   const [username, setUsername] = useState('');

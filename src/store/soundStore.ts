@@ -11,7 +11,7 @@ interface SoundState {
   muted: boolean;
   /** Milestone chimes — level-up / rank-up fanfares (independent of master mute). */
   celebrateSound: boolean;
-  /** Background theme music — epic Solo Leveling-style loop. */
+  /** Background theme music — epic System-window-style loop. */
   themeMusic: boolean;
   /** Active sound pack. */
   soundPack: SoundPackId;

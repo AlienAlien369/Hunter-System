@@ -8,12 +8,15 @@ import AccountPanel from '../components/AccountPanel';
 import LegalLinks from '../components/LegalLinks';
 import LanguagePicker from '../components/LanguagePicker';
 import BillingPanel from '../components/BillingPanel';
+import CountryPicker from '../components/CountryPicker';
+import { useAuthStore } from '../store/authStore';
 import { useT } from '../i18n';
 
 type ThemeId = keyof typeof THEMES;
 
 export default function Settings() {
   const t = useT();
+  const user = useAuthStore(s => s.user);
   const currentTheme = useThemeStore((s) => s.theme);
   const setTheme = useThemeStore((s) => s.setTheme);
   const muted = useSoundStore((s) => s.muted);
@@ -59,6 +62,8 @@ export default function Settings() {
         <h2 id="lang-title" className="font-display text-white font-bold tracking-widest text-sm">{t('settings.language.title').toUpperCase()}</h2>
         <p className="text-xs text-gray-400 font-mono">{t('settings.language.hint')}</p>
         <LanguagePicker variant="inline" />
+        <CountryPicker value={user?.region} />
+        <p className="text-xs text-gray-500 font-mono">{t('country.hint')}</p>
       </section>
       <BillingPanel />
       <AccountPanel />
@@ -400,7 +405,7 @@ export default function Settings() {
 
         <div className="mt-4 pt-4 border-t border-gray-800">
           <p className="text-xs text-gray-600 font-mono text-center">
-            Hunter System • Solo Leveling Quest Tracker
+            Hunter System • Quest Tracker
           </p>
           <p className="text-xs text-gray-600 font-mono text-center mt-1">
             Built with React + TypeScript + Tailwind CSS

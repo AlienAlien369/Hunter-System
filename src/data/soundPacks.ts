@@ -55,12 +55,12 @@ export interface SoundPackConfig {
 }
 
 // ═════════════════════════════════════════════════════════════════════════════
-//  SOLO LEVELING — default epic dark orchestral
+//  SYSTEM — default epic dark orchestral
 // ═════════════════════════════════════════════════════════════════════════════
 
 const SOLO_LEVELING: SoundPackConfig = {
   id: 'solo-leveling',
-  label: 'Solo Leveling',
+  label: 'System',
   icon: '⚔️',
   description: 'Epic dark orchestral — the System awakens.',
   click: [{ freq: 880, type: 'triangle', vol: 0.35, dur: 0.06 }],
@@ -148,7 +148,7 @@ const SOLO_LEVELING: SoundPackConfig = {
 
 const DARK_SOULS: SoundPackConfig = {
   id: 'dark-souls',
-  label: 'Dark Souls',
+  label: 'Ember',
   icon: '💀',
   description: 'Heavy, ominous — death and rebirth.',
   click: [{ freq: 440, type: 'square', vol: 0.15, dur: 0.04 }],
@@ -233,7 +233,7 @@ const DARK_SOULS: SoundPackConfig = {
 
 const CELESTE: SoundPackConfig = {
   id: 'celeste',
-  label: 'Celeste',
+  label: 'Summit',
   icon: '🎹',
   description: 'Gentle, melodic — chill piano vibes.',
   click: [{ freq: 1200, type: 'sine', vol: 0.2, dur: 0.05 }],
@@ -331,7 +331,7 @@ const NO_SFX: SoundPackConfig = {
   recovery: [],
   notification: [],
   themeBpm: 92,
-  themeChords: SOLO_LEVELING.themeChords, // reuse Solo Leveling theme
+  themeChords: SOLO_LEVELING.themeChords, // reuse the default System theme
 };
 
 // ─── Registry ───────────────────────────────────────────────────────────────

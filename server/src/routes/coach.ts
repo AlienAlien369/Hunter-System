@@ -155,7 +155,7 @@ router.post('/weekly', async (req: Request, res: Response) => {
     const name = (await pool.query('SELECT name FROM users WHERE id = $1', [userId])).rows[0]?.name ?? 'Hunter';
     const raw = stats.completions + stats.unplanned.length === 0 ? null : await aiCompletion(req, {
       system:
-        'You are the Hunter System coach in a gamified self-improvement app inspired by Solo Leveling. ' +
+        'You are the Hunter System coach in a gamified self-improvement app with a dark, system-window style. ' +
         'Write a short, specific, encouraging-but-honest weekly review from the stats provided. Reference real numbers and days. ' +
         'Never invent activities that are not in the data. Keep each bullet under 25 words. Address the hunter directly.',
       prompt: JSON.stringify({ hunter: name, ...stats, byDay: stats.byDay.map(d => ({ ...d, day: dayName(d.date) })) }),

@@ -24,6 +24,29 @@ describe('message files', () => {
   }
 });
 
+describe('script hygiene', () => {
+  const keys = Object.keys(en) as (keyof typeof en)[];
+  it('Hinglish contains no Devanagari or Arabic-script letters', () => {
+    const hinglish = LOCALES.find(l => l.code === 'hi-Latn')!.messages;
+    const offenders = keys.filter(k => /[\u0600-\u06FF\u0900-\u097F]/.test(hinglish[k]));
+    expect(offenders).toEqual([]);
+  });
+  it('Hindi contains Devanagari wherever English has real words', () => {
+    const hi = LOCALES.find(l => l.code === 'hi')!.messages;
+    // Keys that are intentionally the same in every language (names, acronyms, currency labels).
+    const sameOk = new Set(['common.appName', 'nav.admin', 'pricing.pro.name', 'landing.for.india.1', 'landing.for.india.2', 'landing.for.india.3', 'landing.for.india.4']);
+    const untranslated = keys.filter(k => !sameOk.has(k) && en[k].length > 12 && hi[k] === en[k]);
+    expect(untranslated).toEqual([]);
+  });
+  it('no translation has stray double spaces or leading/trailing whitespace', () => {
+    for (const loc of LOCALES) for (const k of keys) {
+      const v = loc.messages[k];
+      expect(v, `${loc.code}:${k}`).toBe(v.trim());
+      expect(v.includes('  '), `${loc.code}:${k}`).toBe(false);
+    }
+  });
+});
+
 describe('detectLocale', () => {
   it('honours a saved choice first', () => {
     expect(detectLocale('hi-Latn', ['en-US'])).toBe('hi-Latn');
