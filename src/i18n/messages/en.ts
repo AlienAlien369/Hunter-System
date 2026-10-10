@@ -448,6 +448,20 @@ export const en = {
   'tt.cancel': "CANCEL",
   'tt.checking': "CHECKING…",
   'tt.save': "SAVE CHANGES",
+  'pp.startOwn': "Start your own journey →",
+  'pp.scanning': "Scanning hunter…",
+  'pp.label': "HUNTER PROFILE",
+  'pp.docTitle': "{name} · {rank}-Rank Hunter",
+  'pp.rankLevel': "{rank}-Rank Hunter · Level {level}",
+  'pp.level': "LEVEL",
+  'pp.streak': "STREAK",
+  'pp.thisWeek': "THIS WEEK",
+  'pp.totalXp': "TOTAL XP",
+  'pp.you': "This is you — back to your dashboard",
+  'pp.follow': "FOLLOW {name}",
+  'pp.race': "RACE {name}",
+  'pp.pitch': "Turn your real-life habits into quests, XP and ranks. Free.",
+  'pp.following': "Now following {name} — see Rank → Friends.",
 } as const;
 
 export type MessageKey = keyof typeof en;
