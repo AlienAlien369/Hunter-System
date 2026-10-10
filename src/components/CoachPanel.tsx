@@ -1,9 +1,12 @@
 import { useEffect, useState } from 'react';
 import { api, type CoachWeekly } from '../lib/api';
+import { useT, useLocaleStore, formatDate } from '../i18n';
 import { Btn, Panel } from './hunter/ui';
 
 /** Weekly AI coach: a short, data-grounded review of this week with next-week focus. */
 export default function CoachPanel() {
+  const t = useT();
+  const locale = useLocaleStore(s => s.locale);
   const [data, setData] = useState<CoachWeekly | null>(null);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState('');
@@ -27,26 +30,26 @@ export default function CoachPanel() {
   );
 
   return (
-    <Panel title="🧠 HUNTER COACH" right={r && <Btn variant="ghost" onClick={generate} disabled={busy}>{busy ? 'THINKING…' : 'REFRESH'}</Btn>}>
+    <Panel title={t('coach.title')} right={r && <Btn variant="ghost" onClick={generate} disabled={busy}>{busy ? t('coach.thinking') : t('coach.refresh')}</Btn>}>
       {!r ? (
         <div className="flex flex-wrap items-center justify-between gap-3">
           <p className="text-sm text-gray-400 font-mono max-w-xl">
-            Get a personal review of your week so far — your wins, where you slipped, and what to focus on next.
-            {data && ` ${data.stats.completions} quests · ${data.stats.xpEarned} XP · ${data.stats.activeDays}/${data.stats.daysElapsed} active days this week.`}
+            {t('coach.intro')}
+            {data && ` ${t('coach.stats', { q: data.stats.completions, xp: data.stats.xpEarned, d: data.stats.activeDays, e: data.stats.daysElapsed })}`}
           </p>
-          <Btn onClick={generate} disabled={busy}>{busy ? 'ANALYZING YOUR WEEK…' : 'REVIEW MY WEEK'}</Btn>
+          <Btn onClick={generate} disabled={busy}>{busy ? t('coach.analyzing') : t('coach.review')}</Btn>
         </div>
       ) : (
         <div className="space-y-4">
           <p className="font-display text-white text-lg tracking-wide">{r.headline}</p>
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-            {section('Wins', '🏆', r.wins)}
-            {section('Focus', '🎯', r.focus)}
-            {section('Next week', '🗓️', r.nextWeek)}
+            {section(t('coach.wins'), '🏆', r.wins)}
+            {section(t('coach.focus'), '🎯', r.focus)}
+            {section(t('coach.next'), '🗓️', r.nextWeek)}
           </div>
           <p className="text-[11px] text-gray-600 font-mono">
-            {r.source === 'ai' ? 'Written by Hunter AI from your real stats' : 'Generated from your stats'}
-            {data?.generatedAt && ` · ${new Date(data.generatedAt).toLocaleString([], { weekday: 'short', hour: '2-digit', minute: '2-digit' })}`}
+            {r.source === 'ai' ? t('coach.ai') : t('coach.gen')}
+            {data?.generatedAt && ` · ${formatDate(locale, data.generatedAt, { weekday: 'short', hour: '2-digit', minute: '2-digit' })}`}
           </p>
         </div>
       )}
