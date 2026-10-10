@@ -451,4 +451,11 @@ export const hi: Messages = {
   'pp.race': "{name} से रेस लगाएँ",
   'pp.pitch': "अपनी असली आदतों को क्वेस्ट, XP और रैंक में बदलिए। मुफ़्त।",
   'pp.following': "अब आप {name} को फ़ॉलो कर रहे हैं — रैंक → दोस्त देखें।",
+  'share.button': "↗ कार्ड शेयर करें",
+  'share.title': "आपका हंटर कार्ड",
+  'share.alt': "{name} का हंटर कार्ड",
+  'share.saved': "hunter-card.png के रूप में सेव हुआ — कहीं भी पोस्ट करें!",
+  'share.shared': "शेयर हो गया! 🔥",
+  'share.close': "बंद करें",
+  'share.share': "शेयर करें",
 };

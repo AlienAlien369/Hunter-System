@@ -462,6 +462,13 @@ export const en = {
   'pp.race': "RACE {name}",
   'pp.pitch': "Turn your real-life habits into quests, XP and ranks. Free.",
   'pp.following': "Now following {name} — see Rank → Friends.",
+  'share.button': "↗ SHARE CARD",
+  'share.title': "YOUR HUNTER CARD",
+  'share.alt': "{name}'s Hunter card",
+  'share.saved': "Saved as hunter-card.png — post it anywhere!",
+  'share.shared': "Shared! 🔥",
+  'share.close': "CLOSE",
+  'share.share': "SHARE",
 } as const;
 
 export type MessageKey = keyof typeof en;

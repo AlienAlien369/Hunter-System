@@ -450,4 +450,11 @@ export const hinglish: Messages = {
   'pp.race': "{name} SE RACE LAGAO",
   'pp.pitch': "Apni real-life habits ko quests, XP aur ranks mein badlo. Free.",
   'pp.following': "Ab tum {name} ko follow kar rahe ho — Rank → Friends dekho.",
+  'share.button': "↗ CARD SHARE KAREIN",
+  'share.title': "TUMHARA HUNTER CARD",
+  'share.alt': "{name} ka Hunter card",
+  'share.saved': "hunter-card.png ke roop mein save hua — kahin bhi post karo!",
+  'share.shared': "Share ho gaya! 🔥",
+  'share.close': "BAND KAREIN",
+  'share.share': "SHARE KAREIN",
 };
