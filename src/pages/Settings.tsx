@@ -6,10 +6,13 @@ import { sfx } from "../utils/sounds";
 import AppSettingsPanel from '../components/AppSettingsPanel';
 import AccountPanel from '../components/AccountPanel';
 import LegalLinks from '../components/LegalLinks';
+import LanguagePicker from '../components/LanguagePicker';
+import { useT } from '../i18n';
 
 type ThemeId = keyof typeof THEMES;
 
 export default function Settings() {
+  const t = useT();
   const currentTheme = useThemeStore((s) => s.theme);
   const setTheme = useThemeStore((s) => s.setTheme);
   const muted = useSoundStore((s) => s.muted);
@@ -39,10 +42,10 @@ export default function Settings() {
       >
         <div>
           <h1 className="text-2xl font-display text-white font-bold tracking-wider">
-            SETTINGS
+            {t('settings.title')}
           </h1>
           <p className="text-sm text-gray-500 font-mono mt-1">
-            Personalize your hunter system
+            {t('settings.subtitle')}
           </p>
         </div>
         <div className="w-12 h-12 rounded-lg accent-gradient flex items-center justify-center text-xl shadow-lg shadow-accent/30">
@@ -51,6 +54,11 @@ export default function Settings() {
       </motion.div>
 
       <AppSettingsPanel />
+      <section aria-labelledby="lang-title" className="bg-[#0d1117]/80 backdrop-blur-xl rounded-xl border border-accent-border p-5 space-y-3">
+        <h2 id="lang-title" className="font-display text-white font-bold tracking-widest text-sm">{t('settings.language.title').toUpperCase()}</h2>
+        <p className="text-xs text-gray-400 font-mono">{t('settings.language.hint')}</p>
+        <LanguagePicker variant="inline" />
+      </section>
       <AccountPanel />
       <LegalLinks className="px-1" />
 

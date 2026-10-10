@@ -62,6 +62,8 @@ import { moduleHref } from './data/presets';
 import { useTimetableReminders } from './utils/reminders';
 import RoutineSetup from './components/routine/RoutineSetup';
 import { api } from './lib/api';
+import { applyLocaleToDocument, useLocaleStore, useT } from './i18n';
+import type { MessageKey } from './i18n/messages/en';
 
 // Layout Components
 import Sidebar from './components/layout/Sidebar';
@@ -74,18 +76,18 @@ import HunterNameEntry from './components/HunterNameEntry';
 
 // Fixed core pages every hunter has. Everything else is a user module
 // (see /modules), listed dynamically after the core pages.
-const CORE_NAV = [
-  { path: '/', label: 'Dashboard', icon: '⚔' },
-  { path: '/quests', label: 'Quests', icon: '✅' },
-  { path: '/stats', label: 'Stats', icon: '📊' },
-  { path: '/rank', label: 'Rank', icon: '🏆' },
-  { path: '/progress', label: 'Progress', icon: '📈' },
-  { path: '/time', label: 'Timetable', icon: '📅' },
-  { path: '/inventory', label: 'Inventory', icon: '🎒' },
-  { path: '/achievements', label: 'Achievements', icon: '🏆' },
-  { path: '/weekly', label: 'Weekly Report', icon: '📊' },
+const CORE_NAV: { path: string; label: MessageKey; icon: string }[] = [
+  { path: '/', label: 'nav.dashboard', icon: '⚔' },
+  { path: '/quests', label: 'nav.quests', icon: '✅' },
+  { path: '/stats', label: 'nav.stats', icon: '📊' },
+  { path: '/rank', label: 'nav.rank', icon: '🏆' },
+  { path: '/progress', label: 'nav.progress', icon: '📈' },
+  { path: '/time', label: 'nav.timetable', icon: '📅' },
+  { path: '/inventory', label: 'nav.inventory', icon: '🎒' },
+  { path: '/achievements', label: 'nav.achievements', icon: '🏆' },
+  { path: '/weekly', label: 'nav.weekly', icon: '📊' },
 ];
-const SETTINGS_NAV = { path: '/settings', label: 'Settings', icon: '⚙' };
+const SETTINGS_NAV = { path: '/settings', label: 'nav.settings' as MessageKey, icon: '⚙' };
 
 function PageLoading() {
   return (
@@ -120,6 +122,7 @@ function useScreenOpenAudio() {
 
 function AppContent() {
   const location = useLocation();
+  const t = useT();
   const { user, logout, setHunterName } = useAuthStore();
   const theme = useThemeStore(s => s.theme);
   const [sidebarOpen, setSidebarOpen] = useState(false);
@@ -144,11 +147,11 @@ function AppContent() {
   // must not wait for a visit to the Dashboard.
   useEffect(() => { if (user?.id) useGameStore.getState().loadDashboard(); }, [user?.id]);
   const navItems = [
-    ...CORE_NAV,
-    ...modules.map(m => ({ path: moduleHref(m), label: m.status === 'paused' ? `${m.name} (paused)` : m.name, icon: m.icon })),
-    { path: '/modules', label: 'Modules', icon: '🧩' },
-    ...(user?.isAdmin ? [{ path: '/admin', label: 'Admin', icon: '📈' }] : []),
-    SETTINGS_NAV,
+    ...CORE_NAV.map(n => ({ ...n, label: t(n.label) })),
+    ...modules.map(m => ({ path: moduleHref(m), label: m.status === 'paused' ? t('nav.paused', { name: m.name }) : m.name, icon: m.icon })),
+    { path: '/modules', label: t('nav.modules'), icon: '🧩' },
+    ...(user?.isAdmin ? [{ path: '/admin', label: t('nav.admin'), icon: '📈' }] : []),
+    { ...SETTINGS_NAV, label: t(SETTINGS_NAV.label) },
   ];
 
   const [routineSetup, setRoutineSetup] = useState(false);
@@ -265,6 +268,9 @@ function AccessGate({ children }: { children: React.ReactNode }) {
 
 function App() {
   useScreenOpenAudio();
+  // Keep <html lang> and <html dir> in step with the chosen language (screen readers, RTL layouts).
+  const locale = useLocaleStore(s => s.locale);
+  useEffect(() => { applyLocaleToDocument(locale); }, [locale]);
   return (
     <AuthProvider>
       <Routes>

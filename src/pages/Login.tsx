@@ -8,9 +8,12 @@ import BackgroundFX from '../components/BackgroundFX';
 import { trackEvent } from '../lib/track';
 import { classifyBirthMonth, looksLikeEmail } from '../utils/age';
 import LegalLinks from '../components/LegalLinks';
+import LanguagePicker from '../components/LanguagePicker';
+import { useT } from '../i18n';
 import { Link } from 'react-router-dom';
 
 export default function Login() {
+  const t = useT();
   const navigate = useNavigate();
   const location = useLocation();
   const { login, user } = useAuthStore();
@@ -65,7 +68,7 @@ export default function Login() {
         sfx.login();
         navigate(target, { replace: true });
       } else {
-        if (ageClass === 'blocked') throw new Error('Hunter System is for people aged 13 and over.');
+        if (ageClass === 'blocked') throw new Error(t('auth.under13'));
         const response = await api.register(username, password, {
           birthMonth,
           acceptTerms: accepted,
@@ -78,7 +81,7 @@ export default function Login() {
         navigate(target, { replace: true });
       }
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Authentication failed');
+      setError(err instanceof Error ? err.message : t('auth.failed'));
     } finally {
       setLoading(false);
     }
@@ -86,6 +89,7 @@ export default function Login() {
 
   return (
     <main className="min-h-screen flex items-center justify-center p-4 py-10" style={{ background: 'var(--bg-base)' }}>
+      <div className="absolute top-4 right-4 z-10"><LanguagePicker /></div>
       {/* Animated system background */}
       <BackgroundFX />
 
@@ -93,28 +97,28 @@ export default function Login() {
       <div className="relative w-full max-w-5xl grid grid-cols-1 lg:grid-cols-2 lg:grid-rows-[auto_1fr] gap-x-10 gap-y-6 items-center">
       {/* Pitch: what Hunter is, for visitors arriving from a shared card or link */}
       <motion.section initial={{ opacity: 0, x: -20 }} animate={{ opacity: 1, x: 0 }} className="text-center lg:text-left lg:col-start-1 lg:row-start-1 lg:self-end">
-        <p className="text-purple-300 font-mono text-xs tracking-[0.3em]">THE SYSTEM HAS CHOSEN YOU</p>
+        <p className="text-purple-300 font-mono text-xs tracking-[0.3em]">{t('auth.eyebrow')}</p>
         <h2 className="font-display text-3xl sm:text-5xl font-bold text-white tracking-wider mt-3 leading-tight">
-          Level up your <span className="bg-gradient-to-r from-purple-400 to-blue-400 bg-clip-text text-transparent">real life</span>
+          {t('auth.headline.before')} <span className="bg-gradient-to-r from-purple-400 to-blue-400 bg-clip-text text-transparent">{t('auth.headline.accent')}</span>
         </h2>
         <p className="text-gray-400 font-mono text-sm mt-4 max-w-md mx-auto lg:mx-0">
-          Hunter turns your day into quests. Earn XP for the habits you keep, rank up from E to S, and see who's grinding hardest this week.
+          {t('auth.pitch')}
         </p>
       </motion.section>
 
       <motion.section initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="lg:col-start-1 lg:row-start-2 lg:self-start">
         <ul className="space-y-3 text-left max-w-md mx-auto lg:mx-0">
-          {[
-            ['🗓️', 'Your timetable becomes your quest log', 'Describe your day — Hunter builds the schedule, every slot earns XP.'],
-            ['🧩', 'Modules for everything you care about', 'Fitness, skincare, reading, content creation — or build your own with AI.'],
-            ['⚡', 'Real consequences, real progress', 'Streaks, penalties for skipped days, and a 2-day rule that keeps you honest.'],
-            ['🏆', 'Ranks, leaderboard & shareable cards', 'Climb the weekly board and flex your Hunter card with friends.'],
-          ].map(([icon, title, body]) => (
+          {([
+            ['🗓️', 'auth.feature.timetable.title', 'auth.feature.timetable.body'],
+            ['🧩', 'auth.feature.modules.title', 'auth.feature.modules.body'],
+            ['⚡', 'auth.feature.stakes.title', 'auth.feature.stakes.body'],
+            ['🏆', 'auth.feature.ranks.title', 'auth.feature.ranks.body'],
+          ] as const).map(([icon, title, body]) => (
             <li key={title} className="flex gap-3">
               <span className="text-xl">{icon}</span>
               <span>
-                <span className="block text-white font-mono text-sm">{title}</span>
-                <span className="block text-gray-400 font-mono text-xs">{body}</span>
+                <span className="block text-white font-mono text-sm">{t(title)}</span>
+                <span className="block text-gray-400 font-mono text-xs">{t(body)}</span>
               </span>
             </li>
           ))}
@@ -141,11 +145,11 @@ export default function Login() {
               HUNTER SYSTEM
             </h1>
             <p className="text-purple-400 font-mono text-sm mt-2">
-              {mode === 'login' ? 'ENTER THE DUNGEON' : mode === 'recover' ? 'RECOVER YOUR ACCOUNT' : 'JOIN THE HUNTERS'}
+              {t(mode === 'login' ? 'auth.subtitle.login' : mode === 'recover' ? 'auth.subtitle.recover' : 'auth.subtitle.register')}
             </p>
             {invite && mode === 'register' && (
               <p className="mt-3 text-xs font-mono text-gold border border-yellow-500/30 bg-yellow-500/10 rounded-lg px-3 py-2">
-                ⚔️ {invite} invited you — you'll race each other on weekly XP.
+                {t('auth.invited', { name: invite })}
               </p>
             )}
           </div>
@@ -160,7 +164,7 @@ export default function Login() {
                   : 'text-gray-400 hover:text-gray-200'
               }`}
             >
-              LOGIN
+              {t('auth.tab.login')}
             </button>
             <button
               onClick={() => { setMode('register'); setError(''); }}
@@ -170,7 +174,7 @@ export default function Login() {
                   : 'text-gray-400 hover:text-gray-200'
               }`}
             >
-              REGISTER
+              {t('auth.tab.register')}
             </button>
           </div>
 
@@ -178,14 +182,14 @@ export default function Login() {
           <form onSubmit={handleSubmit} className="space-y-4">
             <div>
               <label className="block text-gray-400 font-mono text-xs uppercase tracking-wider mb-2">
-                Username
+                {t('auth.username')}
               </label>
               <input
                 type="text"
                 value={username}
                 onChange={(e) => setUsername(e.target.value)}
                 className="w-full bg-[#0d1117] border border-purple-500/20 rounded-lg px-4 py-3 text-white font-mono focus:outline-none focus:border-purple-500/50 focus:ring-1 focus:ring-purple-500/50 transition-all"
-                placeholder="Enter your username"
+                placeholder={t('auth.username.placeholder')}
                 required
                 minLength={3}
               />
@@ -194,7 +198,7 @@ export default function Login() {
             {mode === 'recover' && (
               <div>
                 <label className="block text-gray-400 font-mono text-xs uppercase tracking-wider mb-2">
-                  Recovery code
+                  {t('auth.recoveryCode')}
                 </label>
                 <input
                   type="text"
@@ -210,14 +214,14 @@ export default function Login() {
 
             <div>
               <label className="block text-gray-400 font-mono text-xs uppercase tracking-wider mb-2">
-                {mode === 'recover' ? 'New password' : 'Password'}
+                {t(mode === 'recover' ? 'auth.password.new' : 'auth.password')}
               </label>
               <input
                 type="password"
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
                 className="w-full bg-[#0d1117] border border-purple-500/20 rounded-lg px-4 py-3 text-white font-mono focus:outline-none focus:border-purple-500/50 focus:ring-1 focus:ring-purple-500/50 transition-all"
-                placeholder="Enter your password"
+                placeholder={t('auth.password.placeholder')}
                 required
                 minLength={6}
               />
@@ -227,7 +231,7 @@ export default function Login() {
               <>
                 <div>
                   <label htmlFor="birth-month" className="block text-gray-400 font-mono text-xs uppercase tracking-wider mb-2">
-                    Month and year you were born
+                    {t('auth.birthMonth')}
                   </label>
                   <input
                     id="birth-month"
@@ -238,17 +242,17 @@ export default function Login() {
                     className="w-full bg-[#0d1117] border border-purple-500/20 rounded-lg px-4 py-3 text-white font-mono focus:outline-none focus:border-purple-500/50 focus:ring-1 focus:ring-purple-500/50 transition-all"
                     required
                   />
-                  <p className="text-[11px] text-gray-500 font-mono mt-1">Only used for age rules. We never store the day.</p>
+                  <p className="text-[11px] text-gray-500 font-mono mt-1">{t('auth.birthMonth.hint')}</p>
                 </div>
                 {ageClass === 'blocked' && (
                   <p role="alert" className="text-xs font-mono text-red-300 border border-red-500/30 bg-red-500/10 rounded-lg px-3 py-2">
-                    Hunter System is for people aged 13 and over.
+                    {t('auth.under13')}
                   </p>
                 )}
                 {ageClass === 'minor' && (
                   <div>
-                    <p className="text-xs font-mono text-yellow-300 mb-2">Under 18? A parent or guardian has to approve your account. We’ll email them — nothing is active until they agree.</p>
-                    <label htmlFor="parent-email" className="block text-gray-400 font-mono text-xs uppercase tracking-wider mb-2">Parent or guardian’s email</label>
+                    <p className="text-xs font-mono text-yellow-300 mb-2">{t('auth.minorNotice')}</p>
+                    <label htmlFor="parent-email" className="block text-gray-400 font-mono text-xs uppercase tracking-wider mb-2">{t('auth.parentEmail')}</label>
                     <input
                       id="parent-email"
                       type="email"
@@ -264,8 +268,8 @@ export default function Login() {
                 <label className="flex items-start gap-3 text-xs font-mono text-gray-300 cursor-pointer">
                   <input type="checkbox" checked={accepted} onChange={(e) => setAccepted(e.target.checked)} className="mt-0.5 accent-purple-500" required />
                   <span>
-                    I agree to the <Link to="/terms" target="_blank" className="text-purple-300 underline">Terms</Link> and have read the{' '}
-                    <Link to="/privacy" target="_blank" className="text-purple-300 underline">Privacy Policy</Link>.
+                    {t('auth.agree.before')} <Link to="/terms" target="_blank" className="text-purple-300 underline">{t('auth.agree.terms')}</Link> {t('auth.agree.middle')}{' '}
+                    <Link to="/privacy" target="_blank" className="text-purple-300 underline">{t('auth.agree.privacy')}</Link>.
                   </span>
                 </label>
               </>
@@ -294,10 +298,10 @@ export default function Login() {
                     <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
                     <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
                   </svg>
-                  PROCESSING...
+                  {t('auth.processing')}
                 </span>
               ) : (
-                mode === 'login' ? 'ENTER SYSTEM' : mode === 'recover' ? 'RESET PASSWORD' : 'CREATE ACCOUNT'
+                t(mode === 'login' ? 'auth.submit.login' : mode === 'recover' ? 'auth.submit.recover' : 'auth.submit.register')
               )}
             </button>
           </form>
@@ -309,7 +313,7 @@ export default function Login() {
               onClick={() => { setMode(mode === 'login' ? 'recover' : 'login'); setError(''); }}
               className="block mx-auto mt-4 text-xs font-mono text-gray-400 hover:text-purple-300"
             >
-              {mode === 'login' ? 'Forgot password? Use your recovery code' : '← Back to login'}
+              {mode === 'login' ? t('auth.forgot') : t('common.back')}
             </button>
           )}
 
@@ -317,7 +321,7 @@ export default function Login() {
 
         {/* Footer */}
         <p className="text-center text-gray-400 font-mono text-xs mt-6">
-          Hunter System · free to play
+          {t('auth.footer')}
         </p>
       </motion.div>
       </div>

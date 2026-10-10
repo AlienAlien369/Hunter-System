@@ -3,6 +3,8 @@ import { api } from '../lib/api';
 import { useAuthStore } from '../store/authStore';
 import { classifyBirthMonth, looksLikeEmail } from '../utils/age';
 import LegalLinks from './LegalLinks';
+import LanguagePicker from './LanguagePicker';
+import { useT } from '../i18n';
 import BackgroundFX from './BackgroundFX';
 
 const field = 'w-full bg-[#0d1117] border border-purple-500/20 rounded-lg px-4 py-3 text-white font-mono focus:outline-none focus:border-purple-500/50 focus:ring-1 focus:ring-purple-500/50';
@@ -15,6 +17,7 @@ const button = 'w-full bg-gradient-to-r from-purple-600 to-blue-600 hover:from-p
  * The server enforces this too (403 consent_required); this is the friendly side.
  */
 export default function ConsentGate() {
+  const t = useT();
   const user = useAuthStore(s => s.user)!;
   const { checkAuth, logout } = useAuthStore();
   const [birthMonth, setBirthMonth] = useState('');
@@ -48,7 +51,7 @@ export default function ConsentGate() {
     setNote('');
     try {
       const r = await api.resendParentEmail(parentEmail.trim() || undefined);
-      setNote(r.parentMailSent ? `We emailed ${r.parentEmailMasked} again.` : 'We could not send the email right now. Please try again later.');
+      setNote(r.parentMailSent ? t('consent.pending.sent', { email: r.parentEmailMasked }) : t('consent.pending.failed'));
       setParentEmail('');
       await checkAuth();
     } catch (err) {
@@ -65,37 +68,38 @@ export default function ConsentGate() {
         {user.consentStatus === 'pending' ? (
           <div className="space-y-4">
             <p className="text-4xl text-center" aria-hidden>👪</p>
-            <h1 className="font-display text-xl text-white text-center tracking-wider">WAITING FOR A PARENT OR GUARDIAN</h1>
+            <h1 className="font-display text-xl text-white text-center tracking-wider">{t('consent.pending.title')}</h1>
             <p className="text-sm text-gray-300 font-mono leading-relaxed">
-              Because you are under 18, a parent or guardian has to approve your account. We emailed {user.parentEmailMasked ?? 'them'} a link. Once they approve, you are in — nothing is active before that.
+              {user.parentEmailMasked ? t('consent.pending.body', { email: user.parentEmailMasked }) : t('consent.pending.bodyNoEmail')}
             </p>
-            <p className="text-xs text-gray-500 font-mono">No reply in 14 days and the request is cancelled and your account deleted. Check their spam folder, or send it again, even to a different address:</p>
-            <label className="block text-xs font-mono uppercase tracking-wider text-gray-400" htmlFor="pe">Parent’s email (leave empty to reuse)</label>
+            <p className="text-xs text-gray-500 font-mono">{t('consent.pending.expiry')}</p>
+            <label className="block text-xs font-mono uppercase tracking-wider text-gray-400" htmlFor="pe">{t('consent.pending.emailLabel')}</label>
             <input id="pe" type="email" className={field} value={parentEmail} onChange={e => setParentEmail(e.target.value)} autoComplete="off" />
-            <button className={button} disabled={busy || (!!parentEmail && !looksLikeEmail(parentEmail))} onClick={resend}>{busy ? 'SENDING…' : 'SEND AGAIN'}</button>
+            <button className={button} disabled={busy || (!!parentEmail && !looksLikeEmail(parentEmail))} onClick={resend}>{busy ? t('consent.pending.sending') : t('consent.pending.send')}</button>
           </div>
         ) : (
           <form onSubmit={submitAge} className="space-y-4">
             <p className="text-4xl text-center" aria-hidden>🎂</p>
-            <h1 className="font-display text-xl text-white text-center tracking-wider">ONE QUICK QUESTION</h1>
-            <p className="text-sm text-gray-300 font-mono leading-relaxed">We now ask everyone their age so we can protect younger hunters. We only keep the month and year.</p>
-            <label className="block text-xs font-mono uppercase tracking-wider text-gray-400" htmlFor="bm">Month and year you were born</label>
+            <h1 className="font-display text-xl text-white text-center tracking-wider">{t('consent.age.title')}</h1>
+            <p className="text-sm text-gray-300 font-mono leading-relaxed">{t('consent.age.body')}</p>
+            <label className="block text-xs font-mono uppercase tracking-wider text-gray-400" htmlFor="bm">{t('auth.birthMonth')}</label>
             <input id="bm" type="month" className={field} value={birthMonth} onChange={e => setBirthMonth(e.target.value)} max={new Date().toISOString().slice(0, 7)} required />
-            {cls === 'blocked' && <p className="text-xs font-mono text-red-300" role="alert">Hunter System is for people aged 13 and over. If you continue, your account will be deleted.</p>}
+            {cls === 'blocked' && <p className="text-xs font-mono text-red-300" role="alert">{t('consent.age.blocked')}</p>}
             {needsParent && (
               <>
-                <p className="text-xs font-mono text-yellow-300">You are under 18, so a parent or guardian must approve your account. Enter their email and we will ask them.</p>
-                <input type="email" aria-label="Parent or guardian email" className={field} value={parentEmail} onChange={e => setParentEmail(e.target.value)} placeholder="parent@example.com" required />
+                <p className="text-xs font-mono text-yellow-300">{t('consent.age.minor')}</p>
+                <input type="email" aria-label={t('auth.parentEmail')} className={field} value={parentEmail} onChange={e => setParentEmail(e.target.value)} placeholder="parent@example.com" required />
               </>
             )}
-            <button className={button} disabled={busy || cls === null || (needsParent && !looksLikeEmail(parentEmail))}>{busy ? 'PLEASE WAIT…' : cls === 'blocked' ? 'DELETE MY ACCOUNT' : 'CONTINUE'}</button>
+            <button className={button} disabled={busy || cls === null || (needsParent && !looksLikeEmail(parentEmail))}>{busy ? t('consent.age.wait') : cls === 'blocked' ? t('consent.age.delete') : t('consent.age.continue')}</button>
           </form>
         )}
         {error && <p role="alert" className="mt-4 text-sm font-mono text-red-400 border border-red-500/30 bg-red-500/10 rounded-lg px-3 py-2">{error}</p>}
         {note && <p role="status" className="mt-4 text-sm font-mono text-green-400">{note}</p>}
         <div className="mt-6 flex items-center justify-between">
           <LegalLinks />
-          <button onClick={() => logout()} className="text-[11px] font-mono text-gray-400 hover:text-white">Log out</button>
+          <LanguagePicker />
+          <button onClick={() => logout()} className="text-[11px] font-mono text-gray-400 hover:text-white">{t('common.logout')}</button>
         </div>
       </div>
     </main>
