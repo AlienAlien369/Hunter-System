@@ -433,6 +433,21 @@ export const en = {
   'ql.daily': "DAILY QUESTS",
   'ql.resets': "RESETS EVERY DAY • {date}",
   'ql.todayXp': "⚡ TODAY'S XP",
+  'tt.loading': "Loading routine…",
+  'tt.setupTitle': "SET UP YOUR HUNTER ROUTINE",
+  'tt.setupBody': "Build your own timetable from your goals — modules like Skincare, Workout or Content Creation. Hunter can suggest one from a short description.",
+  'tt.create': "CREATE MY ROUTINE",
+  'tt.title': "TIMETABLE",
+  'tt.established': "ESTABLISHED ROUTINE — changes show their XP impact before applying",
+  'tt.setupPeriod': "SETUP PERIOD — edit freely until {when}",
+  'tt.edit': "EDIT ROUTINE",
+  'tt.time': "Time",
+  'tt.history': "ROUTINE HISTORY",
+  'tt.confirmed': "Hunter Routine confirmed",
+  'tt.noChanges': "No changes yet.",
+  'tt.cancel': "CANCEL",
+  'tt.checking': "CHECKING…",
+  'tt.save': "SAVE CHANGES",
 } as const;
 
 export type MessageKey = keyof typeof en;
