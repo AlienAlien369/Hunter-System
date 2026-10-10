@@ -1,3 +1,4 @@
+import { languageInstruction } from '../aiLanguage.js';
 import { Router, Request, Response } from 'express';
 import { pool } from '../db.js';
 import { authenticateToken } from '../middleware/auth.js';
@@ -157,7 +158,8 @@ router.post('/weekly', async (req: Request, res: Response) => {
       system:
         'You are the Hunter System coach in a gamified self-improvement app with a dark, system-window style. ' +
         'Write a short, specific, encouraging-but-honest weekly review from the stats provided. Reference real numbers and days. ' +
-        'Never invent activities that are not in the data. Keep each bullet under 25 words. Address the hunter directly.',
+        'Never invent activities that are not in the data. Keep each bullet under 25 words. Address the hunter directly.' +
+        languageInstruction(req.body?.language),
       prompt: JSON.stringify({ hunter: name, ...stats, byDay: stats.byDay.map(d => ({ ...d, day: dayName(d.date) })) }),
       toolName: 'weekly_review',
       schema: {

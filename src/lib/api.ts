@@ -1,4 +1,5 @@
 import { browserTimeZone } from '../utils/date';
+import { useLocaleStore } from '../i18n';
 
 // Auto-detect API URL based on environment
 const getApiUrl = (): string => {
@@ -766,7 +767,7 @@ export const api = {
 
   // Weekly AI coach
   getCoachWeekly: () => request<CoachWeekly>('/coach/weekly'),
-  generateCoachWeekly: () => request<CoachWeekly>('/coach/weekly', { method: 'POST' }),
+  generateCoachWeekly: () => request<CoachWeekly>('/coach/weekly', { method: 'POST', body: JSON.stringify({ language: useLocaleStore.getState().locale }) }),
 
   // Account
   changePassword: (currentPassword: string, newPassword: string) =>
