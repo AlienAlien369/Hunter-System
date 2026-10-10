@@ -7,8 +7,8 @@
     "build": "tsc",
     "start": "node dist/index.js",
     "migrate": "node-pg-migrate up",
-    "test": "tsx --test src/tests/rules.test.ts src/tests/security.test.ts src/tests/push.test.ts src/tests/analytics.unit.test.ts src/tests/age.unit.test.ts && node --test src/tests/auth.test.ts src/tests/isolation.test.ts src/tests/progress.test.ts src/tests/extensions.test.ts src/tests/analytics.test.ts src/tests/consent.test.ts",
-    "test:unit": "tsx --test src/tests/rules.test.ts src/tests/security.test.ts src/tests/push.test.ts src/tests/analytics.unit.test.ts src/tests/age.unit.test.ts"
+    "test": "tsx --test src/tests/rules.test.ts src/tests/security.test.ts src/tests/push.test.ts src/tests/analytics.unit.test.ts src/tests/age.unit.test.ts src/tests/billing.unit.test.ts src/tests/billing.test.ts && node --test src/tests/auth.test.ts src/tests/isolation.test.ts src/tests/progress.test.ts src/tests/extensions.test.ts src/tests/analytics.test.ts src/tests/consent.test.ts",
+    "test:unit": "tsx --test src/tests/rules.test.ts src/tests/security.test.ts src/tests/push.test.ts src/tests/analytics.unit.test.ts src/tests/age.unit.test.ts src/tests/billing.unit.test.ts"
   },
   "dependencies": {
     "bcrypt": "^6.0.0",

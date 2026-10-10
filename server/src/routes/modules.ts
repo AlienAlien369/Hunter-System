@@ -2,7 +2,7 @@ import { Router, Request, Response } from 'express';
 import { pool } from '../db.js';
 import { authenticateToken } from '../middleware/auth.js';
 import { applyXp } from '../xp.js';
-import { structuredCompletion } from '../ai.js';
+import { AI_LIMIT_MESSAGE, aiCompletion } from '../aiQuota.js';
 import {
   XP_RULES, MODULE_KINDS, SINGLETON_KINDS, DAYS, isEstablished, slugify, taskXp,
   sanitizeModuleTask, diffModuleTasks, moduleRemovalChange, modulePauseChange, validateModuleDraft,
@@ -310,7 +310,7 @@ router.post('/ai/draft', async (req: Request, res: Response) => {
       if (!mod) return res.status(404).json({ error: 'Module not found' });
       current = { name: mod.name, icon: mod.icon, goals: mod.goals, tasks: (await moduleTaskRows(pool, userId, mod.slug)).map(toModuleTask).map(({ createdAt: _c, ...t }) => t) };
     }
-    const raw = await structuredCompletion({
+    const raw = await aiCompletion(req, {
       system:
         'You design habit modules for a gamified self-improvement app ("Hunter"). A module has a short name, one emoji icon, ' +
         'a few concrete goals, and recurring tasks. Tasks: short title, difficulty 1 (easy) to 3 (hard), optional 24h scheduleTime HH:MM, ' +
@@ -346,7 +346,7 @@ router.post('/ai/draft', async (req: Request, res: Response) => {
       },
     });
     const draft = validateModuleDraft(raw);
-    if (!draft) return res.status(503).json({ error: "Hunter couldn't draft this module right now. You can build it manually." });
+    if (!draft) return res.status(503).json({ error: req.aiLimited ? AI_LIMIT_MESSAGE : "Hunter couldn't draft this module right now. You can build it manually.", aiLimited: !!req.aiLimited });
     // Only keep ids that really belong to the module being edited.
     const ids = new Set(current ? (current as { tasks: { id?: string }[] }).tasks.map(t => t.id) : []);
     for (const t of draft.tasks) if (t.id && !ids.has(t.id)) t.id = undefined;

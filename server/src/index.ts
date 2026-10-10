@@ -26,6 +26,8 @@ import pushRoutes from './routes/push.js';
 import eventRoutes from './routes/events.js';
 import adminRoutes from './routes/admin.js';
 import consentRoutes from './routes/consent.js';
+import billingRoutes from './routes/billing.js';
+import webhookRoutes from './routes/webhooks.js';
 import { consentGate } from './middleware/consentGate.js';
 import { purgeOldEvents } from './analytics.js';
 import { purgeExpiredConsentRequests } from './consent.js';
@@ -53,7 +55,8 @@ app.use(cors({
 }));
 app.use(originGuard);
 app.use(cookieParser());
-app.use(express.json());
+// Keep the raw bytes: payment webhooks are signed over them.
+app.use(express.json({ verify: (req, _res, buf) => { (req as express.Request & { rawBody?: Buffer }).rawBody = buf; } }));
 
 // Hunters who have not stated their age, or whose parent has not consented, can only reach auth + consent.
 app.use(consentGate);
@@ -80,6 +83,8 @@ app.use('/api/push', pushRoutes);
 app.use('/api/events', eventRoutes);
 app.use('/api/admin', adminRoutes);
 app.use('/api/consent', consentRoutes);
+app.use('/api/billing', billingRoutes);
+app.use('/api/webhooks', webhookRoutes);
 app.get('/api/health', (req, res) => res.json({ status: 'ok', timestamp: new Date().toISOString() }));
 
 // Serve frontend static files in production

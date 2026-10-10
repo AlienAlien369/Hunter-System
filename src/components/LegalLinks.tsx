@@ -3,6 +3,7 @@ import { useT } from '../i18n';
 import type { MessageKey } from '../i18n/messages/en';
 
 const LINKS: { kind: string; to: string; label: MessageKey }[] = [
+  { kind: 'pricing', to: '/pricing', label: 'legal.pricing' },
   { kind: 'terms', to: '/terms', label: 'legal.terms' },
   { kind: 'privacy', to: '/privacy', label: 'legal.privacy' },
   { kind: 'refund', to: '/refund', label: 'legal.refunds' },

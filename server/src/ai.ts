@@ -10,7 +10,7 @@
 
 type Schema = Record<string, unknown>;
 
-interface StructuredRequest {
+export interface StructuredRequest {
   system: string;
   prompt: string;
   toolName: string;

@@ -1,7 +1,7 @@
 import { Router, Request, Response } from 'express';
 import { pool } from '../db.js';
 import { authenticateToken } from '../middleware/auth.js';
-import { structuredCompletion } from '../ai.js';
+import { aiCompletion } from '../aiQuota.js';
 import { hit } from '../middleware/security.js';
 import { weekStart } from './leaderboard.js';
 import { requestToday } from '../time.js';
@@ -153,7 +153,7 @@ router.post('/weekly', async (req: Request, res: Response) => {
     if (wait) return res.status(429).json({ error: 'You can refresh your review 3 times a day. Try again tomorrow.' });
     const stats = await weekStatsFor(userId, requestToday(req));
     const name = (await pool.query('SELECT name FROM users WHERE id = $1', [userId])).rows[0]?.name ?? 'Hunter';
-    const raw = stats.completions + stats.unplanned.length === 0 ? null : await structuredCompletion({
+    const raw = stats.completions + stats.unplanned.length === 0 ? null : await aiCompletion(req, {
       system:
         'You are the Hunter System coach in a gamified self-improvement app inspired by Solo Leveling. ' +
         'Write a short, specific, encouraging-but-honest weekly review from the stats provided. Reference real numbers and days. ' +

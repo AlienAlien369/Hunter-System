@@ -7,6 +7,7 @@ import AppSettingsPanel from '../components/AppSettingsPanel';
 import AccountPanel from '../components/AccountPanel';
 import LegalLinks from '../components/LegalLinks';
 import LanguagePicker from '../components/LanguagePicker';
+import BillingPanel from '../components/BillingPanel';
 import { useT } from '../i18n';
 
 type ThemeId = keyof typeof THEMES;
@@ -59,6 +60,7 @@ export default function Settings() {
         <p className="text-xs text-gray-400 font-mono">{t('settings.language.hint')}</p>
         <LanguagePicker variant="inline" />
       </section>
+      <BillingPanel />
       <AccountPanel />
       <LegalLinks className="px-1" />
 

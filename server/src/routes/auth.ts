@@ -518,7 +518,7 @@ router.get("/export", authenticateToken, async (req: Request, res: Response) => 
     const id = req.user!.id;
     const q = async (sql: string) => (await pool.query(sql, [id])).rows;
     const [user] = await q(
-      `SELECT id, username, name, name_set, xp, hp, mp, str, agi, vit, int, sen, show_on_leaderboard, region, birth_month, consent_status, parent_email, parent_consented_at, created_at, updated_at FROM users WHERE id = $1`,
+      `SELECT id, username, name, name_set, xp, hp, mp, str, agi, vit, int, sen, show_on_leaderboard, region, birth_month, consent_status, parent_email, parent_consented_at, pro_until, created_at, updated_at FROM users WHERE id = $1`,
     );
     if (!user) return res.status(404).json({ error: "User not found" });
     const data = {
@@ -539,6 +539,7 @@ router.get("/export", authenticateToken, async (req: Request, res: Response) => 
       penalties: await q(`SELECT penalty_date, missed_days, broken_streak, xp_lost, hp_lost, recovered FROM penalties WHERE user_id = $1 ORDER BY penalty_date`),
       gameState: (await q(`SELECT state, updated_at FROM user_state WHERE user_id = $1`))[0] ?? null,
       coachReviews: await q(`SELECT week_start, review, created_at FROM coach_reviews WHERE user_id = $1 ORDER BY week_start`),
+      subscriptions: await q(`SELECT provider, plan, interval, status, currency, amount_minor, current_period_end, cancel_at_period_end, created_at FROM subscriptions WHERE user_id = $1 ORDER BY id`),
       consents: await q(`SELECT kind, version, granted, created_at FROM consents WHERE user_id = $1 ORDER BY id`),
       events: await q(`SELECT name, region, props, created_at FROM events WHERE user_id = $1 ORDER BY id`),
       following: (await q(`SELECT u.name FROM friendships f JOIN users u ON u.id = f.followee_id WHERE f.follower_id = $1 ORDER BY u.name`)).map((r: any) => r.name),

@@ -4,7 +4,7 @@ import { pool } from '../db.js';
 import { authenticateToken } from '../middleware/auth.js';
 import { applyXp } from '../xp.js';
 import { requestTimeZone, requestToday } from '../time.js';
-import { structuredCompletion } from '../ai.js';
+import { AI_LIMIT_MESSAGE, aiCompletion } from '../aiQuota.js';
 import {
   XP_RULES, DIFFICULTIES, UNPLANNED_CATEGORIES, UnplannedAnalysis, UnplannedFields,
   normalizeText, similarity, unplannedFieldsError, unplannedXp, validateUnplannedAnalysis,
@@ -113,7 +113,7 @@ router.post('/analyze', async (req: Request, res: Response) => {
       `SELECT DISTINCT category FROM quests WHERE user_id = $1 AND NOT archived`,
       [userId]
     );
-    const raw = await structuredCompletion({
+    const raw = await aiCompletion(req, {
       system:
         'You evaluate activities a user did outside their planned tasks in a gamified self-improvement app. ' +
         'Be honest and conservative: trivial everyday actions (drinking water, scrolling, eating a meal) are trivial and not meaningful. ' +
@@ -143,7 +143,7 @@ router.post('/analyze', async (req: Request, res: Response) => {
       },
     });
     const analysis = validateUnplannedAnalysis(raw);
-    if (!analysis) return res.json({ status: 'manual', message: "Hunter couldn't analyze this activity automatically. You can add it manually." });
+    if (!analysis) return res.json({ status: 'manual', aiLimited: !!req.aiLimited, message: req.aiLimited ? AI_LIMIT_MESSAGE : "Hunter couldn't analyze this activity automatically. You can add it manually." });
 
     res.json({ status: 'analyzed', ...(await createPending(userId, dayOf(req), description, analysis, 'ai')) });
   } catch (error) {

@@ -219,6 +219,7 @@ describe('Age gate and parental consent', () => {
       const exp = await (await get('/auth/export', u.cookie)).json();
       assert.deepStrictEqual(exp.consents.map((c: any) => c.kind), ['terms', 'privacy']);
       assert.ok(exp.profile.birth_month, 'birth month is in the export');
+      assert.deepStrictEqual(exp.subscriptions, [], 'billing records are part of the export');
       const del = await fetch(`${BASE_URL}/api/auth/account`, { method: 'DELETE', headers: { ...json, Cookie: u.cookie }, body: JSON.stringify({ password: PASS, confirm: `rights_${suffix}` }) });
       assert.strictEqual(del.status, 200);
       assert.strictEqual((await db.query('SELECT 1 FROM consents WHERE user_id = $1', [u.id])).rowCount, 0);

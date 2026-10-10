@@ -5,7 +5,7 @@ import { authenticateToken } from '../middleware/auth.js';
 import { logActivity } from '../activity.js';
 import { applyXp } from '../xp.js';
 import { syncRoutineQuests } from '../modules.js';
-import { structuredCompletion } from '../ai.js';
+import { AI_LIMIT_MESSAGE, aiCompletion } from '../aiQuota.js';
 import { diffRoutine, sanitizeRoutineItems, validateRoutineSuggestion, XP_RULES, DAYS, RoutineItem } from '../rules.js';
 
 // The Hunter Routine (timetable) contract. Confirming a routine starts a
@@ -149,7 +149,7 @@ router.get('/history', async (req: Request, res: Response) => {
 router.post('/suggest', async (req: Request, res: Response) => {
   const description = typeof req.body.description === 'string' ? req.body.description.trim().slice(0, 1500) : '';
   if (description.length < 10) return res.status(400).json({ error: 'Describe your day in a sentence or two' });
-  const raw = await structuredCompletion({
+  const raw = await aiCompletion(req, {
     system:
       'You design realistic daily routines for a gamified productivity app. Convert the user description into timetable slots. ' +
       'Use short module names (e.g. Wake, Skincare, Workout, Work, Coding, Content Creation, Reading, Wind Down). ' +
@@ -182,7 +182,7 @@ router.post('/suggest', async (req: Request, res: Response) => {
   });
   const suggestion = validateRoutineSuggestion(raw);
   if (!suggestion) {
-    return res.status(503).json({ error: "Hunter couldn't generate suggestions right now. You can build your routine manually." });
+    return res.status(503).json({ error: req.aiLimited ? AI_LIMIT_MESSAGE : "Hunter couldn't generate suggestions right now. You can build your routine manually.", aiLimited: !!req.aiLimited });
   }
   res.json(suggestion);
 });

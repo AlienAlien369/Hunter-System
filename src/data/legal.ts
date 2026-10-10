@@ -138,7 +138,7 @@ export const PRIVACY: LegalDoc = {
     {
       heading: '5. Who we share data with',
       bullets: [
-        'Service providers that run Hunter System for us: hosting and database providers (servers in the United States and/or Singapore), an email delivery provider (parental consent messages), AI providers (section 4), and browser push-notification services if you enable reminders.',
+        'Service providers that run Hunter System for us: hosting and database providers (servers in the United States and/or Singapore), an email delivery provider (parental consent messages), AI providers (section 4), payment providers if you subscribe (Razorpay in India, Stripe elsewhere), and browser push-notification services if you enable reminders.',
         'Other people, only in the ways you choose: if you pick a Hunter name and stay visible, your name, level, rank, streak and weekly/total XP appear on the leaderboard and on your public profile link, plus the names of your active modules. You can opt out in Rank → Leaderboard.',
         'Authorities, when the law requires it.',
       ],
@@ -156,6 +156,7 @@ export const PRIVACY: LegalDoc = {
         'Anonymous usage counts and event records: up to 13 months.',
         'A request to a parent that is never answered: the child’s pending account is deleted after 14 days.',
         'Records that you accepted our terms and your parent’s consent are kept as long as the account exists, as proof.',
+        'Payment records (what you paid, when, and the provider’s reference) are kept for as long as tax and accounting law require, even after you delete your account. We never hold your card or UPI details; the payment provider does.',
       ],
     },
     {

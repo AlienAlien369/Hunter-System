@@ -162,6 +162,51 @@ export async function initDatabase() {
       );
       CREATE INDEX IF NOT EXISTS idx_consents_user ON consents(user_id);
     `);
+    // Billing. `subscriptions` mirrors the payment provider; only verified
+    // webhooks write it, so entitlements can never be granted from the browser.
+    // `users.pro_until` holds grants that are not payments (referral rewards, class pilots).
+    await client.query(`
+      ALTER TABLE users ADD COLUMN IF NOT EXISTS pro_until TIMESTAMPTZ;
+      CREATE TABLE IF NOT EXISTS subscriptions (
+        id SERIAL PRIMARY KEY,
+        user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+        provider VARCHAR(12) NOT NULL,
+        provider_subscription_id TEXT NOT NULL,
+        provider_customer_id TEXT,
+        plan VARCHAR(10) NOT NULL DEFAULT 'pro',
+        interval VARCHAR(6) NOT NULL,
+        status VARCHAR(12) NOT NULL,
+        currency VARCHAR(3) NOT NULL,
+        amount_minor INTEGER NOT NULL,
+        current_period_end TIMESTAMPTZ,
+        cancel_at_period_end BOOLEAN NOT NULL DEFAULT false,
+        last_payment_id TEXT,
+        last_event_at TIMESTAMPTZ,
+        created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+        updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+        UNIQUE (provider, provider_subscription_id)
+      );
+      CREATE INDEX IF NOT EXISTS idx_subscriptions_user ON subscriptions(user_id);
+      -- Every webhook delivery, once (providers retry). Payloads are kept for audits and disputes.
+      CREATE TABLE IF NOT EXISTS payment_events (
+        id BIGSERIAL PRIMARY KEY,
+        provider VARCHAR(12) NOT NULL,
+        event_id TEXT NOT NULL,
+        type TEXT NOT NULL,
+        payload JSONB NOT NULL,
+        received_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+        UNIQUE (provider, event_id)
+      );
+    `);
+    // Daily AI usage per hunter (limit depends on plan; see pricing.ts). Local calendar day of the hunter.
+    await client.query(`
+      CREATE TABLE IF NOT EXISTS ai_usage (
+        user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+        day DATE NOT NULL,
+        count INTEGER NOT NULL DEFAULT 0,
+        PRIMARY KEY (user_id, day)
+      );
+    `);
     // Streak freezes are server-owned (bought with real XP, spent on missed days).
     await client.query('ALTER TABLE users ADD COLUMN IF NOT EXISTS freeze_count INTEGER NOT NULL DEFAULT 0');
 

@@ -174,6 +174,27 @@ export interface User {
   parentEmailMasked?: string | null;
 }
 
+export interface PlanPrice { currency: string; amountMinor: number }
+export interface PlansResponse {
+  region: string;
+  group: string;
+  currency: string;
+  checkoutEnabled: boolean;
+  mode: 'test' | 'live' | 'off';
+  plans: { id: 'free' | 'pro'; limits: { aiPerDay: number; premiumCosmetics: boolean }; prices?: { month: PlanPrice; year: PlanPrice }; yearlySavingsPct?: number }[];
+}
+export interface BillingState {
+  plan: 'free' | 'pro' | 'teams';
+  source: 'subscription' | 'grant' | null;
+  until: string | null;
+  limits: { aiPerDay: number; premiumCosmetics: boolean };
+  aiUsedToday: number;
+  subscription: null | {
+    provider: 'razorpay' | 'stripe'; interval: 'month' | 'year'; status: string; currency: string; amountMinor: number;
+    currentPeriodEnd: string | null; cancelAtPeriodEnd: boolean;
+  };
+}
+
 export type ConsentStatus = 'needs_age' | 'not_required' | 'pending' | 'granted';
 
 export interface RegisterInput {
@@ -496,6 +517,13 @@ export const api = {
       method: 'POST',
       body: JSON.stringify({ username, password, ...input }),
     }),
+
+  // Billing (plans are public; the rest needs a session)
+  getPlans: (region?: string) => request<PlansResponse>(`/billing/plans${region ? `?region=${encodeURIComponent(region)}` : ''}`),
+  getBilling: () => request<BillingState>('/billing/me'),
+  startCheckout: (interval: 'month' | 'year', region?: string) =>
+    request<{ url: string }>('/billing/checkout', { method: 'POST', body: JSON.stringify({ plan: 'pro', interval, region }) }),
+  cancelSubscription: () => request<BillingState>('/billing/cancel', { method: 'POST', body: '{}' }),
 
   // Age gate + parental consent
   submitAge: (birthMonth: string, parentEmail?: string) =>
