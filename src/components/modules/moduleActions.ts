@@ -1,6 +1,7 @@
 import { api, type HunterModule, type ModuleTaskSpec, type Quest } from '../../lib/api';
 import { useModuleStore, withXpConfirm } from '../../store/moduleStore';
 import { useGameStore } from '../../store/gameStore';
+import { t, formatDate, useLocaleStore } from '../../i18n';
 
 const reload = () => Promise.all([useModuleStore.getState().load(), useGameStore.getState().loadDashboard()]);
 
@@ -24,8 +25,8 @@ export async function removeModule(m: HunterModule): Promise<boolean> {
 
 export const graceLabel = (m: HunterModule) =>
   m.established
-    ? 'Established'
-    : `Setup period until ${new Date(m.graceEndsAt).toLocaleString([], { weekday: 'short', hour: '2-digit', minute: '2-digit' })}`;
+    ? t('mod.established')
+    : t('mod.setupUntil', { when: formatDate(useLocaleStore.getState().locale, m.graceEndsAt, { weekday: 'short', hour: '2-digit', minute: '2-digit' }) });
 
 export const toTaskSpec = (q: Quest): ModuleTaskSpec => ({
   id: q.quest_id,

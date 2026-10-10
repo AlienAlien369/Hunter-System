@@ -610,6 +610,23 @@ export const en = {
   'ach.cat.track': "Tracks",
   'ach.cat.penalty': "Recovery",
   'ach.cat.social': "Profile",
+  'mod.title': "MODULES",
+  'mod.sub': "Your own Hunter modules — add, customize, pause or remove anything beyond the core pages.",
+  'mod.new': "+ NEW MODULE",
+  'mod.noneTitle': "NO MODULES YET",
+  'mod.noneBody': "Create Skincare, Fitness, Reading, Content Creation or anything else — with AI or from a template.",
+  'mod.createFirst': "CREATE MY FIRST MODULE",
+  'mod.paused': "Paused",
+  'mod.established': "Established",
+  'mod.setupUntil': "Setup period until {when}",
+  'mod.tasks': "{n} tasks",
+  'mod.open': "OPEN",
+  'mod.resume': "RESUME",
+  'mod.pause': "PAUSE",
+  'mod.replace': "REPLACE",
+  'mod.remove': "REMOVE",
+  'mod.history': "MODULE HISTORY",
+  'mod.noChanges': "No module changes yet.",
 } as const;
 
 export type MessageKey = keyof typeof en;

@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
+import { useT, useLocaleStore, formatDate } from '../i18n';
 import { api, type ActivityEntry, type HunterModule } from '../lib/api';
 import { useModuleStore } from '../store/moduleStore';
 import { moduleHref } from '../data/presets';
@@ -10,6 +11,8 @@ import { graceLabel, removeModule, toggleModulePause } from '../components/modul
 
 /** Modules hub: add (AI / template / blank), pause, replace and remove the hunter's modules. */
 export default function Modules() {
+  const t = useT();
+  const locale = useLocaleStore(s => s.locale);
   const navigate = useNavigate();
   const { modules, load } = useModuleStore();
   const [history, setHistory] = useState<ActivityEntry[]>([]);
@@ -28,17 +31,17 @@ export default function Modules() {
     <div className="space-y-6">
       <motion.div initial={{ opacity: 0, y: -20 }} animate={{ opacity: 1, y: 0 }} className="flex flex-wrap items-center justify-between gap-3">
         <div>
-          <h1 className="text-2xl sm:text-3xl font-display text-white font-bold tracking-wider">MODULES</h1>
-          <p className="text-gray-400 mt-1 font-mono text-sm">Your own Hunter modules — add, customize, pause or remove anything beyond the core pages.</p>
+          <h1 className="text-2xl sm:text-3xl font-display text-white font-bold tracking-wider">{t('mod.title')}</h1>
+          <p className="text-gray-400 mt-1 font-mono text-sm">{t('mod.sub')}</p>
         </div>
-        <Btn onClick={() => setBuilder({})}>+ NEW MODULE</Btn>
+        <Btn onClick={() => setBuilder({})}>{t('mod.new')}</Btn>
       </motion.div>
       {error && <p className="text-sm text-red-400 font-mono">{error}</p>}
 
       {modules.length === 0 ? (
-        <Panel title="NO MODULES YET">
-          <p className="text-sm text-gray-400 font-mono mb-3">Create Skincare, Fitness, Reading, Content Creation or anything else — with AI or from a template.</p>
-          <Btn onClick={() => setBuilder({})}>CREATE MY FIRST MODULE</Btn>
+        <Panel title={t('mod.noneTitle')}>
+          <p className="text-sm text-gray-400 font-mono mb-3">{t('mod.noneBody')}</p>
+          <Btn onClick={() => setBuilder({})}>{t('mod.createFirst')}</Btn>
         </Panel>
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
@@ -47,26 +50,26 @@ export default function Modules() {
               <Link to={moduleHref(m)} className="block">
                 <p className="font-display text-white tracking-wider">{m.icon} {m.name}</p>
                 <p className="text-[11px] font-mono text-gray-500">
-                  {m.status === 'paused' ? 'Paused' : graceLabel(m)}{m.kind === 'tasks' || m.kind === 'content' ? ` · ${m.taskCount ?? 0} tasks` : ''}
+                  {m.status === 'paused' ? t('mod.paused') : graceLabel(m)}{m.kind === 'tasks' || m.kind === 'content' ? ` · ${t('mod.tasks', { n: m.taskCount ?? 0 })}` : ''}
                 </p>
               </Link>
               <div className="flex flex-wrap gap-2">
-                <Btn variant="ghost" onClick={() => navigate(moduleHref(m))}>OPEN</Btn>
-                <Btn variant="ghost" onClick={() => act(() => toggleModulePause(m))}>{m.status === 'paused' ? 'RESUME' : 'PAUSE'}</Btn>
-                <Btn variant="ghost" onClick={() => setBuilder({ replacing: m })}>REPLACE</Btn>
-                <Btn variant="danger" onClick={() => act(() => removeModule(m))}>REMOVE</Btn>
+                <Btn variant="ghost" onClick={() => navigate(moduleHref(m))}>{t('mod.open')}</Btn>
+                <Btn variant="ghost" onClick={() => act(() => toggleModulePause(m))}>{m.status === 'paused' ? t('mod.resume') : t('mod.pause')}</Btn>
+                <Btn variant="ghost" onClick={() => setBuilder({ replacing: m })}>{t('mod.replace')}</Btn>
+                <Btn variant="danger" onClick={() => act(() => removeModule(m))}>{t('mod.remove')}</Btn>
               </div>
             </div>
           ))}
         </div>
       )}
 
-      <Panel title="MODULE HISTORY">
+      <Panel title={t('mod.history')}>
         {history.length ? (
           <ul className="space-y-2 font-mono text-sm">
             {history.map(h => (
               <li key={h.id} className="flex items-center justify-between gap-3">
-                <span className="text-gray-500 text-xs w-16 flex-shrink-0">{new Date(h.created_at).toLocaleDateString([], { month: 'short', day: '2-digit' })}</span>
+                <span className="text-gray-500 text-xs w-16 flex-shrink-0">{formatDate(locale, h.created_at, { month: 'short', day: '2-digit' })}</span>
                 <span className="flex-1 text-white">
                   {String(h.details?.label ?? h.entity)}
                   {h.details?.detail ? <span className="block text-xs text-gray-500">{String(h.details.detail)}</span> : null}
@@ -75,7 +78,7 @@ export default function Modules() {
               </li>
             ))}
           </ul>
-        ) : <p className="text-sm text-gray-500 font-mono">No module changes yet.</p>}
+        ) : <p className="text-sm text-gray-500 font-mono">{t('mod.noChanges')}</p>}
       </Panel>
 
       <ModuleBuilder open={!!builder} onClose={() => setBuilder(null)} replacing={builder?.replacing}
