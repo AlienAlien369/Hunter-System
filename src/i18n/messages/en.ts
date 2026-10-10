@@ -477,6 +477,22 @@ export const en = {
   'rank.unlocked': "UNLOCKED",
   'rank.toNext': "{n} XP to next rank",
   'rank.toGo': "{n} to go",
+  'name.title': "HUNTER REGISTRATION",
+  'name.sub': "Choose your hunter name wisely",
+  'name.warnTitle': "WARNING: PERMANENT NAME",
+  'name.warnBody': "Your hunter name will be permanently set and CANNOT be changed later. Choose a name you'll be proud of — it will be used throughout the entire system.",
+  'name.label': "HUNTER NAME",
+  'name.placeholder': "Enter your hunter name...",
+  'name.count': "{n}/30 characters",
+  'name.confirm': "I understand that my hunter name is [[permanent]] and will be used across the entire system. It [[cannot]] be changed after this.",
+  'name.err.empty': "Please enter your hunter name",
+  'name.err.short': "Name must be at least 2 characters",
+  'name.err.long': "Name must be 30 characters or less",
+  'name.err.confirm': "You must confirm that your name cannot be changed",
+  'name.err.failed': "Failed to set hunter name",
+  'name.setting': "SETTING NAME...",
+  'name.submit': "ENTER THE SYSTEM",
+  'name.footer': "This name will be your identity in the Hunter System",
 } as const;
 
 export type MessageKey = keyof typeof en;

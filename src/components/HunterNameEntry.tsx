@@ -1,12 +1,14 @@
 import { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { api } from '../lib/api';
+import { useT } from '../i18n';
 
 interface HunterNameEntryProps {
   onComplete: (name: string) => void;
 }
 
 export default function HunterNameEntry({ onComplete }: HunterNameEntryProps) {
+  const t = useT();
   const [name, setName] = useState('');
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
@@ -17,22 +19,22 @@ export default function HunterNameEntry({ onComplete }: HunterNameEntryProps) {
     setError('');
 
     if (!name.trim()) {
-      setError('Please enter your hunter name');
+      setError(t('name.err.empty'));
       return;
     }
 
     if (name.trim().length < 2) {
-      setError('Name must be at least 2 characters');
+      setError(t('name.err.short'));
       return;
     }
 
     if (name.trim().length > 30) {
-      setError('Name must be 30 characters or less');
+      setError(t('name.err.long'));
       return;
     }
 
     if (!confirmed) {
-      setError('You must confirm that your name cannot be changed');
+      setError(t('name.err.confirm'));
       return;
     }
 
@@ -41,7 +43,7 @@ export default function HunterNameEntry({ onComplete }: HunterNameEntryProps) {
       const response = await api.setHunterName(name.trim());
       onComplete(response.name);
     } catch (err: any) {
-      setError(err.message || 'Failed to set hunter name');
+      setError(err.message || t('name.err.failed'));
     } finally {
       setLoading(false);
     }
@@ -75,10 +77,10 @@ export default function HunterNameEntry({ onComplete }: HunterNameEntryProps) {
               ⚔️
             </motion.div>
             <h1 className="text-2xl font-display text-white font-bold tracking-wider mb-2">
-              HUNTER REGISTRATION
+              {t('name.title')}
             </h1>
             <p className="text-sm text-gray-400 font-mono">
-              Choose your hunter name wisely
+              {t('name.sub')}
             </p>
           </div>
 
@@ -93,10 +95,10 @@ export default function HunterNameEntry({ onComplete }: HunterNameEntryProps) {
               <span className="text-2xl">⚠️</span>
               <div>
                 <p className="text-red-400 font-display font-bold text-sm tracking-wider">
-                  WARNING: PERMANENT NAME
+                  {t('name.warnTitle')}
                 </p>
                 <p className="text-red-300/80 text-xs mt-1 font-mono">
-                  Your hunter name will be permanently set and CANNOT be changed later. Choose a name you'll be proud of — it will be used throughout the entire system.
+                  {t('name.warnBody')}
                 </p>
               </div>
             </div>
@@ -106,7 +108,7 @@ export default function HunterNameEntry({ onComplete }: HunterNameEntryProps) {
           <form onSubmit={handleSubmit}>
             <div className="mb-6">
               <label className="block text-xs text-gray-500 font-mono tracking-wider mb-2">
-                HUNTER NAME
+                {t('name.label')}
               </label>
               <input
                 type="text"
@@ -115,14 +117,14 @@ export default function HunterNameEntry({ onComplete }: HunterNameEntryProps) {
                   setName(e.target.value);
                   setError('');
                 }}
-                placeholder="Enter your hunter name..."
+                placeholder={t('name.placeholder')}
                 maxLength={30}
                 className="w-full px-4 py-3 bg-[#161b22] border border-gray-700 rounded-xl text-white font-mono text-sm focus:outline-none focus:border-purple-500 focus:ring-2 focus:ring-purple-500/20 transition-all placeholder-gray-600"
                 autoFocus
               />
               <div className="flex justify-between mt-1">
                 <span className="text-xs text-gray-600 font-mono">
-                  {name.length}/30 characters
+                  {t('name.count', { n: name.length })}
                 </span>
               </div>
             </div>
@@ -161,7 +163,7 @@ export default function HunterNameEntry({ onComplete }: HunterNameEntryProps) {
                   </div>
                 </div>
                 <span className="text-xs text-gray-400 font-mono leading-relaxed">
-                  I understand that my hunter name is <span className="text-red-400 font-bold">permanent</span> and will be used across the entire system. It <span className="text-red-400 font-bold">cannot</span> be changed after this.
+                  {t('name.confirm').split(/\[\[(.*?)\]\]/).map((part, i) => i % 2 ? <span key={i} className="text-red-400 font-bold">{part}</span> : part)}
                 </span>
               </label>
             </div>
@@ -194,17 +196,17 @@ export default function HunterNameEntry({ onComplete }: HunterNameEntryProps) {
                     <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
                     <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" />
                   </svg>
-                  <span>SETTING NAME...</span>
+                  <span>{t('name.setting')}</span>
                 </span>
               ) : (
-                'ENTER THE SYSTEM'
+                t('name.submit')
               )}
             </motion.button>
           </form>
 
           {/* Footer */}
           <p className="text-center text-[10px] text-gray-600 font-mono mt-6">
-            This name will be your identity in the Hunter System
+            {t('name.footer')}
           </p>
         </div>
       </motion.div>
