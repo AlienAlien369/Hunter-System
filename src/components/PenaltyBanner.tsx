@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from 'react';
 import { motion } from 'framer-motion';
 import { useGameStore } from '../store/gameStore';
+import { useT, useLocaleStore, translatePlural } from '../i18n';
 import { sfx } from '../utils/sounds';
 import { todayKey } from '../data/hiddenQuests';
 import { getActiveBuffs } from '../utils/xp';
@@ -14,6 +15,8 @@ import { dailyHistoryQuests } from '../utils/dailyBoard';
  * Fresh penalties / recoveries play their sound exactly once.
  */
 export default function PenaltyBanner() {
+  const t = useT();
+  const locale = useLocaleStore(s => s.locale);
   const { penalty, recovery, freezeNotice, dailyQuests, profile } = useGameStore();
   const [dismissed, setDismissed] = useState(false);
   const lastSound = useRef<string | null>(null);
@@ -45,11 +48,11 @@ export default function PenaltyBanner() {
           <div className="flex items-start gap-3 min-w-0">
             <span className="text-2xl shrink-0">❄️</span>
             <div className="min-w-0">
-              <p className="font-display text-sm font-bold tracking-widest uppercase text-cyan-300">Streak protected</p>
+              <p className="font-display text-sm font-bold tracking-widest uppercase text-cyan-300">{t('pen.protected')}</p>
               <p className="text-gray-300 text-sm mt-0.5">{freezeNotice.message}</p>
             </div>
           </div>
-          <button type="button" onClick={() => setDismissed(true)} aria-label="Dismiss" className="text-gray-400 hover:text-white">✕</button>
+          <button type="button" onClick={() => setDismissed(true)} aria-label={t('pen.dismiss')} className="text-gray-400 hover:text-white">✕</button>
         </div>
       </motion.div>
     );
@@ -74,20 +77,20 @@ export default function PenaltyBanner() {
             <span className="text-2xl shrink-0">🎉</span>
             <div className="min-w-0">
               <p className="font-display text-sm font-bold tracking-widest uppercase text-green-success">
-                Streak recovered
+                {t('pen.recovered')}
               </p>
               <p className="text-gray-300 text-sm mt-0.5">
                 {recovery.message}
               </p>
               <p className="text-gray-500 font-mono text-xs mt-1">
-                +{recovery.bonus_xp} XP BONUS · {recovery.streak}-DAY STREAK · KEEP GOING HUNTER
+                {t('pen.recoveredLine', { xp: recovery.bonus_xp, n: recovery.streak })}
               </p>
             </div>
           </div>
           <button
             onClick={() => setDismissed(true)}
             className="shrink-0 p-1 text-gray-500 hover:text-white transition-colors"
-            aria-label="Dismiss recovery notice"
+            aria-label={t('pen.dismissRecovery')}
           >
             ✕
           </button>
@@ -122,7 +125,7 @@ export default function PenaltyBanner() {
             <p className={`font-display text-sm font-bold tracking-widest uppercase ${
               isWarning ? 'text-gold-amber' : 'text-red-danger'
             }`}>
-              {isWarning ? 'Danger — penalty imminent' : penalty!.applied ? 'Penalty applied' : 'Penalty active'}
+              {isWarning ? t('pen.imminent') : penalty!.applied ? t('pen.applied') : t('pen.active')}
             </p>
             <p className="text-gray-300 text-sm mt-0.5">
               {penalty!.message}
@@ -135,9 +138,9 @@ export default function PenaltyBanner() {
                   const reducedHp = Math.round(penalty!.hp_lost * (1 - penaltyReduction));
                   const showReduction = penaltyReduction > 0;
                   return (
-                    <>MISSED {penalty!.missed_days} DAY{penalty!.missed_days > 1 ? 'S' : ''} · -{reducedXp} XP · -{reducedHp} HP{showReduction && (
-                      <span className="text-green-400 ml-1">(🛡️ VIT reduced from -{penalty!.xp_lost} XP)</span>
-                    )} · COMPLETE TODAY&apos;S QUESTS TO RECOVER</>
+                    <>{translatePlural(locale, 'pen.missed', penalty!.missed_days, { xp: reducedXp, hp: reducedHp })}{showReduction && (
+                      <span className="text-green-400 ml-1">{t('pen.vit', { xp: penalty!.xp_lost })}</span>
+                    )} · {t('pen.recover')}</>
                   );
                 })()}
               </p>
@@ -147,7 +150,7 @@ export default function PenaltyBanner() {
         <button
           onClick={() => setDismissed(true)}
           className="shrink-0 p-1 text-gray-500 hover:text-white transition-colors"
-          aria-label="Dismiss penalty notice"
+          aria-label={t('pen.dismissPenalty')}
         >
           ✕
         </button>

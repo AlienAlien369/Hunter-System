@@ -515,6 +515,19 @@ export const en = {
   'hq.timeLeft': "Time left to complete today's hidden quest",
   'hq.expires': "Expires soon!",
   'hq.untilReset': "Until reset",
+  'pen.protected': "Streak protected",
+  'pen.dismiss': "Dismiss",
+  'pen.recovered': "Streak recovered",
+  'pen.recoveredLine': "+{xp} XP BONUS · {n}-DAY STREAK · KEEP GOING HUNTER",
+  'pen.dismissRecovery': "Dismiss recovery notice",
+  'pen.imminent': "Danger — penalty imminent",
+  'pen.applied': "Penalty applied",
+  'pen.active': "Penalty active",
+  'pen.missed_one': "MISSED {count} DAY · -{xp} XP · -{hp} HP",
+  'pen.missed_other': "MISSED {count} DAYS · -{xp} XP · -{hp} HP",
+  'pen.vit': "(🛡️ VIT reduced from -{xp} XP)",
+  'pen.recover': "COMPLETE TODAY'S QUESTS TO RECOVER",
+  'pen.dismissPenalty': "Dismiss penalty notice",
 } as const;
 
 export type MessageKey = keyof typeof en;
