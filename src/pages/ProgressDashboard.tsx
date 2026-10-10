@@ -3,28 +3,32 @@ import { useGameStore } from '../store/gameStore';
 import { useEffect, useState } from 'react';
 import { ComposedChart, Bar, Line, XAxis, YAxis, Tooltip, Legend, ResponsiveContainer, CartesianGrid } from 'recharts';
 import { api } from '../lib/api';
+import { useT, useLocaleStore, formatDate } from '../i18n';
+import type { MessageKey } from '../i18n/messages/en';
 import type { ActivityEntry, ProgressPeriod, ProgressReport, TrackStats } from '../lib/api';
 import { RANK_THRESHOLDS } from '../utils/xp';
 import { ACHIEVEMENTS } from '../data/achievements';
 
-const ACTIVITY_META: Record<string, { icon: string; label: string }> = {
-  quest_complete: { icon: '✅', label: 'Quest completed' },
-  quest_undo: { icon: '↩️', label: 'Quest uncompleted' },
-  dsa_redo: { icon: '🔄', label: 'DSA reset (redo all)' },
-  nutrition_update: { icon: '🥗', label: 'Nutrition marked' },
-  stats_update: { icon: '📊', label: 'Stats updated' },
-  login: { icon: '🔐', label: 'Logged in' },
-  register: { icon: '🆕', label: 'Registered' },
+const ACTIVITY_META: Record<string, { icon: string; label: MessageKey }> = {
+  quest_complete: { icon: '✅', label: 'pd.act.quest_complete' },
+  quest_undo: { icon: '↩️', label: 'pd.act.quest_undo' },
+  dsa_redo: { icon: '🔄', label: 'pd.act.dsa_redo' },
+  nutrition_update: { icon: '🥗', label: 'pd.act.nutrition_update' },
+  stats_update: { icon: '📊', label: 'pd.act.stats_update' },
+  login: { icon: '🔐', label: 'pd.act.login' },
+  register: { icon: '🆕', label: 'pd.act.register' },
 };
 
-const PERIODS: { id: ProgressPeriod; label: string }[] = [
-  { id: 'week', label: 'WEEK' },
-  { id: 'month', label: 'MONTH' },
-  { id: 'quarter', label: 'QUARTER' },
-  { id: 'year', label: 'YEAR' },
+const PERIODS: { id: ProgressPeriod; label: MessageKey }[] = [
+  { id: 'week', label: 'pd.period.week' },
+  { id: 'month', label: 'pd.period.month' },
+  { id: 'quarter', label: 'pd.period.quarter' },
+  { id: 'year', label: 'pd.period.year' },
 ];
 
 export default function ProgressDashboard() {
+  const t = useT();
+  const locale = useLocaleStore(s => s.locale);
   const { profile, stats, apiConnected, loadDashboard } = useGameStore();
   const [period, setPeriod] = useState<ProgressPeriod>('month');
   const [progress, setProgress] = useState<ProgressReport | null>(null);
@@ -85,16 +89,16 @@ export default function ProgressDashboard() {
       >
         <div className="min-w-0">
           <h1 className="text-2xl sm:text-3xl font-display text-white font-bold tracking-wider">
-            PROGRESS DASHBOARD
+            {t('pd.title')}
           </h1>
           <p className="text-gray-400 mt-1 font-mono text-sm">
-            Track your journey to S-Rank
+            {t('pd.sub')}
           </p>
         </div>
         <div className="text-right">
-          <p className="text-purple-400 font-mono text-sm">{new Date().toLocaleDateString()}</p>
+          <p className="text-purple-400 font-mono text-sm">{formatDate(locale, new Date())}</p>
           <p className="text-gray-500 font-mono text-xs mt-1">
-            {apiConnected ? '🟢 ONLINE' : '🟡 LOCAL MODE'}
+            {apiConnected ? t('pd.online') : t('pd.local')}
           </p>
         </div>
       </motion.div>
@@ -102,10 +106,10 @@ export default function ProgressDashboard() {
       {/* Stats Overview */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
         {[
-          { label: 'Total XP', value: profile.xp, color: 'text-purple-400' },
-          { label: 'Level', value: profile.level, color: 'text-gold' },
-          { label: 'Rank', value: profile.rank, color: currentRankColor },
-          { label: 'Streak', value: stats?.streak || 0, color: 'text-orange-400' },
+          { label: t('pd.totalXp'), value: profile.xp, color: 'text-purple-400' },
+          { label: t('pd.level'), value: profile.level, color: 'text-gold' },
+          { label: t('pd.rank'), value: profile.rank, color: currentRankColor },
+          { label: t('pd.streak'), value: stats?.streak || 0, color: 'text-orange-400' },
         ].map((stat, i) => (
           <motion.div
             key={stat.label}
@@ -129,7 +133,7 @@ export default function ProgressDashboard() {
       >
         <div className="flex items-center justify-between flex-wrap gap-3 mb-5">
           <h3 className="font-display text-white font-bold tracking-wider">
-            PERIOD PROGRESS
+            {t('pd.periodTitle')}
           </h3>
 
           {/* Period Tabs */}
@@ -144,7 +148,7 @@ export default function ProgressDashboard() {
                     : 'text-gray-500 hover:text-gray-300 border border-transparent'
                 }`}
               >
-                {p.label}
+                {t(p.label)}
               </button>
             ))}
           </div>
@@ -153,10 +157,10 @@ export default function ProgressDashboard() {
         {/* Period Stats */}
         <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
           {[
-            { label: 'Quests Completed', value: progress?.totals.quests_completed ?? 0, color: 'text-purple-400' },
-            { label: 'XP Earned', value: progress?.totals.xp_earned ?? 0, color: 'text-gold' },
-            { label: 'Active Days', value: `${progress?.totals.active_days ?? 0}/${progress?.totals.days_elapsed ?? 1}`, color: 'text-blue-400' },
-            { label: 'Completion Rate', value: `${progress?.totals.completion_rate ?? 0}%`, color: 'text-green-400' },
+            { label: t('pd.questsDone'), value: progress?.totals.quests_completed ?? 0, color: 'text-purple-400' },
+            { label: t('pd.xpEarned'), value: progress?.totals.xp_earned ?? 0, color: 'text-gold' },
+            { label: t('pd.activeDays'), value: `${progress?.totals.active_days ?? 0}/${progress?.totals.days_elapsed ?? 1}`, color: 'text-blue-400' },
+            { label: t('pd.completion'), value: `${progress?.totals.completion_rate ?? 0}%`, color: 'text-green-400' },
           ].map((stat, i) => (
             <motion.div
               key={stat.label}
@@ -184,7 +188,7 @@ export default function ProgressDashboard() {
                   labelStyle={{ color: '#8E2DE2' }}
                 />
                 <Legend />
-                <Bar yAxisId="quests" dataKey="quests" name="Quests" fill="#8E2DE2" radius={[4, 4, 0, 0]} />
+                <Bar yAxisId="quests" dataKey="quests" name={t('pd.quests')} fill="#8E2DE2" radius={[4, 4, 0, 0]} />
                 <Line
                   yAxisId="xp"
                   type="monotone"
@@ -199,7 +203,7 @@ export default function ProgressDashboard() {
             </ResponsiveContainer>
           ) : (
             <div className="flex items-center justify-center h-full text-gray-500 font-mono">
-              No activity this {period}
+              {t('pd.noActivity', { period: t(`pd.period.${period}` as MessageKey).toLowerCase() })}
             </div>
           )}
         </div>
@@ -213,15 +217,15 @@ export default function ProgressDashboard() {
         className="bg-[#161b22]/80 backdrop-blur-sm rounded-xl border border-purple-500/20 p-6"
       >
         <h3 className="font-display text-white font-bold mb-4 tracking-wider">
-          RANK PROGRESSION
+          {t('rank.title')}
         </h3>
         <div className="space-y-3">
-          {RANK_THRESHOLDS.map((t, index) => {
-            const rank = t.rank;
+          {RANK_THRESHOLDS.map((th, index) => {
+            const rank = th.rank;
             const isCurrent = profile.rank === rank;
-            const isCompleted = profile.xp >= t.minXP;
+            const isCompleted = profile.xp >= th.minXP;
 
-            const xpRequired = t.minXP;
+            const xpRequired = th.minXP;
             const prevMin = index > 0 ? RANK_THRESHOLDS[index - 1].minXP : 0;
             const nextMin = index + 1 < RANK_THRESHOLDS.length ? RANK_THRESHOLDS[index + 1].minXP : null;
             const band = (nextMin ?? prevMin) - prevMin;
@@ -261,7 +265,7 @@ export default function ProgressDashboard() {
                   </div>
                 </div>
                 {isCurrent && (
-                  <span className="text-purple-400 font-mono text-xs font-bold">CURRENT</span>
+                  <span className="text-purple-400 font-mono text-xs font-bold">{t('pd.current')}</span>
                 )}
               </div>
             );
@@ -278,10 +282,10 @@ export default function ProgressDashboard() {
       >
         <div className="flex items-center justify-between mb-4">
           <h3 className="font-display text-white font-bold tracking-wider">
-            TRACK LEADERBOARD
+            {t('pd.trackBoard')}
           </h3>
           <span className="text-gray-500 font-mono text-xs">
-            LIFETIME • SURVIVES REDO ALL
+            {t('pd.lifetime')}
           </span>
         </div>
 
@@ -329,7 +333,7 @@ export default function ProgressDashboard() {
                 {/* XP Earned */}
                 <div className="text-right flex-shrink-0">
                   <p className="text-gold font-display font-bold">+{track.xp_earned}</p>
-                  <p className="text-[10px] text-gray-500 font-mono">XP EARNED</p>
+                  <p className="text-[10px] text-gray-500 font-mono">{t('pd.xpEarned').toUpperCase()}</p>
                 </div>
               </motion.div>
             );
@@ -360,25 +364,26 @@ export default function ProgressDashboard() {
       >
         <div className="flex items-center justify-between mb-4">
           <h3 className="font-display text-white font-bold tracking-wider">
-            RECENT ACTIVITY
+            {t('pd.recent')}
           </h3>
           <span className="text-gray-500 font-mono text-xs">
-            LOGGED IN THE DATABASE — EVERYTHING YOU DO
+            {t('pd.logged')}
           </span>
         </div>
         {activity.length > 0 ? (
           <div className="space-y-2 max-h-72 overflow-y-auto custom-scrollbar">
             {activity.map(entry => {
-              const meta = ACTIVITY_META[entry.action] || { icon: '📋', label: entry.action };
+              const known = ACTIVITY_META[entry.action];
+              const meta = known ? { icon: known.icon, label: t(known.label) } : { icon: '📋', label: entry.action };
               const detail =
                 entry.action === 'quest_complete' || entry.action === 'quest_undo'
                   ? String((entry.details as any)?.title || entry.entity || '')
                   : entry.action === 'nutrition_update'
-                    ? `${new Date(entry.entity + 'T00:00:00').toLocaleDateString()} • ${(entry.details as any)?.items || 0} foods`
+                    ? `${formatDate(locale, entry.entity + 'T00:00:00')} • ${t('pd.foods', { n: (entry.details as any)?.items || 0 })}`
                     : entry.action === 'stats_update'
                       ? Object.keys((entry.details as any) || {}).join(', ')
                       : entry.action === 'dsa_redo'
-                        ? `${(entry.details as any)?.reset || 0} problems reset`
+                        ? t('pd.reset', { n: (entry.details as any)?.reset || 0 })
                         : '';
               return (
                 <div
@@ -392,7 +397,7 @@ export default function ProgressDashboard() {
                     </p>
                   </div>
                   <span className="text-xs text-gray-600 font-mono flex-shrink-0">
-                    {new Date(entry.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                    {formatDate(locale, entry.created_at, { hour: '2-digit', minute: '2-digit' })}
                   </span>
                 </div>
               );
@@ -400,7 +405,7 @@ export default function ProgressDashboard() {
           </div>
         ) : (
           <div className="text-center text-gray-500 font-mono py-6">
-            No activity yet — complete quests, mark nutrition, or edit stats
+            {t('pd.empty')}
           </div>
         )}
       </motion.div>
@@ -413,7 +418,7 @@ export default function ProgressDashboard() {
         className="bg-[#161b22]/80 backdrop-blur-sm rounded-xl border border-purple-500/20 p-6"
       >
         <h3 className="font-display text-white font-bold mb-4 tracking-wider">
-          ACHIEVEMENTS
+          {t('ach.title')}
         </h3>
         <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3">
           {ACHIEVEMENTS.slice(0, 12).map((ach, i) => {
