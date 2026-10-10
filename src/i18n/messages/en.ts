@@ -859,6 +859,7 @@ export const en = {
   'coach.next': "Next week",
   'coach.ai': "Written by Hunter AI from your real stats",
   'coach.gen': "Generated from your stats",
+  'rem.due': "It's {time} — time for this quest (+{xp} XP).",
 } as const;
 
 export type MessageKey = keyof typeof en;

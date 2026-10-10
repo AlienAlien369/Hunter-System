@@ -848,4 +848,5 @@ export const hi: Messages = {
   'coach.next': "अगला हफ़्ता",
   'coach.ai': "आपके असली आँकड़ों से Hunter AI ने लिखा",
   'coach.gen': "आपके आँकड़ों से बना",
+  'rem.due': "{time} बज गए — इस क्वेस्ट का समय है (+{xp} XP)।",
 };

@@ -48,7 +48,21 @@ export function nudgeDue(timezone: string, lastNudged: string | null, now = new 
   return { due: localHour(timezone, now) >= NUDGE_HOUR && lastNudged !== today, today };
 }
 
-export function nudgeMessage(streak: number): { title: string; body: string } {
+/** Locales a notification can be written in; anything else is sent in English. */
+export type PushLocale = 'en' | 'hi' | 'hi-Latn';
+export const pushLocale = (v: unknown): PushLocale => (v === 'hi' || v === 'hi-Latn' ? v : 'en');
+
+export function nudgeMessage(streak: number, locale: PushLocale = 'en'): { title: string; body: string } {
+  if (locale === 'hi') {
+    return streak > 0
+      ? { title: `🔥 ${streak} दिन की स्ट्रीक ख़तरे में`, body: 'स्ट्रीक बचाने के लिए आधी रात से पहले एक क्वेस्ट पूरी करें।' }
+      : { title: '⚔️ आपकी क्वेस्ट इंतज़ार कर रही हैं', body: 'आज एक क्वेस्ट से नई स्ट्रीक शुरू होती है। सिस्टम देख रहा है।' };
+  }
+  if (locale === 'hi-Latn') {
+    return streak > 0
+      ? { title: `🔥 ${streak} din ki streak khatre mein`, body: 'Streak bachane ke liye aadhi raat se pehle ek quest poori karo.' }
+      : { title: '⚔️ Tumhari quests intezaar kar rahi hain', body: 'Aaj ek quest se nayi streak shuru hoti hai. System dekh raha hai.' };
+  }
   return streak > 0
     ? { title: `🔥 ${streak}-day streak at risk`, body: 'Complete one quest before midnight to keep it alive.' }
     : { title: '⚔️ Your quests are waiting', body: 'One quest today starts a new streak. The System is watching.' };
@@ -61,8 +75,21 @@ export function recapDue(timezone: string, lastRecap: string | null, now = new D
   return { due: monday && localHour(timezone, now) >= 9 && lastRecap !== today, today };
 }
 
-export function recapMessage(xp: number, position: number | null, circle: number): { title: string; body: string } {
-  const place = position && circle > 1 ? ` · #${position} of ${circle} friends` : '';
+export function recapMessage(xp: number, position: number | null, circle: number, locale: PushLocale = 'en'): { title: string; body: string } {
+  const withFriends = !!position && circle > 1;
+  if (locale === 'hi') {
+    const place = withFriends ? ` · ${circle} दोस्तों में #${position}` : '';
+    return xp > 0
+      ? { title: `📜 साप्ताहिक रिपोर्ट: +${xp.toLocaleString('en-IN')} XP${place}`, body: 'नया हफ़्ता शुरू हुआ। पिछला रिकॉर्ड तोड़िए।' }
+      : { title: '📜 नया हफ़्ता शुरू', body: 'पिछला हफ़्ता शांत रहा। बोर्ड पर लौटने के लिए आज एक क्वेस्ट पूरी करें।' };
+  }
+  if (locale === 'hi-Latn') {
+    const place = withFriends ? ` · ${circle} doston mein #${position}` : '';
+    return xp > 0
+      ? { title: `📜 Weekly report: +${xp.toLocaleString('en-IN')} XP${place}`, body: 'Naya hafta shuru hua. Pichhla record todo.' }
+      : { title: '📜 Naya hafta shuru', body: 'Pichhla hafta shaant raha. Board par wapas aane ke liye aaj ek quest poori karo.' };
+  }
+  const place = withFriends ? ` · #${position} of ${circle} friends` : '';
   return xp > 0
     ? { title: `📜 Weekly report: +${xp.toLocaleString('en-US')} XP${place}`, body: 'A new week just started. Beat your last one.' }
     : { title: '📜 A new week begins', body: 'Last week was quiet. Clear one quest today to get back on the board.' };
@@ -91,7 +118,7 @@ async function lastWeekStanding(userId: number, now: Date): Promise<{ xp: number
 
 export async function runStreakNudges(now = new Date()): Promise<number> {
   await initPush();
-  const subs = (await pool.query(`SELECT id, user_id, endpoint, keys, timezone, last_nudged::text, last_recap::text FROM push_subscriptions`)).rows;
+  const subs = (await pool.query(`SELECT id, user_id, endpoint, keys, timezone, locale, last_nudged::text, last_recap::text FROM push_subscriptions`)).rows;
   let sent = 0;
   const send = async (s: any, msg: { title: string; body: string }, url: string) => {
     try {
@@ -112,7 +139,7 @@ export async function runStreakNudges(now = new Date()): Promise<number> {
       );
       if (claimed.rowCount) {
         const st = await lastWeekStanding(s.user_id, now);
-        await send(s, recapMessage(st.xp, st.position, st.circle), '/rank');
+        await send(s, recapMessage(st.xp, st.position, st.circle, pushLocale(s.locale)), '/rank');
       }
     }
 
@@ -126,7 +153,7 @@ export async function runStreakNudges(now = new Date()): Promise<number> {
     if (!claimed.rowCount) continue;
     const days = await activeDays(s.user_id);
     if (days.has(today)) continue; // already played today — no nudge
-    await send(s, nudgeMessage(currentStreak(days, today)), '/quests');
+    await send(s, nudgeMessage(currentStreak(days, today), pushLocale(s.locale)), '/quests');
   }
   return sent;
 }

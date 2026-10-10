@@ -1,4 +1,5 @@
 import { useEffect } from 'react';
+import { t, useLocaleStore } from '../i18n';
 import { useGameStore } from '../store/gameStore';
 import { todaysBoard } from './dailyBoard';
 import { localDateKey } from './date';
@@ -91,7 +92,7 @@ export function useTimetableReminders() {
         const ms = msUntil(q.time);
         if (ms <= 0 || ms > 24 * 3600_000) continue;
         timers.push(window.setTimeout(() => {
-          notify(`⏰ ${q.title}`, `It's ${q.time} — time for this quest (+${q.xpReward} XP).`).catch(() => {});
+          notify(`⏰ ${q.title}`, t('rem.due', { time: q.time ?? '', xp: q.xpReward })).catch(() => {});
         }, ms));
       }
     };
@@ -103,3 +104,9 @@ export function useTimetableReminders() {
     };
   }, [dailyQuests]);
 }
+
+// Push nudges are written server-side in the language saved with the subscription,
+// so refresh it when the hunter switches language.
+useLocaleStore.subscribe((state, prev) => {
+  if (state.locale !== prev.locale && remindersEnabled()) void syncPushSubscription();
+});

@@ -427,6 +427,7 @@ export async function initDatabase() {
     `);
     // Columns added after push_subscriptions first shipped (must run after its CREATE above).
     await client.query('ALTER TABLE push_subscriptions ADD COLUMN IF NOT EXISTS last_recap DATE');
+    await client.query('ALTER TABLE push_subscriptions ADD COLUMN IF NOT EXISTS locale TEXT');
 
     // One-time: hunters who existed before modules keep their former pages
     // (Diet, DSA, SaaS, Architecture) as modules — with a fresh 48h setup

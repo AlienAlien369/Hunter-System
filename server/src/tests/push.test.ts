@@ -1,6 +1,6 @@
 import { test } from 'node:test';
 import assert from 'node:assert';
-import { nudgeDue, nudgeMessage, recapDue, recapMessage } from '../push.js';
+import { nudgeDue, nudgeMessage, pushLocale, recapDue, recapMessage } from '../push.js';
 import { currentStreak } from '../time.js';
 
 test('nudge fires once, at/after 8pm in the hunter’s own timezone', () => {
@@ -30,4 +30,21 @@ test('weekly recap: Monday 9am+ local, once', () => {
   assert.match(recapMessage(340, 2, 5).title, /\+340 XP · #2 of 5 friends/);
   assert.doesNotMatch(recapMessage(340, 1, 1).title, /friends/);
   assert.match(recapMessage(0, 1, 1).title, /new week/);
+});
+
+test('push messages are written in the hunter\'s language', () => {
+  assert.match(nudgeMessage(3, 'hi').title, /3 दिन की स्ट्रीक/);
+  assert.match(nudgeMessage(3, 'hi-Latn').title, /3 din ki streak/);
+  assert.match(nudgeMessage(0, 'hi').title, /इंतज़ार/);
+  assert.match(recapMessage(340, 2, 5, 'hi').title, /5 दोस्तों में #2/);
+  assert.match(recapMessage(340, 2, 5, 'hi-Latn').title, /5 doston mein #2/);
+  assert.match(recapMessage(0, 1, 1, 'hi-Latn').title, /Naya hafta/);
+  // English stays the default
+  assert.match(nudgeMessage(3).title, /3-day streak/);
+});
+
+test('pushLocale only accepts known languages', () => {
+  assert.equal(pushLocale('hi'), 'hi');
+  assert.equal(pushLocale('hi-Latn'), 'hi-Latn');
+  for (const v of ['en', 'fr', '', undefined, null, 7, 'hi; DROP TABLE']) assert.equal(pushLocale(v), 'en');
 });

@@ -1,7 +1,7 @@
 import { Router, Request, Response } from 'express';
 import { pool } from '../db.js';
 import { authenticateToken } from '../middleware/auth.js';
-import { initPush } from '../push.js';
+import { initPush, pushLocale } from '../push.js';
 import { requestTimeZone } from '../time.js';
 
 const router = Router();
@@ -31,9 +31,9 @@ router.post('/subscribe', authenticateToken, async (req: Request, res: Response)
     const userId = req.user!.id;
     // Re-subscribing a device moves it to this hunter (shared browsers) and refreshes its timezone.
     await pool.query(
-      `INSERT INTO push_subscriptions (user_id, endpoint, keys, timezone) VALUES ($1, $2, $3, $4)
-       ON CONFLICT (endpoint) DO UPDATE SET user_id = EXCLUDED.user_id, keys = EXCLUDED.keys, timezone = EXCLUDED.timezone`,
-      [userId, endpoint, { p256dh: keys.p256dh.slice(0, 200), auth: keys.auth.slice(0, 100) }, requestTimeZone(req)],
+      `INSERT INTO push_subscriptions (user_id, endpoint, keys, timezone, locale) VALUES ($1, $2, $3, $4, $5)
+       ON CONFLICT (endpoint) DO UPDATE SET user_id = EXCLUDED.user_id, keys = EXCLUDED.keys, timezone = EXCLUDED.timezone, locale = EXCLUDED.locale`,
+      [userId, endpoint, { p256dh: keys.p256dh.slice(0, 200), auth: keys.auth.slice(0, 100) }, requestTimeZone(req), pushLocale(req.body?.locale)],
     );
     await pool.query(
       `DELETE FROM push_subscriptions WHERE user_id = $1 AND id NOT IN (

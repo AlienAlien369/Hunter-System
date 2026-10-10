@@ -785,7 +785,7 @@ export const api = {
   // Web Push (8pm streak nudges)
   getPushKey: () => request<{ publicKey: string }>('/push/key'),
   subscribePush: (subscription: PushSubscriptionJSON) =>
-    request<{ ok: true }>('/push/subscribe', { method: 'POST', body: JSON.stringify({ subscription }) }),
+    request<{ ok: true }>('/push/subscribe', { method: 'POST', body: JSON.stringify({ subscription, locale: useLocaleStore.getState().locale }) }),
   unsubscribePush: (endpoint: string) =>
     fetch(`${API_URL}/push/subscribe`, {
       method: 'DELETE', credentials: 'include',

@@ -847,4 +847,5 @@ export const hinglish: Messages = {
   'coach.next': "Next week",
   'coach.ai': "Tumhare real stats se Hunter AI ne likha",
   'coach.gen': "Tumhare stats se bana",
+  'rem.due': "{time} ho gaye — is quest ka time hai (+{xp} XP).",
 };
