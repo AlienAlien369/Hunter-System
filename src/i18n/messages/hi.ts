@@ -570,4 +570,13 @@ export const hi: Messages = {
   'unp.diff.medium': "मध्यम",
   'unp.diff.hard': "कठिन",
   'unp.diff.extreme': "बेहद कठिन",
+  'sheet.title': "स्टेट शीट",
+  'sheet.sub': "कैरेक्टर एट्रिब्यूट्स • लेवल {n}",
+  'sheet.str': "ताक़त",
+  'sheet.agi': "फुर्ती",
+  'sheet.vit': "जीवनशक्ति",
+  'sheet.int': "बुद्धि",
+  'sheet.sen': "सजगता",
+  'sheet.points': "अंक",
+  'sheet.adjust': "बदलने के लिए दबाएँ",
 };

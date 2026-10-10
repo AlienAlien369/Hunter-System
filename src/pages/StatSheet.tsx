@@ -1,16 +1,18 @@
 import { motion } from 'framer-motion';
+import { useT } from '../i18n';
 import { useGameStore } from '../store/gameStore';
 
 export default function StatSheet() {
+  const t = useT();
   const { profile, updateProfile } = useGameStore();
   const { str, agi, vit, int, sen } = profile.stats;
 
   const stats = [
-    { key: 'str' as const, label: 'Strength', value: str, icon: '💪', color: 'from-red-500 to-orange-500' },
-    { key: 'agi' as const, label: 'Agility', value: agi, icon: '⚡', color: 'from-yellow-500 to-green-500' },
-    { key: 'vit' as const, label: 'Vitality', value: vit, icon: '❤️', color: 'from-green-500 to-teal-500' },
-    { key: 'int' as const, label: 'Intelligence', value: int, icon: '🧠', color: 'from-blue-500 to-purple-500' },
-    { key: 'sen' as const, label: 'Sense', value: sen, icon: '👁️', color: 'from-purple-500 to-pink-500' },
+    { key: 'str' as const, label: t('sheet.str'), value: str, icon: '💪', color: 'from-red-500 to-orange-500' },
+    { key: 'agi' as const, label: t('sheet.agi'), value: agi, icon: '⚡', color: 'from-yellow-500 to-green-500' },
+    { key: 'vit' as const, label: t('sheet.vit'), value: vit, icon: '❤️', color: 'from-green-500 to-teal-500' },
+    { key: 'int' as const, label: t('sheet.int'), value: int, icon: '🧠', color: 'from-blue-500 to-purple-500' },
+    { key: 'sen' as const, label: t('sheet.sen'), value: sen, icon: '👁️', color: 'from-purple-500 to-pink-500' },
   ];
 
   const handleStatChange = (key: keyof typeof profile.stats, delta: number) => {
@@ -26,10 +28,10 @@ export default function StatSheet() {
         animate={{ opacity: 1, y: 0 }}
       >
         <h1 className="text-3xl font-display text-white font-bold tracking-wider">
-          STAT SHEET
+          {t('sheet.title')}
         </h1>
         <p className="text-gray-400 mt-1 font-mono text-sm">
-          Character Attributes • Level {profile.level}
+          {t('sheet.sub', { n: profile.level })}
         </p>
       </motion.div>
 
@@ -54,7 +56,7 @@ export default function StatSheet() {
               </div>
               <div className="text-right">
                 <p className="text-3xl font-display text-white font-bold">{stat.value}</p>
-                <p className="text-xs text-gray-500 font-mono">POINTS</p>
+                <p className="text-xs text-gray-500 font-mono">{t('sheet.points')}</p>
               </div>
             </div>
 
@@ -78,7 +80,7 @@ export default function StatSheet() {
               >
                 -
               </button>
-              <span className="text-gray-500 font-mono text-sm">Click to adjust</span>
+              <span className="text-gray-500 font-mono text-sm">{t('sheet.adjust')}</span>
               <button
                 onClick={() => handleStatChange(stat.key, 1)}
                 className="w-8 h-8 rounded-lg bg-purple-500/20 hover:bg-purple-500/30 text-purple-400 hover:text-purple-300 transition-colors"

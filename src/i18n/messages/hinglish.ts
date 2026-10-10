@@ -569,4 +569,13 @@ export const hinglish: Messages = {
   'unp.diff.medium': "Medium",
   'unp.diff.hard': "Hard",
   'unp.diff.extreme': "Extreme",
+  'sheet.title': "STAT SHEET",
+  'sheet.sub': "Character attributes • Level {n}",
+  'sheet.str': "Strength",
+  'sheet.agi': "Agility",
+  'sheet.vit': "Vitality",
+  'sheet.int': "Intelligence",
+  'sheet.sen': "Sense",
+  'sheet.points': "POINTS",
+  'sheet.adjust': "Badalne ke liye dabao",
 };
