@@ -376,6 +376,18 @@ export const en = {
   'rank.B': "Expert",
   'rank.A': "Master",
   'rank.S': "Legend",
+  'streak.label': "STREAK",
+  'streak.best': "BEST",
+  'streak.totalDays': "TOTAL DAYS",
+  'streak.freezes': "❄️ Freezes",
+  'streak.freeze': "Streak Freeze",
+  'streak.freezeHint': "Preserve a missed day",
+  'streak.buy': "BUY ❄️ — {cost} XP",
+  'streak.confirmTitle': "ACTIVATE STREAK FREEZE?",
+  'streak.confirmBody': "Freeze {date} to preserve your streak.",
+  'streak.remaining': "Remaining freezes: {n}",
+  'common.cancelCaps': "CANCEL",
+  'streak.freezeCta': "FREEZE ❄️",
 } as const;
 
 export type MessageKey = keyof typeof en;

@@ -10,23 +10,12 @@ import {
 } from "../utils/xp";
 import { sfx } from "../utils/sounds";
 import { dailyHistoryQuests } from "../utils/dailyBoard";
+import { useT, useLocaleStore, formatDate, type LocaleCode } from "../i18n";
 import { localDateKey } from '../utils/date';
 
-const MONTHS = [
-  "January",
-  "February",
-  "March",
-  "April",
-  "May",
-  "June",
-  "July",
-  "August",
-  "September",
-  "October",
-  "November",
-  "December",
-];
-const WEEKDAYS = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
+/** Locale-aware month and weekday labels (week grid still starts on Sunday, matching getDay()). */
+const monthName = (locale: LocaleCode, m: number) => formatDate(locale, new Date(2023, m, 1), { month: 'long' });
+const weekdayName = (locale: LocaleCode, d: number) => formatDate(locale, new Date(2023, 0, 1 + d), { weekday: 'short' });
 const FREEZE_COST = 100; // XP per freeze
 
 /** Colour梯度: 0 completions = empty → 15 = blazing gold. */
@@ -42,6 +31,8 @@ function getIntensityClass(count: number): string {
 }
 
 export default function StreakCalendar() {
+  const t = useT();
+  const locale = useLocaleStore((s) => s.locale);
   const {
     dailyQuests,
     freezeCount,
@@ -131,7 +122,7 @@ export default function StreakCalendar() {
                   {streak}
                 </p>
                 <p className="text-[10px] text-gray-500 font-mono tracking-wider">
-                  STREAK
+                  {t('streak.label')}
                 </p>
               </div>
             </div>
@@ -145,7 +136,7 @@ export default function StreakCalendar() {
                 {longestStreak}
               </p>
               <p className="text-[10px] text-gray-500 font-mono tracking-wider">
-                BEST
+                {t('streak.best')}
               </p>
             </div>
 
@@ -158,7 +149,7 @@ export default function StreakCalendar() {
                 {totalActiveDays}
               </p>
               <p className="text-[10px] text-gray-500 font-mono tracking-wider">
-                TOTAL DAYS
+                {t('streak.totalDays')}
               </p>
             </div>
           </div>
@@ -166,7 +157,7 @@ export default function StreakCalendar() {
           {/* Streak freeze badge */}
           <div className="flex items-center gap-2">
             <div className="text-right">
-              <p className="text-xs font-mono text-gray-400">❄️ Freezes</p>
+              <p className="text-xs font-mono text-gray-400">{t('streak.freezes')}</p>
               <p className="text-lg font-display font-bold text-cyan-400">
                 {freezeCount}
               </p>
@@ -196,7 +187,7 @@ export default function StreakCalendar() {
           </svg>
         </button>
         <h3 className="font-display text-white font-bold tracking-wider text-sm">
-          {MONTHS[viewMonth]} {viewYear}
+          {monthName(locale, viewMonth)} {viewYear}
         </h3>
         <button
           onClick={() => navigateMonth(1)}
@@ -222,7 +213,7 @@ export default function StreakCalendar() {
       <div className="px-6 pb-4 pt-2">
         {/* Weekday headers */}
         <div className="grid grid-cols-7 gap-1.5 mb-1">
-          {WEEKDAYS.map((d) => (
+          {Array.from({ length: 7 }, (_, i) => weekdayName(locale, i)).map((d) => (
             <div
               key={d}
               className="text-center text-[10px] font-mono text-gray-500 py-1"
@@ -300,9 +291,9 @@ export default function StreakCalendar() {
           <div className="flex items-center gap-3">
             <span className="text-lg">❄️</span>
             <div>
-              <p className="text-xs font-mono text-gray-400">Streak Freeze</p>
+              <p className="text-xs font-mono text-gray-400">{t('streak.freeze')}</p>
               <p className="text-[10px] text-gray-600 font-mono">
-                Preserve a missed day
+                {t('streak.freezeHint')}
               </p>
             </div>
           </div>
@@ -323,7 +314,7 @@ export default function StreakCalendar() {
               }
             `}
           >
-            BUY ❄️ — {FREEZE_COST} XP
+            {t('streak.buy', { cost: FREEZE_COST })}
           </button>
         </div>
       </div>
@@ -349,30 +340,28 @@ export default function StreakCalendar() {
                 <div className="text-center">
                   <span className="text-4xl block mb-3">❄️</span>
                   <h3 className="text-lg font-display text-white font-bold mb-2">
-                    ACTIVATE STREAK FREEZE?
+                    {t('streak.confirmTitle')}
                   </h3>
                   <p className="text-sm text-gray-400 mb-1">
-                    Freeze{" "}
-                    <span className="text-cyan-400 font-mono">
-                      {freezeTarget}
-                    </span>{" "}
-                    to preserve your streak.
+                    {t('streak.confirmBody', { date: '\u0000' }).split('\u0000').map((part, i, arr) => (
+                      <span key={i}>{part}{i < arr.length - 1 && <span className="text-cyan-400 font-mono">{freezeTarget}</span>}</span>
+                    ))}
                   </p>
                   <p className="text-xs text-gray-600 font-mono mb-4">
-                    Remaining freezes: {freezeCount - 1}
+                    {t('streak.remaining', { n: freezeCount - 1 })}
                   </p>
                   <div className="flex gap-3">
                     <button
                       onClick={() => setShowFreezeConfirm(false)}
                       className="flex-1 px-4 py-2 rounded-lg border border-gray-700 text-gray-400 font-display text-sm hover:bg-gray-800 transition-colors"
                     >
-                      CANCEL
+                      {t('common.cancelCaps')}
                     </button>
                     <button
                       onClick={confirmFreeze}
                       className="flex-1 px-4 py-2 rounded-lg bg-cyan-500/20 border border-cyan-500/30 text-cyan-400 font-display text-sm font-bold hover:bg-cyan-500/30 transition-colors"
                     >
-                      FREEZE ❄️
+                      {t('streak.freezeCta')}
                     </button>
                   </div>
                 </div>
