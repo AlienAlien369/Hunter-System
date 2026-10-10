@@ -500,6 +500,21 @@ export const en = {
   'top.allSounds': "All sounds",
   'top.systemOnline': "SYSTEM ONLINE",
   'top.systemOnlineTitle': "System online",
+  'hq.label': "Hidden Quest",
+  'hq.today': "Today only",
+  'hq.tier': "Tier {n} · {name}",
+  'hq.offline': "The System is offline. Reconnect to reveal today's hidden challenge.",
+  'hq.detected': "The System has detected a {tier}-tier hidden challenge. Accept it to reveal today's secret quest.",
+  'hq.accept': "ACCEPT CHALLENGE",
+  'hq.levelBonus': "×{n} level bonus",
+  'hq.completeTitle': "{icon} HIDDEN QUEST COMPLETE",
+  'hq.cleared': "{title} — cleared. The System acknowledges your strength.",
+  'hq.claimed': "Reward claimed",
+  'hq.complete': "COMPLETE QUEST",
+  'hq.difficulty': "difficulty",
+  'hq.timeLeft': "Time left to complete today's hidden quest",
+  'hq.expires': "Expires soon!",
+  'hq.untilReset': "Until reset",
 } as const;
 
 export type MessageKey = keyof typeof en;
