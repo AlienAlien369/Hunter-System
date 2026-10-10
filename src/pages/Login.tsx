@@ -1,10 +1,11 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { motion } from 'framer-motion';
 import { useNavigate, Navigate, useLocation } from 'react-router-dom';
 import { useAuthStore } from '../store/authStore';
 import { api } from '../lib/api';
 import { sfx } from '../utils/sounds';
 import BackgroundFX from '../components/BackgroundFX';
+import { trackEvent } from '../lib/track';
 
 export default function Login() {
   const navigate = useNavigate();
@@ -31,6 +32,8 @@ export default function Login() {
   const [code, setCode] = useState('');
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
+
+  useEffect(() => { trackEvent('login_view', { page: '/login' }); }, []);
 
   // If already logged in, go where the hunter was headed
   if (user) {

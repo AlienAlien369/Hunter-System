@@ -3,6 +3,7 @@ import { api, type Leaderboard } from '../lib/api';
 import { useGameStore } from '../store/gameStore';
 import { useAuthStore } from '../store/authStore';
 import { Btn, Panel, inputCls } from './hunter/ui';
+import { trackEvent } from '../lib/track';
 
 const MEDALS = ['🥇', '🥈', '🥉'];
 
@@ -101,6 +102,7 @@ function FriendsBoard({ xp }: { xp: number }) {
   };
   const me = useAuthStore(s => s.user);
   const invite = async () => {
+    trackEvent('invite_click');
     const url = `${window.location.origin}/login?invite=${encodeURIComponent(me?.name ?? '')}`;
     const text = `Race me on Hunter System — daily quests, XP and ranks for real life.`;
     try {

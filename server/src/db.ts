@@ -139,6 +139,8 @@ export async function initDatabase() {
     // Single-use account recovery code (bcrypt hash) — there is no email reset.
     await client.query('ALTER TABLE users ADD COLUMN IF NOT EXISTS recovery_hash TEXT');
     await client.query('ALTER TABLE users ADD COLUMN IF NOT EXISTS recovery_created_at TIMESTAMPTZ');
+    // Coarse market (ISO country) detected at signup — analytics now, default locale/price later.
+    await client.query('ALTER TABLE users ADD COLUMN IF NOT EXISTS region VARCHAR(2)');
     // Streak freezes are server-owned (bought with real XP, spent on missed days).
     await client.query('ALTER TABLE users ADD COLUMN IF NOT EXISTS freeze_count INTEGER NOT NULL DEFAULT 0');
 
@@ -282,6 +284,19 @@ export async function initDatabase() {
         created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
         PRIMARY KEY (user_id, week_start)
       );
+
+      -- Privacy-friendly product events. user_id is NULL for anonymous events;
+      -- no IP, user-agent or device id is ever stored. Purged after 13 months.
+      CREATE TABLE IF NOT EXISTS events (
+        id BIGSERIAL PRIMARY KEY,
+        user_id INTEGER REFERENCES users(id) ON DELETE CASCADE,
+        name VARCHAR(40) NOT NULL,
+        region VARCHAR(2),
+        props JSONB NOT NULL DEFAULT '{}',
+        created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+      );
+      CREATE INDEX IF NOT EXISTS idx_events_name_time ON events(name, created_at DESC);
+      CREATE INDEX IF NOT EXISTS idx_events_user ON events(user_id) WHERE user_id IS NOT NULL;
 
       CREATE TABLE IF NOT EXISTS app_migrations (
         name TEXT PRIMARY KEY,

@@ -169,6 +169,25 @@ export interface User {
   sen: number;
   created_at: string;
   updated_at: string;
+  isAdmin?: boolean;
+}
+
+export interface FunnelRow {
+  region: string;
+  signups: number;
+  timetable: number;
+  firstQuest: number;
+  d7Eligible: number;
+  d7Returned: number;
+  upgraded: number;
+}
+
+export interface FunnelReport {
+  days: number;
+  region: string | null;
+  totals: FunnelRow;
+  byRegion: FunnelRow[];
+  visits: { landing: number; login: number; pricing: number; upgradeClicks: number };
 }
 
 export interface PenaltyInfo {
@@ -442,6 +461,18 @@ async function request<T>(endpoint: string, options: RequestInit = {}): Promise<
 }
 
 export const api = {
+  // Measurement: anonymous, allowlisted page events (see server/src/analytics.ts)
+  sendEvent: (name: string, props: { page?: string; ref?: string }) =>
+    fetch(`${API_URL}/events`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'X-Timezone': browserTimeZone() },
+      body: JSON.stringify({ name, props }),
+      credentials: 'include',
+      keepalive: true,
+    }),
+  getFunnel: (days = 30, region?: string) =>
+    request<FunnelReport>(`/admin/funnel?days=${days}${region ? `&region=${encodeURIComponent(region)}` : ''}`),
+
   // Auth
   login: (username: string, password: string) =>
     request<LoginResponse>('/auth/login', {

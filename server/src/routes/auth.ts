@@ -6,6 +6,8 @@ import { pool } from "../db.js";
 import { authenticateToken, jwtSecret } from "../middleware/auth.js";
 import { logActivity } from "../activity.js";
 import { calculateLevel, calculateRank } from "../progression.js";
+import { detectRegion } from "../region.js";
+import { isAdminUsername } from "./admin.js";
 import { LIMITS, blockedFor, clearKey, hit, tooMany } from "../middleware/security.js";
 
 const router = Router();
@@ -91,9 +93,9 @@ router.post("/register", async (req: Request, res: Response) => {
 
     // Insert user
     const result = await pool.query(
-      `INSERT INTO users (username, password_hash, name)
-       VALUES ($1, $2, $3) RETURNING id, username, name, created_at`,
-      [username, password_hash, username],
+      `INSERT INTO users (username, password_hash, name, region)
+       VALUES ($1, $2, $3, $4) RETURNING id, username, name, created_at`,
+      [username, password_hash, username, detectRegion(req)],
     );
 
     const user = result.rows[0];
@@ -229,6 +231,7 @@ router.get("/me", authenticateToken, async (req: Request, res: Response) => {
         ...userWithoutPassword,
         rank: calculateRank(user.xp),
         level: calculateLevel(user.xp),
+        isAdmin: isAdminUsername(user.username),
       },
     });
   } catch (error) {
@@ -420,7 +423,7 @@ router.get("/export", authenticateToken, async (req: Request, res: Response) => 
     const id = req.user!.id;
     const q = async (sql: string) => (await pool.query(sql, [id])).rows;
     const [user] = await q(
-      `SELECT id, username, name, name_set, xp, hp, mp, str, agi, vit, int, sen, show_on_leaderboard, created_at, updated_at FROM users WHERE id = $1`,
+      `SELECT id, username, name, name_set, xp, hp, mp, str, agi, vit, int, sen, show_on_leaderboard, region, created_at, updated_at FROM users WHERE id = $1`,
     );
     if (!user) return res.status(404).json({ error: "User not found" });
     const data = {
@@ -441,6 +444,7 @@ router.get("/export", authenticateToken, async (req: Request, res: Response) => 
       penalties: await q(`SELECT penalty_date, missed_days, broken_streak, xp_lost, hp_lost, recovered FROM penalties WHERE user_id = $1 ORDER BY penalty_date`),
       gameState: (await q(`SELECT state, updated_at FROM user_state WHERE user_id = $1`))[0] ?? null,
       coachReviews: await q(`SELECT week_start, review, created_at FROM coach_reviews WHERE user_id = $1 ORDER BY week_start`),
+      events: await q(`SELECT name, region, props, created_at FROM events WHERE user_id = $1 ORDER BY id`),
       following: (await q(`SELECT u.name FROM friendships f JOIN users u ON u.id = f.followee_id WHERE f.follower_id = $1 ORDER BY u.name`)).map((r: any) => r.name),
     };
     await logActivity(id, "data_export", user.username);

@@ -50,6 +50,7 @@ const WeeklyReport = lazyPage(() => import('./pages/WeeklyReport'));
 const Settings = lazyPage(() => import('./pages/Settings'));
 const Modules = lazyPage(() => import('./pages/Modules'));
 const ModulePage = lazyPage(() => import('./pages/ModulePage'));
+const Admin = lazyPage(() => import('./pages/Admin'));
 import XpConfirmHost from './components/hunter/XpConfirmHost';
 import PerfectDayBanner from './components/PerfectDayBanner';
 import ErrorBoundary from './components/ErrorBoundary';
@@ -143,6 +144,7 @@ function AppContent() {
     ...CORE_NAV,
     ...modules.map(m => ({ path: moduleHref(m), label: m.status === 'paused' ? `${m.name} (paused)` : m.name, icon: m.icon })),
     { path: '/modules', label: 'Modules', icon: '🧩' },
+    ...(user?.isAdmin ? [{ path: '/admin', label: 'Admin', icon: '📈' }] : []),
     SETTINGS_NAV,
   ];
 
@@ -215,6 +217,7 @@ function AppContent() {
                   <Route path="/inventory" element={<ProtectedRoute><Inventory /></ProtectedRoute>} />
                   <Route path="/achievements" element={<ProtectedRoute><AchievementPanel /></ProtectedRoute>} />
                   <Route path="/weekly" element={<ProtectedRoute><WeeklyReport /></ProtectedRoute>} />
+                  <Route path="/admin" element={<ProtectedRoute><Admin /></ProtectedRoute>} />
                   <Route path="/settings" element={<ProtectedRoute><Settings /></ProtectedRoute>} />
                   <Route path="*" element={<Navigate to="/" replace />} />
                 </Routes>

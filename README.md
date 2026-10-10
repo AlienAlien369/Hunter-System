@@ -161,6 +161,9 @@ DB_NAME=hunter_system
 # JWT
 JWT_SECRET=your-secret-key-here-change-in-production
 
+# Admin funnel view (/admin): comma-separated usernames. Unset = nobody is admin.
+ADMIN_USERNAMES=your-username
+
 # Server
 BACKEND_PORT=3000
 FRONTEND_PORT=5173

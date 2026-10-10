@@ -5,6 +5,7 @@ import { useModuleStore } from '../store/moduleStore';
 import { calculateRank } from '../utils/xp';
 import { drawHunterCard, shareHunterCard, type CardData } from '../utils/shareCard';
 import { Btn, Modal } from './hunter/ui';
+import { trackEvent } from '../lib/track';
 
 /** "Share my Hunter card": render a status image and send it through the native share sheet. */
 export default function ShareCardButton() {
@@ -44,6 +45,7 @@ export default function ShareCardButton() {
   };
 
   const share = async () => {
+    trackEvent('share_click');
     if (!preview) return;
     const r = await shareHunterCard(preview.blob, preview.data);
     setNote(r === 'downloaded' ? 'Saved as hunter-card.png — post it anywhere!' : r === 'shared' ? 'Shared! 🔥' : '');

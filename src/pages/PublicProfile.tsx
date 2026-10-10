@@ -3,6 +3,7 @@ import { Link, useParams } from 'react-router-dom';
 import { api, type PublicHunter } from '../lib/api';
 import { useAuthStore } from '../store/authStore';
 import BackgroundFX from '../components/BackgroundFX';
+import { trackEvent } from '../lib/track';
 
 const RANK_COLORS: Record<string, string> = { E: '#8A92B2', D: '#3498DB', C: '#8B5CF6', B: '#A855F7', A: '#F1C40F', S: '#F59E0B' };
 
@@ -14,6 +15,7 @@ export default function PublicProfile() {
   const [error, setError] = useState('');
   const [followMsg, setFollowMsg] = useState('');
 
+  useEffect(() => { trackEvent('profile_view', { page: '/h' }); }, []);
   useEffect(() => {
     api.getPublicHunter(name).then(setHunter).catch(e => setError((e as Error).message));
   }, [name]);
