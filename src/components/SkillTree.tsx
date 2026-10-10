@@ -1,5 +1,7 @@
 import { motion } from "framer-motion";
 import { useGameStore } from "../store/gameStore";
+import { useT } from "../i18n";
+import { buffText } from "../utils/buffText";
 import {
   STAT_CONFIG,
   getActiveBuffs,
@@ -53,6 +55,8 @@ function TierNode({
   threshold: StatThreshold;
   currentValue: number;
 }) {
+  const t = useT();
+  const text = buffText(t, _stat, threshold);
   const unlocked = currentValue >= threshold.min;
 
   return (
@@ -70,10 +74,10 @@ function TierNode({
         <p
           className={`text-xs font-display font-bold ${unlocked ? threshold.color : "text-gray-600"}`}
         >
-          {threshold.label}
+          {text.label}
         </p>
         <p className="text-[10px] font-mono text-gray-500 truncate">
-          {threshold.description}
+          {text.description}
         </p>
       </div>
       <span
@@ -98,6 +102,7 @@ function StatColumn({
   onAllocate: () => void;
   onDeallocate: () => void;
 }) {
+  const t = useT();
   const meta = STAT_META[statKey];
   const tiers = STAT_CONFIG[statKey];
   const baseValue = (BASE_STATS as Record<string, number>)[statKey];
@@ -120,7 +125,7 @@ function StatColumn({
                 {statKey.toUpperCase()}
               </h3>
               <p className="text-[10px] font-mono text-gray-500">
-                BASE {baseValue}
+                {t('tree.base', { n: baseValue })}
               </p>
             </div>
           </div>
@@ -187,13 +192,13 @@ function StatColumn({
       {/* Tier nodes */}
       <div className="p-4 space-y-2">
         <p className="text-[10px] font-mono text-gray-600 tracking-wider mb-2">
-          PASSIVE BUFFS
+          {t('tree.passiveBuffs')}
         </p>
-        {tiers.map((t) => (
+        {tiers.map((tier) => (
           <TierNode
-            key={t.min}
+            key={tier.min}
             stat={statKey}
-            threshold={t}
+            threshold={tier}
             currentValue={value}
           />
         ))}
@@ -203,6 +208,7 @@ function StatColumn({
 }
 
 export default function SkillTree() {
+  const t = useT();
   const { profile, allocateStat, deallocateStat } = useGameStore();
   const available = getAvailableStatPoints(profile.level, profile.stats);
   const buffs = getActiveBuffs(profile.stats);
@@ -217,10 +223,10 @@ export default function SkillTree() {
       >
         <div className="min-w-0">
           <h1 className="text-2xl sm:text-3xl font-display text-white font-bold tracking-wider">
-            SKILL TREE
+            {t('tree.title')}
           </h1>
           <p className="text-gray-400 mt-1 font-mono text-sm">
-            Allocate stat points • Unlock passive buffs
+            {t('tree.sub')}
           </p>
         </div>
         <div className="flex items-center gap-4">
@@ -234,14 +240,14 @@ export default function SkillTree() {
             animate={available > 0 ? { scale: [1, 1.02, 1] } : {}}
             transition={{ duration: 2, repeat: Infinity }}
           >
-            <span className="text-[10px] tracking-wider">AVAILABLE SP</span>
+            <span className="text-[10px] tracking-wider">{t('tree.available')}</span>
             <span className="ml-2 text-lg font-display font-bold">
               {available}
             </span>
           </motion.div>
           {/* Level badge */}
           <div className="px-4 py-2 rounded-xl border bg-gray-800/50 border-gray-700/30 text-gray-400 font-mono text-sm">
-            <span className="text-[10px] tracking-wider">LEVEL</span>
+            <span className="text-[10px] tracking-wider">{t('tree.level')}</span>
             <span className="ml-2 text-lg font-display font-bold text-gold">
               {profile.level}
             </span>
@@ -257,7 +263,7 @@ export default function SkillTree() {
           className="bg-gradient-to-r from-purple-900/30 via-[#0d1117]/90 to-blue-900/30 backdrop-blur-sm rounded-xl border border-purple-500/20 p-4"
         >
           <h3 className="font-display text-white font-bold tracking-wider text-sm mb-3">
-            ⚡ ACTIVE PASSIVE BUFFS
+            {t('tree.activeBuffs')}
           </h3>
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2">
             {buffs.buffs.map(({ stat, threshold }) => (
@@ -270,10 +276,10 @@ export default function SkillTree() {
                   <p
                     className={`text-xs font-display font-bold ${threshold.color}`}
                   >
-                    {threshold.label}
+                    {buffText(t, stat, threshold).label}
                   </p>
                   <p className="text-[10px] font-mono text-gray-500 truncate">
-                    {threshold.description}
+                    {buffText(t, stat, threshold).description}
                   </p>
                 </div>
               </div>
@@ -281,7 +287,7 @@ export default function SkillTree() {
           </div>
           {buffs.xpMultiplier > 1 && (
             <p className="text-[10px] font-mono text-gray-500 mt-2">
-              Total XP Multiplier:{" "}
+              {t('tree.xpMult')}{" "}
               <span className="text-gold">
                 ×{buffs.xpMultiplier.toFixed(2)}
               </span>
@@ -289,7 +295,7 @@ export default function SkillTree() {
           )}
           {buffs.penaltyReduction > 0 && (
             <p className="text-[10px] font-mono text-gray-500">
-              Penalty Reduction:{" "}
+              {t('tree.penRed')}{" "}
               <span className="text-green-400">
                 -{Math.round(buffs.penaltyReduction * 100)}%
               </span>
@@ -297,7 +303,7 @@ export default function SkillTree() {
           )}
           {buffs.hiddenQuestChance > 0 && (
             <p className="text-[10px] font-mono text-gray-500">
-              Hidden Quest Chance:{" "}
+              {t('tree.hiddenChance')}{" "}
               <span className="text-purple-400">
                 +{buffs.hiddenQuestChance}%
               </span>

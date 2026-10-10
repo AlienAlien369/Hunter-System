@@ -1,6 +1,7 @@
 import { motion } from 'framer-motion';
 import { useGameStore } from '../store/gameStore';
 import { useT } from '../i18n';
+import { buffText } from '../utils/buffText';
 import { getLevelInfo, getActiveBuffs } from '../utils/xp';
 
 const RANK_COLORS: Record<string, string> = {
@@ -158,8 +159,8 @@ export default function StatusWindow() {
                 {buffs.map(({ stat, threshold }) => (
                   <div key={`${stat}-${threshold.min}`} className="flex items-center gap-2">
                     <span className="text-sm">{threshold.icon}</span>
-                    <span className={`text-[10px] font-display font-bold ${threshold.color}`}>{threshold.label}</span>
-                    <span className="text-[10px] font-mono text-gray-600">— {threshold.description}</span>
+                    <span className={`text-[10px] font-display font-bold ${threshold.color}`}>{buffText(t, stat, threshold).label}</span>
+                    <span className="text-[10px] font-mono text-gray-600">— {buffText(t, stat, threshold).description}</span>
                   </div>
                 ))}
               </div>
