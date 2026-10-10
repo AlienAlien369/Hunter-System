@@ -3,7 +3,7 @@ import { useNavigate } from "react-router-dom";
 import { useThemeStore, THEMES, applyTheme, isPremiumTheme, effectiveTheme } from "../store/themeStore";
 import { useBillingStore } from "../store/billingStore";
 import { useSoundStore } from "../store/soundStore";
-import type { SoundPackId } from "../data/soundPacks";
+import { SOUND_PACKS, type SoundPackId } from "../data/soundPacks";
 import { sfx } from "../utils/sounds";
 import AppSettingsPanel from '../components/AppSettingsPanel';
 import AccountPanel from '../components/AccountPanel';
@@ -92,10 +92,10 @@ export default function Settings() {
           </div>
           <div>
             <h2 className="text-white font-display font-bold tracking-wider">
-              APPEARANCE
+              {t('set.appearance')}
             </h2>
             <p className="text-xs text-gray-500 font-mono">
-              Customize the look of your system
+              {t('set.appearanceHint')}
             </p>
           </div>
         </div>
@@ -103,7 +103,7 @@ export default function Settings() {
         {/* Theme Selector */}
         <div className="space-y-4">
           <div className="flex items-center justify-between">
-            <span className="text-sm text-gray-400 font-mono">THEME</span>
+            <span className="text-sm text-gray-400 font-mono">{t('set.theme')}</span>
             <span className="text-sm text-accent-text font-mono">
               {currentColors.name}
             </span>
@@ -192,7 +192,7 @@ export default function Settings() {
             }}
           >
             <div className="flex items-center justify-between text-xs font-mono">
-              <span className="text-white/70">CURRENT ACCENT</span>
+              <span className="text-white/70">{t('set.currentAccent')}</span>
               <span className="text-white font-bold">{currentColors.name}</span>
             </div>
           </div>
@@ -212,9 +212,9 @@ export default function Settings() {
           </div>
           <div>
             <h2 className="text-white font-display font-bold tracking-wider">
-              SOUND
+              {t('set.sound')}
             </h2>
-            <p className="text-xs text-gray-500 font-mono">Audio preferences</p>
+            <p className="text-xs text-gray-500 font-mono">{t('set.soundHint')}</p>
           </div>
         </div>
 
@@ -230,9 +230,9 @@ export default function Settings() {
             <div className="flex items-center space-x-3">
               <span className="text-xl">{muted ? "🔇" : "🔊"}</span>
               <div>
-                <span className="text-sm text-white font-mono">All Sounds</span>
+                <span className="text-sm text-white font-mono">{t('set.allSounds')}</span>
                 <p className="text-xs text-gray-500 font-mono">
-                  Master volume toggle
+                  {t('set.allSoundsHint')}
                 </p>
               </div>
             </div>
@@ -265,10 +265,10 @@ export default function Settings() {
               <span className="text-xl">🎺</span>
               <div>
                 <span className="text-sm text-white font-mono">
-                  Milestone Chime
+                  {t('set.chime')}
                 </span>
                 <p className="text-xs text-gray-500 font-mono">
-                  Level-up / rank-up fanfare
+                  {t('set.chimeHint')}
                 </p>
               </div>
             </div>
@@ -296,10 +296,10 @@ export default function Settings() {
               <span className="text-xl">🎵</span>
               <div>
                 <span className="text-sm text-white font-mono">
-                  Theme Music
+                  {t('set.themeMusic')}
                 </span>
                 <p className="text-xs text-gray-500 font-mono">
-                  Background soundtrack
+                  {t('set.themeMusicHint')}
                 </p>
               </div>
             </div>
@@ -318,7 +318,7 @@ export default function Settings() {
           >
             <div className="flex items-center space-x-3 mb-3">
               <span className="text-xl">🎶</span>
-              <span className="text-sm text-white font-mono">Sound Pack</span>
+              <span className="text-sm text-white font-mono">{t('set.soundPack')}</span>
             </div>
             <div className="grid grid-cols-2 gap-2">
               {(
@@ -359,7 +359,7 @@ export default function Settings() {
                           : "🔇"}
                   </span>
                   <span className="text-xs font-mono block mt-1 capitalize">
-                    {pack.replace("-", " ")}
+                    {SOUND_PACKS[pack].label}
                   </span>
                 </button>
               ))}
@@ -381,47 +381,46 @@ export default function Settings() {
           </div>
           <div>
             <h2 className="text-white font-display font-bold tracking-wider">
-              ABOUT
+              {t('set.about')}
             </h2>
             <p className="text-xs text-gray-500 font-mono">
-              System information
+              {t('set.aboutHint')}
             </p>
           </div>
         </div>
 
         <div className="space-y-3 text-sm">
           <div className="flex justify-between">
-            <span className="text-gray-400 font-mono">Version</span>
+            <span className="text-gray-400 font-mono">{t('set.version')}</span>
             <span className="text-white font-mono">v1.0.0</span>
           </div>
           <div className="flex justify-between">
-            <span className="text-gray-400 font-mono">Theme</span>
+            <span className="text-gray-400 font-mono">{t('set.theme')}</span>
             <span className="text-accent-text font-mono">
               {currentColors.name}
             </span>
           </div>
           <div className="flex justify-between">
-            <span className="text-gray-400 font-mono">Sound Pack</span>
+            <span className="text-gray-400 font-mono">{t('set.soundPack')}</span>
             <span className="text-white font-mono capitalize">
-              {soundPack.replace("-", " ")}
+              {SOUND_PACKS[soundPack].label}
             </span>
           </div>
           <div className="flex justify-between">
-            <span className="text-gray-400 font-mono">Audio Status</span>
+            <span className="text-gray-400 font-mono">{t('set.audioStatus')}</span>
             <span
               className={`font-mono ${muted ? "text-red-400" : "text-green-400"}`}
             >
-              {muted ? "Muted" : "Enabled"}
+              {muted ? t('set.muted') : t('set.enabled')}
             </span>
           </div>
         </div>
 
         <div className="mt-4 pt-4 border-t border-gray-800">
           <p className="text-xs text-gray-600 font-mono text-center">
-            Hunter System • Quest Tracker
+            {t('set.tagline')}
           </p>
           <p className="text-xs text-gray-600 font-mono text-center mt-1">
-            Built with React + TypeScript + Tailwind CSS
           </p>
         </div>
       </motion.div>
