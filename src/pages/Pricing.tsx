@@ -76,6 +76,9 @@ export default function Pricing() {
   // The detected region may be a country outside our six picks; show its price group's representative.
   const pickerValue = (REGIONS as readonly string[]).includes(selectedRegion) ? selectedRegion : data?.group === 'EU' ? 'DE' : data?.group === 'LOW' ? 'ID' : data?.group === 'AE' ? 'AE' : data?.group === 'GB' ? 'GB' : data?.group === 'IN' ? 'IN' : 'US';
   const isPro = billing ? billing.plan !== 'free' : false;
+  const isMinor = user?.consentStatus === 'granted';
+  const [shareUrl, setShareUrl] = useState('');
+  const [copied, setCopied] = useState(false);
 
   const upgrade = async () => {
     trackEvent('upgrade_click', { page: '/pricing' });
@@ -90,6 +93,25 @@ export default function Pricing() {
       setError(code === 'adult_required' ? t('pricing.minor') : code === 'already_subscribed' ? t('pricing.alreadyPro') : t('pricing.error'));
       setBusy(false);
     }
+  };
+
+  // Under-18s cannot buy: make a link a parent or guardian can open and pay from.
+  const askParent = async () => {
+    trackEvent('upgrade_click', { page: '/pricing' });
+    setBusy(true);
+    setError('');
+    try {
+      const r = await api.createPayLink(interval, pickerValue);
+      setShareUrl(r.url);
+    } catch {
+      setError(t('pricing.askParent.error'));
+    } finally {
+      setBusy(false);
+    }
+  };
+  const shareText = () => t('pricing.askParent.share', { price: price ? money(price) : '', interval: t(interval === 'month' ? 'pay.interval.month' : 'pay.interval.year') });
+  const copyLink = async () => {
+    try { await navigator.clipboard.writeText(`${shareText()} ${shareUrl}`); setCopied(true); } catch { /* clipboard blocked */ }
   };
 
   const feature = (key: MessageKey, vars?: Record<string, string | number>) => (
@@ -177,6 +199,24 @@ export default function Pricing() {
               <p className="mt-5 text-sm font-mono text-green-300">{t('pricing.alreadyPro')}</p>
             ) : data && !data.checkoutEnabled ? (
               <p className="mt-5 text-sm font-mono text-gray-300">{t('pricing.soon')}</p>
+            ) : isMinor ? (
+              <div className="mt-5 space-y-3">
+                {!shareUrl ? (
+                  <button onClick={askParent} disabled={busy || !data} className="w-full bg-gradient-to-r from-purple-600 to-blue-600 hover:from-purple-500 hover:to-blue-500 text-white font-display font-bold py-3 rounded-lg disabled:opacity-50">
+                    {busy ? t('pricing.askParent.working') : t('pricing.askParent')}
+                  </button>
+                ) : (
+                  <div className="rounded-lg border border-purple-500/30 bg-purple-500/5 p-4 space-y-3">
+                    <p className="font-display text-white text-sm">{t('pricing.askParent.title')}</p>
+                    <p className="text-xs font-mono text-gray-300">{t('pricing.askParent.body', { days: 7 })}</p>
+                    <div className="flex flex-wrap gap-2">
+                      <button onClick={copyLink} className="px-3 py-2 rounded-lg bg-purple-600 hover:bg-purple-500 text-white text-sm font-display">{t('pricing.askParent.copy')}</button>
+                      <a href={`https://wa.me/?text=${encodeURIComponent(`${shareText()} ${shareUrl}`)}`} target="_blank" rel="noopener noreferrer" className="px-3 py-2 rounded-lg border border-green-500/40 text-green-300 hover:bg-green-500/10 text-sm font-display">{t('pricing.askParent.whatsapp')}</a>
+                    </div>
+                    {copied && <p role="status" className="text-xs font-mono text-green-400">{t('pricing.askParent.copied')}</p>}
+                  </div>
+                )}
+              </div>
             ) : (
               <button
                 onClick={upgrade}

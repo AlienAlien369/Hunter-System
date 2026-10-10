@@ -74,6 +74,13 @@ get approved. This blocks all 13-17 signups, so set them before promoting.
     we need an institute agreement for the paid Teams plan? Teachers are
     self-declared adults; do they need verification?
 
+13. **Parents paying for minors.** The contracting party is the parent or
+    guardian who completes checkout from the pay link; the subscription is
+    attached to the child's account. Confirm the terms and refund policy bind
+    that payer, that a self-declared "I am the parent or guardian" checkbox is
+    adequate (it is not verified), and what a chargeback by the real cardholder
+    means for the child's account.
+
 ## Known gaps in the implementation (engineering, not legal)
 
 - Age is self-declared. A determined minor can lie; there is no verification.

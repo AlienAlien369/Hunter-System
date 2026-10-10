@@ -203,6 +203,17 @@ export interface ClassDashboard {
   members: ClassMemberRow[];
 }
 
+export interface PayLinkInfo {
+  name: string | null;
+  interval: 'month' | 'year';
+  currency: string;
+  amountMinor: number;
+  expired: boolean;
+  expiresAt: string;
+  subscribed: boolean;
+  subscription: null | { interval: 'month' | 'year'; currency: string; amountMinor: number; currentPeriodEnd: string | null; cancelAtPeriodEnd: boolean };
+}
+
 export interface ReferralStatus {
   qualified: number;
   pending: number;
@@ -563,6 +574,16 @@ export const api = {
   rotateClassCode: (id: number) => request<{ code: string }>(`/classes/${id}/rotate-code`, { method: 'POST', body: '{}' }),
   archiveClass: (id: number) => request<{ archived: boolean }>(`/classes/${id}`, { method: 'PATCH', body: JSON.stringify({ archived: true }) }),
   removeClassMember: (id: number, memberId: number) => request<{ removed: boolean }>(`/classes/${id}/members/${memberId}`, { method: 'DELETE' }),
+
+  // Parent pay links
+  createPayLink: (interval: 'month' | 'year', region?: string) =>
+    request<{ url: string; interval: 'month' | 'year'; currency: string; amountMinor: number; expiresAt: string }>('/pay-links', { method: 'POST', body: JSON.stringify({ interval, region }) }),
+  lookupPayLink: (token: string) =>
+    request<PayLinkInfo>('/pay-links/lookup', { method: 'POST', body: JSON.stringify({ token }) }),
+  payLinkCheckout: (token: string) =>
+    request<{ url: string }>('/pay-links/checkout', { method: 'POST', body: JSON.stringify({ token }) }),
+  payLinkCancel: (token: string) =>
+    request<{ cancelled: boolean }>('/pay-links/cancel', { method: 'POST', body: JSON.stringify({ token }) }),
 
   // Billing (plans are public; the rest needs a session)
   getPlans: (region?: string) => request<PlansResponse>(`/billing/plans${region ? `?region=${encodeURIComponent(region)}` : ''}`),

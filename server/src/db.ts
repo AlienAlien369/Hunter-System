@@ -247,6 +247,22 @@ export async function initDatabase() {
       );
       CREATE INDEX IF NOT EXISTS idx_class_members_user ON class_members(user_id);
     `);
+    // Parent pay links: an under-18 hunter cannot buy, so they can share a link a
+    // parent opens (no account) to pay for the child's Pro. Only the token's hash
+    // is stored. Paying still grants nothing until the verified webhook arrives.
+    await client.query(`
+      CREATE TABLE IF NOT EXISTS pay_links (
+        id SERIAL PRIMARY KEY,
+        user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+        token_hash TEXT NOT NULL UNIQUE,
+        interval VARCHAR(6) NOT NULL,
+        currency VARCHAR(3) NOT NULL,
+        amount_minor INTEGER NOT NULL,
+        created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+        expires_at TIMESTAMPTZ NOT NULL
+      );
+      CREATE INDEX IF NOT EXISTS idx_pay_links_user ON pay_links(user_id);
+    `);
     // Streak freezes are server-owned (bought with real XP, spent on missed days).
     await client.query('ALTER TABLE users ADD COLUMN IF NOT EXISTS freeze_count INTEGER NOT NULL DEFAULT 0');
 

@@ -56,6 +56,7 @@ const Classes = lazyPage(() => import('./pages/Classes'));
 const Legal = lazyPage(() => import('./pages/Legal'));
 const ParentConsent = lazyPage(() => import('./pages/ParentConsent'));
 const Pricing = lazyPage(() => import('./pages/Pricing'));
+const Pay = lazyPage(() => import('./pages/Pay'));
 const Landing = lazyPage(() => import('./pages/Landing'));
 import ConsentGate from './components/ConsentGate';
 import XpConfirmHost from './components/hunter/XpConfirmHost';
@@ -306,6 +307,7 @@ function App() {
         <Route path="/privacy" element={<Suspense fallback={null}><Legal kind="privacy" /></Suspense>} />
         <Route path="/refund" element={<Suspense fallback={null}><Legal kind="refund" /></Suspense>} />
         <Route path="/pricing" element={<Suspense fallback={null}><Pricing /></Suspense>} />
+        <Route path="/pay" element={<Suspense fallback={null}><Pay /></Suspense>} />
         <Route path="/parent-consent" element={<Suspense fallback={null}><ParentConsent /></Suspense>} />
         <Route path="/h/:name" element={<Suspense fallback={null}><PublicProfile /></Suspense>} />
         <Route path="*" element={<AccessGate><AppContent /></AccessGate>} />

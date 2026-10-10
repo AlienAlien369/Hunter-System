@@ -18,7 +18,15 @@ until the class dashboard ships.
 - **Idempotent and ordered:** every delivery is stored once
   (`payment_events`), re-deliveries are no-ops, older events never overwrite
   newer state.
-- **Under-18s cannot buy.** A parent or guardian subscribes.
+- **Under-18s cannot buy.** A parent or guardian subscribes. A hunter under 18
+  (with parental consent on file) can generate a **pay link** from the Pricing
+  page and share it (WhatsApp button included). The parent opens `/pay#token=…`
+  with no account, sees the exact price and who it is for, confirms they are the
+  parent or guardian, and is sent to the provider's hosted checkout. The
+  subscription is tied to the child's account; access still arrives only through
+  the verified webhook. The parent can cancel from the same link. The link
+  lives 7 days for checkout, only a hash of its token is stored, the token sits
+  in the URL fragment (never in server logs) and is never given to the provider.
 - **Test mode is the default.** A live key (`sk_live_`, `rzp_live_`) is refused
   unless `PAYMENTS_LIVE=true` is also set. Do not set it until your accounts and
   KYC are confirmed.
