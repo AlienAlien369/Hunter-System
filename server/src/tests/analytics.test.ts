@@ -50,12 +50,15 @@ describe('Measurement', () => {
   let u3: Awaited<ReturnType<typeof signIn>>;
 
   before(async () => {
+    // Anonymous events outlive their runs; start from a clean slate for this run's region.
+    await db.query('DELETE FROM events WHERE region = $1', [REGION]);
     admin = await signIn(ADMIN);
     u1 = await signIn(`an1_${suffix}`, lang);
     u2 = await signIn(`an2_${suffix}`, lang);
     u3 = await signIn(`an3_${suffix}`, lang);
   });
   after(async () => {
+    await db.query('DELETE FROM events WHERE region = $1', [REGION]);
     await db.query('DELETE FROM users WHERE id = ANY($1)', [[u1.id, u2.id, u3.id]]);
     await db.query('DELETE FROM quests WHERE quest_id = $1', [`AN-${suffix}`]);
     await db.end();
