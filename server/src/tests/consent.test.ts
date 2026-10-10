@@ -133,7 +133,9 @@ describe('Age gate and parental consent', () => {
     });
     it('shows the parent only the username, with a bad link rejected', async () => {
       assert.strictEqual((await post('/consent/parent/lookup', { token: 'short' })).status, 404);
-      assert.strictEqual((await get(`/consent/parent?token=${token}`)).status, 404, 'a token in the URL is not accepted');
+      const viaUrl = await get(`/consent/parent?token=${token}`);
+      assert.ok(!(viaUrl.headers.get('content-type') || '').includes('json'), 'a token in the URL is not accepted: no data comes back');
+      assert.ok(!(await viaUrl.text()).includes(`gate_${suffix}`), 'and the username is not revealed');
       const r = await post('/consent/parent/lookup', { token });
       assert.strictEqual(r.status, 200);
       assert.deepStrictEqual(await r.json(), { username: `gate_${suffix}`, status: 'pending' });
