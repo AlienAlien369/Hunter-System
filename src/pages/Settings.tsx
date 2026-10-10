@@ -9,6 +9,7 @@ import LegalLinks from '../components/LegalLinks';
 import LanguagePicker from '../components/LanguagePicker';
 import BillingPanel from '../components/BillingPanel';
 import CountryPicker from '../components/CountryPicker';
+import ReferralCard from '../components/ReferralCard';
 import { useAuthStore } from '../store/authStore';
 import { useT } from '../i18n';
 
@@ -66,6 +67,7 @@ export default function Settings() {
         <p className="text-xs text-gray-500 font-mono">{t('country.hint')}</p>
       </section>
       <BillingPanel />
+      <ReferralCard />
       <AccountPanel />
       <LegalLinks className="px-1" />
 

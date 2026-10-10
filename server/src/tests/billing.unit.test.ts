@@ -12,6 +12,7 @@ import { checkKey } from '../payments/index.js';
 import { normalizeStripeEvent, verifyStripeSignature } from '../payments/stripe.js';
 import { normalizeRazorpayEvent, verifyRazorpaySignature } from '../payments/razorpay.js';
 import { WebhookSignatureError } from '../payments/types.js';
+import { rewardsEarned, MAX_REWARDS } from '../referrals.js';
 
 const NOW = new Date('2026-10-10T12:00:00Z');
 const inDays = (n: number) => new Date(NOW.getTime() + n * 86_400_000);
@@ -217,5 +218,13 @@ describe('Razorpay event normalization', () => {
     assert.deepStrictEqual({ k: full.kind, p: full.paymentId }, { k: 'refund', p: 'pay_9' });
     assert.strictEqual(normalizeRazorpayEvent(refund({ refund_status: 'partial', amount_refunded: 1000 }), 'e').kind, 'ignored');
     assert.strictEqual(normalizeRazorpayEvent(refund({ amount_refunded: 7900 }), 'e').kind, 'refund');
+  });
+});
+
+describe('referral rewards', () => {
+  it('earns one month per three qualified friends, up to the cap', () => {
+    assert.deepStrictEqual([0, 1, 2, 3, 5, 6, 8, 9].map(rewardsEarned), [0, 0, 0, 1, 1, 2, 2, 3]);
+    assert.strictEqual(rewardsEarned(36), MAX_REWARDS);
+    assert.strictEqual(rewardsEarned(3000), MAX_REWARDS);
   });
 });

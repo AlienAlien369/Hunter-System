@@ -4,6 +4,7 @@ import { authenticateToken, optionalAuth } from '../middleware/auth.js';
 import { logActivity } from '../activity.js';
 import { calculateLevel } from '../progression.js';
 import { selectTodaysHiddenQuest, scaleHiddenXp, tierForLevel, TIERS } from '../data/hiddenQuests.js';
+import { qualifyReferral } from '../referrals.js';
 import { applyXp } from '../xp.js';
 import { addDays, requestToday } from '../time.js';
 import { taskXp, DAYS, XP_RULES, diffModuleTasks, sanitizeModuleTask, type ModuleTask } from '../rules.js';
@@ -320,6 +321,8 @@ router.patch('/:id/complete', authenticateToken, async (req: Request, res: Respo
       await applyXp(pool, userId!, [
         { delta: awardXp, action: 'quest_complete', entity: id, details: { title: q.title, module: q.category } },
       ]);
+      // A first real quest makes an invited hunter's referral count. Never blocks the completion.
+      qualifyReferral(userId!).catch((e) => console.error('Referral qualify failed:', e));
 
       // Accrue lifetime track counters and detect full passes (redo-all keeps these)
       const track = trackForQuest(q.quest_id);

@@ -253,6 +253,16 @@ export const en = {
   'leaderboard.scope.country': 'MY COUNTRY',
   'leaderboard.needsCountry': 'Choose your country to see how you rank at home.',
   'leaderboard.countryEmpty': 'No hunters from {country} on the board yet. Be the first.',
+  'referral.title': 'INVITE FRIENDS, EARN PRO',
+  'referral.body': 'Invite {count} friends who complete a quest and get a month of Pro free. It never gives XP or rank.',
+  'referral.progress': '{qualified} qualified · {pending} waiting for their first quest',
+  'referral.next': '{n} more to your next free month',
+  'referral.earned': 'Free months earned: {months} of {max}',
+  'referral.capped': 'You have earned the maximum free months. Thank you for spreading the word!',
+  'referral.copy': 'Copy invite link',
+  'referral.copied': 'Link copied.',
+  'referral.needName': 'Choose a Hunter name to get your invite link.',
+  'referral.shareText': 'Race me on Hunter System — turn your day into quests, XP and ranks. Free, no ads.',
 } as const;
 
 export type MessageKey = keyof typeof en;

@@ -207,6 +207,25 @@ export async function initDatabase() {
         PRIMARY KEY (user_id, day)
       );
     `);
+    // Referrals: an invite only counts once the friend completes a real quest;
+    // every third qualified invite grants a month of Pro (capped; see referrals.ts).
+    await client.query(`
+      CREATE TABLE IF NOT EXISTS referrals (
+        id SERIAL PRIMARY KEY,
+        inviter_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+        invitee_id INTEGER NOT NULL UNIQUE REFERENCES users(id) ON DELETE CASCADE,
+        created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+        qualified_at TIMESTAMPTZ,
+        CHECK (inviter_id <> invitee_id)
+      );
+      CREATE INDEX IF NOT EXISTS idx_referrals_inviter ON referrals(inviter_id);
+      CREATE TABLE IF NOT EXISTS referral_grants (
+        inviter_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+        batch INTEGER NOT NULL,
+        granted_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+        PRIMARY KEY (inviter_id, batch)
+      );
+    `);
     // Streak freezes are server-owned (bought with real XP, spent on missed days).
     await client.query('ALTER TABLE users ADD COLUMN IF NOT EXISTS freeze_count INTEGER NOT NULL DEFAULT 0');
 

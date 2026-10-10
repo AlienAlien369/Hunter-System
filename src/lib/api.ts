@@ -184,6 +184,16 @@ export interface PlansResponse {
   mode: 'test' | 'live' | 'off';
   plans: { id: 'free' | 'pro'; limits: { aiPerDay: number; premiumCosmetics: boolean }; prices?: { month: PlanPrice; year: PlanPrice }; yearlySavingsPct?: number }[];
 }
+export interface ReferralStatus {
+  qualified: number;
+  pending: number;
+  monthsEarned: number;
+  invitesPerReward: number;
+  nextRewardIn: number | null;
+  maxMonths: number;
+  capped: boolean;
+}
+
 export interface BillingState {
   plan: 'free' | 'pro' | 'teams';
   source: 'subscription' | 'grant' | null;
@@ -521,6 +531,8 @@ export const api = {
       method: 'POST',
       body: JSON.stringify({ username, password, ...input }),
     }),
+
+  getReferrals: () => request<ReferralStatus>('/referrals/me'),
 
   // Billing (plans are public; the rest needs a session)
   getPlans: (region?: string) => request<PlansResponse>(`/billing/plans${region ? `?region=${encodeURIComponent(region)}` : ''}`),

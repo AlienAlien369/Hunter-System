@@ -7,6 +7,7 @@ import { authenticateToken, jwtSecret } from "../middleware/auth.js";
 import { logActivity } from "../activity.js";
 import { calculateLevel, calculateRank } from "../progression.js";
 import { detectRegion, isRealRegion } from "../region.js";
+import { recordReferral } from "../referrals.js";
 import { ageFromBirthMonth, classifyAge, initialConsentStatus, isValidEmail, maskEmail, parseBirthMonth } from "../age.js";
 import { PRIVACY_VERSION, TERMS_VERSION, deleteUserData, invalidateStatus, issueParentConsent, recordConsent } from "../consent.js";
 import { isAdminUsername } from "./admin.js";
@@ -142,6 +143,7 @@ router.post("/register", async (req: Request, res: Response) => {
          ON CONFLICT DO NOTHING`,
         [user.id, invite],
       ).catch((e) => console.error("Invite follow failed:", e));
+      await recordReferral(invite, user.id).catch((e) => console.error("Referral record failed:", e));
     }
 
     issueSession(req, res, user);
