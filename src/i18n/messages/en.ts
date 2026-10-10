@@ -388,6 +388,22 @@ export const en = {
   'streak.remaining': "Remaining freezes: {n}",
   'common.cancelCaps': "CANCEL",
   'streak.freezeCta': "FREEZE ❄️",
+  'init.title': "⚔️ HUNTER INITIATION",
+  'init.progress': "{done}/{total} · +{bonus} XP bonus",
+  'init.step.name': "Choose your Hunter name",
+  'init.step.timetable': "Build your timetable",
+  'init.step.module': "Add your first module",
+  'init.step.quest': "Complete your first quest",
+  'init.step.extra': "Log something extra you did",
+  'init.build': "BUILD",
+  'init.add': "ADD",
+  'init.go': "GO",
+  'init.how': "HOW?",
+  'init.complete': "Initiation complete — the System acknowledges you, Hunter.",
+  'init.claim': "CLAIM +{bonus} XP",
+  'buildDay.title': "BUILD YOUR DAY",
+  'buildDay.body': "Your daily quests come from your own timetable. Describe your day — Hunter turns it into quests with XP, or build it slot by slot.",
+  'buildDay.cta': "CREATE MY TIMETABLE",
 } as const;
 
 export type MessageKey = keyof typeof en;
