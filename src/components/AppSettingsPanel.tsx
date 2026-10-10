@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import { motion } from 'framer-motion';
 import { disableReminders, enableReminders, notify, remindersEnabled, remindersSupported } from '../utils/reminders';
+import { useT } from '../i18n';
 import { Btn } from './hunter/ui';
 
 interface InstallPrompt extends Event {
@@ -22,6 +23,7 @@ const isStandalone = () =>
 
 /** Settings → App: install Hunter to the home screen, and timetable reminders. */
 export default function AppSettingsPanel() {
+  const t = useT();
   const [reminders, setReminders] = useState(remindersEnabled());
   const [canInstall, setCanInstall] = useState(!!deferredPrompt);
   const [installed, setInstalled] = useState(isStandalone());
@@ -56,8 +58,8 @@ export default function AppSettingsPanel() {
     }
     const ok = await enableReminders();
     setReminders(ok);
-    if (ok) notify('✅ Reminders on', "You'll be reminded when each timetable quest starts.", '/time').catch(() => {});
-    else setNote('Notifications are blocked for this site — allow them in your browser settings to turn reminders on.');
+    if (ok) notify(t('app.onTitle'), t('app.onBody'), '/time').catch(() => {});
+    else setNote(t('app.blocked'));
   };
 
   return (
@@ -70,33 +72,33 @@ export default function AppSettingsPanel() {
       <div className="flex items-center space-x-3">
         <div className="w-8 h-8 rounded-lg accent-gradient flex items-center justify-center text-sm">📱</div>
         <div>
-          <h2 className="text-white font-display font-bold tracking-wider">APP & REMINDERS</h2>
-          <p className="text-xs text-gray-500 font-mono">Install Hunter and get nudged when a timetable quest starts</p>
+          <h2 className="text-white font-display font-bold tracking-wider">{t('app.title')}</h2>
+          <p className="text-xs text-gray-500 font-mono">{t('app.sub')}</p>
         </div>
       </div>
 
       <div className="flex flex-wrap items-center justify-between gap-3 rounded-lg bg-[#161b22]/80 border border-purple-500/15 p-3">
         <div className="min-w-0">
-          <p className="text-sm text-white font-mono">Install on this device</p>
+          <p className="text-sm text-white font-mono">{t('app.install')}</p>
           <p className="text-[11px] text-gray-500 font-mono">
-            {installed ? 'Installed — Hunter opens like a native app.'
-              : canInstall ? 'Add Hunter to your home screen for one-tap access.'
-                : 'On iPhone: Share → Add to Home Screen. On Android/desktop Chrome: the install icon in the address bar.'}
+            {installed ? t('app.installed')
+              : canInstall ? t('app.canInstall')
+                : t('app.howInstall')}
           </p>
         </div>
-        {!installed && canInstall && <Btn onClick={install}>INSTALL APP</Btn>}
+        {!installed && canInstall && <Btn onClick={install}>{t('app.installBtn')}</Btn>}
       </div>
 
       <div className="flex flex-wrap items-center justify-between gap-3 rounded-lg bg-[#161b22]/80 border border-purple-500/15 p-3">
         <div className="min-w-0">
-          <p className="text-sm text-white font-mono">Timetable reminders</p>
+          <p className="text-sm text-white font-mono">{t('app.reminders')}</p>
           <p className="text-[11px] text-gray-500 font-mono">
-            {remindersSupported() ? 'A notification when each of today\'s timetable quests is due, plus an 8pm heads-up if your streak is at risk — even when Hunter is closed.' : 'This browser does not support notifications.'}
+            {remindersSupported() ? t('app.remindersHint') : t('app.noNotif')}
           </p>
         </div>
         {remindersSupported() && (
           <Btn variant={reminders ? 'ghost' : 'primary'} onClick={toggleReminders} aria-pressed={reminders}>
-            {reminders ? 'TURN OFF' : 'TURN ON'}
+            {reminders ? t('app.turnOff') : t('app.turnOn')}
           </Btn>
         )}
       </div>
