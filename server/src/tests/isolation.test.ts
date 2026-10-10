@@ -13,7 +13,7 @@ async function register(username: string): Promise<string> {
   const res = await fetch(`${BASE_URL}/api/auth/register`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ username, password: "IsolationPass123!" }),
+    body: JSON.stringify({ username, password: "IsolationPass123!", birthMonth: "1990-01", acceptTerms: true }),
   });
   assert.strictEqual(res.status, 201, `register ${username} failed`);
   const cookie = (res.headers.get("set-cookie") || "").split(";")[0];

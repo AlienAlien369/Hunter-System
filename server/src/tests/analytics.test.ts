@@ -22,11 +22,16 @@ const PASS = 'AnalyticsPass123!';
 const json = { 'Content-Type': 'application/json' };
 
 async function signIn(username: string, extra: Record<string, string> = {}) {
-  let res = await fetch(`${BASE_URL}/api/auth/register`, { method: 'POST', headers: { ...json, ...extra }, body: JSON.stringify({ username, password: PASS }) });
+  let res = await fetch(`${BASE_URL}/api/auth/register`, { method: 'POST', headers: { ...json, ...extra }, body: JSON.stringify({ username, password: PASS, birthMonth: '1990-01', acceptTerms: true }) });
   if (res.status === 409) res = await fetch(`${BASE_URL}/api/auth/login`, { method: 'POST', headers: json, body: JSON.stringify({ username, password: PASS }) });
   assert.ok(res.ok, `sign-in failed for ${username}: ${res.status}`);
   const cookie = (res.headers.get('set-cookie') || '').split(';')[0];
-  const me = (await (await fetch(`${BASE_URL}/api/auth/me`, { headers: { Cookie: cookie } })).json()).user;
+  let me = (await (await fetch(`${BASE_URL}/api/auth/me`, { headers: { Cookie: cookie } })).json()).user;
+  if (me.consentStatus === 'needs_age') {
+    // An account from before the age gate: answer the one-time age question.
+    await fetch(`${BASE_URL}/api/auth/age`, { method: 'POST', headers: { ...json, Cookie: cookie }, body: JSON.stringify({ birthMonth: '1990-01' }) });
+    me = (await (await fetch(`${BASE_URL}/api/auth/me`, { headers: { Cookie: cookie } })).json()).user;
+  }
   return { cookie, id: me.id as number, me };
 }
 

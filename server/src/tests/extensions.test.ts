@@ -23,7 +23,7 @@ async function register(username: string, invite?: string) {
   const res = await fetch(`${BASE_URL}/api/auth/register`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ username, password: 'ExtPass123!', invite }),
+    body: JSON.stringify({ username, password: 'ExtPass123!', invite, birthMonth: '1990-01', acceptTerms: true }),
   });
   assert.strictEqual(res.status, 201);
   const cookie = (res.headers.get('set-cookie') || '').split(';')[0];
@@ -503,7 +503,7 @@ describe('Hunter extensions', () => {
 
     before(async () => {
       const r = await fetch(`${BASE_URL}/api/auth/register`, {
-        method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ username: uname, password: 'OldPass123!' }),
+        method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ username: uname, password: 'OldPass123!', birthMonth: '1990-01', acceptTerms: true }),
       });
       const cookie = (r.headers.get('set-cookie') || '').split(';')[0];
       U = client(cookie);
@@ -843,7 +843,7 @@ describe('Hunter extensions', () => {
     it('issues a 7-day session cookie', async () => {
       const res = await fetch(`${BASE_URL}/api/auth/register`, {
         method: 'POST', headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ username: uname, password: 'SecPass123!' }),
+        body: JSON.stringify({ username: uname, password: 'SecPass123!', birthMonth: '1990-01', acceptTerms: true }),
       });
       assert.strictEqual(res.status, 201);
       assert.match(res.headers.get('set-cookie') || '', /Max-Age=604800/);

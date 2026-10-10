@@ -6,6 +6,9 @@ import { api } from '../lib/api';
 import { sfx } from '../utils/sounds';
 import BackgroundFX from '../components/BackgroundFX';
 import { trackEvent } from '../lib/track';
+import { classifyBirthMonth, looksLikeEmail } from '../utils/age';
+import LegalLinks from '../components/LegalLinks';
+import { Link } from 'react-router-dom';
 
 export default function Login() {
   const navigate = useNavigate();
@@ -30,6 +33,10 @@ export default function Login() {
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
   const [code, setCode] = useState('');
+  const [birthMonth, setBirthMonth] = useState('');
+  const [parentEmail, setParentEmail] = useState('');
+  const [accepted, setAccepted] = useState(false);
+  const ageClass = classifyBirthMonth(birthMonth);
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
 
@@ -58,7 +65,13 @@ export default function Login() {
         sfx.login();
         navigate(target, { replace: true });
       } else {
-        const response = await api.register(username, password, invite || undefined);
+        if (ageClass === 'blocked') throw new Error('Hunter System is for people aged 13 and over.');
+        const response = await api.register(username, password, {
+          birthMonth,
+          acceptTerms: accepted,
+          parentEmail: ageClass === 'minor' ? parentEmail.trim() : undefined,
+          invite: invite || undefined,
+        });
         try { localStorage.setItem('hunter.hasAccount', '1'); localStorage.removeItem('hunter.invite'); } catch { /* storage unavailable */ }
         login(response.user);
         sfx.login();
@@ -210,6 +223,54 @@ export default function Login() {
               />
             </div>
 
+            {mode === 'register' && (
+              <>
+                <div>
+                  <label htmlFor="birth-month" className="block text-gray-400 font-mono text-xs uppercase tracking-wider mb-2">
+                    Month and year you were born
+                  </label>
+                  <input
+                    id="birth-month"
+                    type="month"
+                    value={birthMonth}
+                    onChange={(e) => setBirthMonth(e.target.value)}
+                    max={new Date().toISOString().slice(0, 7)}
+                    className="w-full bg-[#0d1117] border border-purple-500/20 rounded-lg px-4 py-3 text-white font-mono focus:outline-none focus:border-purple-500/50 focus:ring-1 focus:ring-purple-500/50 transition-all"
+                    required
+                  />
+                  <p className="text-[11px] text-gray-500 font-mono mt-1">Only used for age rules. We never store the day.</p>
+                </div>
+                {ageClass === 'blocked' && (
+                  <p role="alert" className="text-xs font-mono text-red-300 border border-red-500/30 bg-red-500/10 rounded-lg px-3 py-2">
+                    Hunter System is for people aged 13 and over.
+                  </p>
+                )}
+                {ageClass === 'minor' && (
+                  <div>
+                    <p className="text-xs font-mono text-yellow-300 mb-2">Under 18? A parent or guardian has to approve your account. We’ll email them — nothing is active until they agree.</p>
+                    <label htmlFor="parent-email" className="block text-gray-400 font-mono text-xs uppercase tracking-wider mb-2">Parent or guardian’s email</label>
+                    <input
+                      id="parent-email"
+                      type="email"
+                      value={parentEmail}
+                      onChange={(e) => setParentEmail(e.target.value)}
+                      className="w-full bg-[#0d1117] border border-purple-500/20 rounded-lg px-4 py-3 text-white font-mono focus:outline-none focus:border-purple-500/50 focus:ring-1 focus:ring-purple-500/50 transition-all"
+                      placeholder="parent@example.com"
+                      autoComplete="off"
+                      required
+                    />
+                  </div>
+                )}
+                <label className="flex items-start gap-3 text-xs font-mono text-gray-300 cursor-pointer">
+                  <input type="checkbox" checked={accepted} onChange={(e) => setAccepted(e.target.checked)} className="mt-0.5 accent-purple-500" required />
+                  <span>
+                    I agree to the <Link to="/terms" target="_blank" className="text-purple-300 underline">Terms</Link> and have read the{' '}
+                    <Link to="/privacy" target="_blank" className="text-purple-300 underline">Privacy Policy</Link>.
+                  </span>
+                </label>
+              </>
+            )}
+
             {/* Error Message */}
             {error && (
               <motion.div
@@ -224,7 +285,7 @@ export default function Login() {
             {/* Submit Button */}
             <button
               type="submit"
-              disabled={loading}
+              disabled={loading || (mode === 'register' && (ageClass === null || ageClass === 'blocked' || !accepted || (ageClass === 'minor' && !looksLikeEmail(parentEmail))))}
               className="w-full bg-gradient-to-r from-purple-600 to-blue-600 hover:from-purple-500 hover:to-blue-500 text-white font-display font-bold py-3 rounded-lg transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed shadow-lg shadow-purple-500/25"
             >
               {loading ? (
@@ -240,6 +301,7 @@ export default function Login() {
               )}
             </button>
           </form>
+          <LegalLinks className="text-center mt-6" />
 
           {mode !== 'register' && (
             <button

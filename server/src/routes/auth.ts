@@ -7,6 +7,8 @@ import { authenticateToken, jwtSecret } from "../middleware/auth.js";
 import { logActivity } from "../activity.js";
 import { calculateLevel, calculateRank } from "../progression.js";
 import { detectRegion } from "../region.js";
+import { ageFromBirthMonth, classifyAge, initialConsentStatus, isValidEmail, maskEmail, parseBirthMonth } from "../age.js";
+import { PRIVACY_VERSION, TERMS_VERSION, deleteUserData, invalidateStatus, issueParentConsent, recordConsent } from "../consent.js";
 import { isAdminUsername } from "./admin.js";
 import { LIMITS, blockedFor, clearKey, hit, tooMany } from "../middleware/security.js";
 
@@ -48,13 +50,19 @@ function issueSession(req: Request, res: Response, user: { id: number; username:
   res.cookie("token", token, getAuthCookieOptions(req));
 }
 
+/** Remove the auth cookie, with the attributes it was set with so every browser actually drops it. */
+function clearSession(req: Request, res: Response) {
+  const o = getAuthCookieOptions(req);
+  res.clearCookie("token", { httpOnly: o.httpOnly, secure: o.secure, sameSite: o.sameSite });
+}
+
 /**
  * POST /api/auth/register
  * Register a new user
  */
 router.post("/register", async (req: Request, res: Response) => {
   try {
-    const { username, password } = req.body;
+    const { username, password, birthMonth, acceptTerms, parentEmail } = req.body;
 
     const wait = hit(`register:${req.ip}`, LIMITS.registrations.max, LIMITS.registrations.windowMs);
     if (wait) return tooMany(res, wait, "sign-ups from this network");
@@ -78,6 +86,24 @@ router.post("/register", async (req: Request, res: Response) => {
         .json({ error: "Password must be at least 6 characters" });
     }
 
+    // Age gate and agreement, before anything is stored.
+    const birth = parseBirthMonth(birthMonth);
+    if (!birth) return res.status(400).json({ error: "Enter the month and year you were born", code: "birth_month_required" });
+    if (acceptTerms !== true) return res.status(400).json({ error: "You must accept the Terms and Privacy Policy", code: "terms_required" });
+    const ageClass = classifyAge(ageFromBirthMonth(birth));
+    if (ageClass === "blocked") {
+      // Nothing is stored for under-13s.
+      return res.status(403).json({ error: "Hunter System is for people aged 13 and over.", code: "under_age" });
+    }
+    if (ageClass === "minor") {
+      if (!isValidEmail(parentEmail)) {
+        return res.status(400).json({ error: "Enter a parent or guardian's email address", code: "parent_email_required" });
+      }
+      // Don't let the form be used to spam strangers' inboxes.
+      const mailWait = hit(`parentmail:${parentEmail.trim().toLowerCase()}`, 3, 24 * 60 * 60_000);
+      if (mailWait) return tooMany(res, mailWait, "consent requests to that address");
+    }
+
     // Check if user already exists
     const existing = await pool.query(
       "SELECT id FROM users WHERE username = $1",
@@ -93,12 +119,16 @@ router.post("/register", async (req: Request, res: Response) => {
 
     // Insert user
     const result = await pool.query(
-      `INSERT INTO users (username, password_hash, name, region)
-       VALUES ($1, $2, $3, $4) RETURNING id, username, name, created_at`,
-      [username, password_hash, username, detectRegion(req)],
+      `INSERT INTO users (username, password_hash, name, region, birth_month, consent_status)
+       VALUES ($1, $2, $3, $4, $5, $6) RETURNING id, username, name, created_at`,
+      [username, password_hash, username, detectRegion(req), birth, initialConsentStatus(ageClass)],
     );
 
     const user = result.rows[0];
+    await recordConsent(user.id, "terms", TERMS_VERSION);
+    await recordConsent(user.id, "privacy", PRIVACY_VERSION);
+    let parentMailSent: boolean | undefined;
+    if (ageClass === "minor") parentMailSent = await issueParentConsent(user.id, user.username, parentEmail.trim());
 
     // Invite link (/login?invite=<Hunter name>): the new hunter and the inviter
     // follow each other so they race on weekly XP from day one. No XP reward, so
@@ -121,6 +151,8 @@ router.post("/register", async (req: Request, res: Response) => {
     res.status(201).json({
       message: "User registered successfully",
       user: { id: user.id, username: user.username, name: user.name },
+      consentStatus: initialConsentStatus(ageClass),
+      parentMailSent,
     });
   } catch (error) {
     console.error("Register error:", error);
@@ -207,7 +239,7 @@ router.get("/me", authenticateToken, async (req: Request, res: Response) => {
     const userId = req.user?.id;
 
     const result = await pool.query(
-      `SELECT id, username, name, name_set, rank, xp, hp, mp, str, agi, vit, int, sen, created_at
+      `SELECT id, username, name, name_set, rank, xp, hp, mp, str, agi, vit, int, sen, created_at, consent_status, parent_email
        FROM users WHERE id = $1`,
       [userId],
     );
@@ -224,7 +256,7 @@ router.get("/me", authenticateToken, async (req: Request, res: Response) => {
 
     // Remove password hash from response, and report the live rank/level
     // computed from XP (the stored rank column is only a registration default)
-    const { password_hash: _passwordHash, ...userWithoutPassword } = user;
+    const { password_hash: _passwordHash, parent_email: parentEmail, consent_status: consentStatus, ...userWithoutPassword } = user;
 
     res.json({
       user: {
@@ -232,6 +264,8 @@ router.get("/me", authenticateToken, async (req: Request, res: Response) => {
         rank: calculateRank(user.xp),
         level: calculateLevel(user.xp),
         isAdmin: isAdminUsername(user.username),
+        consentStatus,
+        parentEmailMasked: parentEmail ? maskEmail(parentEmail) : null,
       },
     });
   } catch (error) {
@@ -414,6 +448,67 @@ router.post("/recover", async (req: Request, res: Response) => {
 });
 
 /**
+ * POST /api/auth/age { birthMonth, parentEmail? } — one-time age question for
+ * accounts created before the age gate. Once answered it cannot be changed
+ * (otherwise a minor could simply re-answer as an adult).
+ */
+router.post("/age", authenticateToken, async (req: Request, res: Response) => {
+  try {
+    const userId = req.user!.id;
+    const cur = (await pool.query("SELECT consent_status FROM users WHERE id = $1", [userId])).rows[0];
+    if (!cur) return res.status(404).json({ error: "User not found" });
+    if (cur.consent_status !== "needs_age") return res.status(409).json({ error: "Your age has already been recorded" });
+    const birth = parseBirthMonth(req.body?.birthMonth);
+    if (!birth) return res.status(400).json({ error: "Enter the month and year you were born", code: "birth_month_required" });
+    const ageClass = classifyAge(ageFromBirthMonth(birth));
+    if (ageClass === "blocked") {
+      // Under 13: remove the account and everything in it, as the policy says.
+      await deleteUserData(userId);
+      clearSession(req, res);
+      return res.status(403).json({ error: "Hunter System is for people aged 13 and over. Your account has been deleted.", code: "under_age" });
+    }
+    const parentEmail = req.body?.parentEmail;
+    if (ageClass === "minor") {
+      if (!isValidEmail(parentEmail)) return res.status(400).json({ error: "Enter a parent or guardian's email address", code: "parent_email_required" });
+      const mailWait = hit(`parentmail:${parentEmail.trim().toLowerCase()}`, 3, 24 * 60 * 60_000);
+      if (mailWait) return tooMany(res, mailWait, "consent requests to that address");
+    }
+    const status = initialConsentStatus(ageClass);
+    await pool.query("UPDATE users SET birth_month = $2, consent_status = $3, updated_at = NOW() WHERE id = $1", [userId, birth, status]);
+    invalidateStatus(userId);
+    await recordConsent(userId, "terms", TERMS_VERSION);
+    await recordConsent(userId, "privacy", PRIVACY_VERSION);
+    const username = (await pool.query("SELECT username FROM users WHERE id = $1", [userId])).rows[0].username;
+    const parentMailSent = ageClass === "minor" ? await issueParentConsent(userId, username, parentEmail.trim()) : undefined;
+    res.json({ consentStatus: status, parentMailSent });
+  } catch (error) {
+    console.error("Age error:", error);
+    res.status(500).json({ error: "Failed to record age" });
+  }
+});
+
+/**
+ * POST /api/auth/parent-email { parentEmail } — while consent is pending, send
+ * the request again (optionally to a corrected address).
+ */
+router.post("/parent-email", authenticateToken, async (req: Request, res: Response) => {
+  try {
+    const userId = req.user!.id;
+    const u = (await pool.query("SELECT username, consent_status, parent_email FROM users WHERE id = $1", [userId])).rows[0];
+    if (!u || u.consent_status !== "pending") return res.status(409).json({ error: "No consent request is pending" });
+    const email = (req.body?.parentEmail ?? u.parent_email) as unknown;
+    if (!isValidEmail(email)) return res.status(400).json({ error: "Enter a valid email address", code: "parent_email_required" });
+    const wait = hit(`parentmail:${email.trim().toLowerCase()}`, 3, 24 * 60 * 60_000);
+    if (wait) return tooMany(res, wait, "consent requests to that address");
+    const parentMailSent = await issueParentConsent(userId, u.username, email.trim());
+    res.json({ parentMailSent, parentEmailMasked: maskEmail(email.trim()) });
+  } catch (error) {
+    console.error("Parent email error:", error);
+    res.status(500).json({ error: "Failed to send the request" });
+  }
+});
+
+/**
  * GET /api/auth/export — everything Hunter stores about the signed-in hunter,
  * as a downloadable JSON file (data portability). Never includes the password
  * hash or other users' private data (friends are listed by Hunter name only).
@@ -423,7 +518,7 @@ router.get("/export", authenticateToken, async (req: Request, res: Response) => 
     const id = req.user!.id;
     const q = async (sql: string) => (await pool.query(sql, [id])).rows;
     const [user] = await q(
-      `SELECT id, username, name, name_set, xp, hp, mp, str, agi, vit, int, sen, show_on_leaderboard, region, created_at, updated_at FROM users WHERE id = $1`,
+      `SELECT id, username, name, name_set, xp, hp, mp, str, agi, vit, int, sen, show_on_leaderboard, region, birth_month, consent_status, parent_email, parent_consented_at, created_at, updated_at FROM users WHERE id = $1`,
     );
     if (!user) return res.status(404).json({ error: "User not found" });
     const data = {
@@ -444,6 +539,7 @@ router.get("/export", authenticateToken, async (req: Request, res: Response) => 
       penalties: await q(`SELECT penalty_date, missed_days, broken_streak, xp_lost, hp_lost, recovered FROM penalties WHERE user_id = $1 ORDER BY penalty_date`),
       gameState: (await q(`SELECT state, updated_at FROM user_state WHERE user_id = $1`))[0] ?? null,
       coachReviews: await q(`SELECT week_start, review, created_at FROM coach_reviews WHERE user_id = $1 ORDER BY week_start`),
+      consents: await q(`SELECT kind, version, granted, created_at FROM consents WHERE user_id = $1 ORDER BY id`),
       events: await q(`SELECT name, region, props, created_at FROM events WHERE user_id = $1 ORDER BY id`),
       following: (await q(`SELECT u.name FROM friendships f JOIN users u ON u.id = f.followee_id WHERE f.follower_id = $1 ORDER BY u.name`)).map((r: any) => r.name),
     };
@@ -461,28 +557,18 @@ router.get("/export", authenticateToken, async (req: Request, res: Response) => 
  * Permanently deletes the hunter and all their data.
  */
 router.delete("/account", authenticateToken, async (req: Request, res: Response) => {
-  const client = await pool.connect();
   try {
     const user = await verifyPassword(req, res, req.body?.password);
     if (!user) return;
     if (req.body?.confirm !== user.username) {
       return res.status(400).json({ error: "Type your username to confirm" });
     }
-    await client.query("BEGIN");
-    // These two tables reference users without ON DELETE CASCADE.
-    await client.query("DELETE FROM rank_history WHERE user_id = $1", [user.id]);
-    await client.query("DELETE FROM daily_stats WHERE user_id = $1", [user.id]);
-    await client.query("DELETE FROM users WHERE id = $1", [user.id]); // everything else cascades
-    await client.query("COMMIT");
-    const cookieOptions = getAuthCookieOptions(req);
-    res.clearCookie("token", { httpOnly: cookieOptions.httpOnly, secure: cookieOptions.secure, sameSite: cookieOptions.sameSite });
+    await deleteUserData(user.id);
+    clearSession(req, res);
     res.json({ message: "Account deleted" });
   } catch (error) {
-    await client.query("ROLLBACK").catch(() => {});
     console.error("Delete account error:", error);
     res.status(500).json({ error: "Failed to delete account" });
-  } finally {
-    client.release();
   }
 });
 

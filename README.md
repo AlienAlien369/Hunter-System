@@ -164,6 +164,18 @@ JWT_SECRET=your-secret-key-here-change-in-production
 # Admin funnel view (/admin): comma-separated usernames. Unset = nobody is admin.
 ADMIN_USERNAMES=your-username
 
+# Parental consent email (Render/backend). Without these no email is sent.
+RESEND_API_KEY=
+MAIL_FROM="Hunter System <noreply@your-verified-domain>"
+APP_URL=https://hunters-system.vercel.app
+
+# Legal pages (Vercel/frontend) — see docs/LEGAL_REVIEW.md
+VITE_LEGAL_OPERATOR=
+VITE_LEGAL_ADDRESS=
+VITE_LEGAL_EMAIL=
+VITE_GRIEVANCE_OFFICER=
+VITE_GOVERNING_LAW=
+
 # Server
 BACKEND_PORT=3000
 FRONTEND_PORT=5173

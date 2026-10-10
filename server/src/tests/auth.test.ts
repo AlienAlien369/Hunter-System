@@ -17,6 +17,8 @@ describe("Authentication API", () => {
       body: JSON.stringify({
         username: "test_" + Date.now(),
         password: "TestPass123!",
+        birthMonth: "1990-01",
+        acceptTerms: true,
       }),
     });
     assert.strictEqual(res.status, 201);
@@ -61,7 +63,7 @@ describe("Authentication API", () => {
     const res = await fetch(`${BASE_URL}/api/auth/register`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ username, password: "TestPass123!" }),
+      body: JSON.stringify({ username, password: "TestPass123!", birthMonth: "1990-01", acceptTerms: true }),
     });
     assert.strictEqual(res.status, 201);
 
@@ -69,7 +71,7 @@ describe("Authentication API", () => {
     const res2 = await fetch(`${BASE_URL}/api/auth/register`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ username, password: "TestPass123!" }),
+      body: JSON.stringify({ username, password: "TestPass123!", birthMonth: "1990-01", acceptTerms: true }),
     });
     assert.strictEqual(res2.status, 409);
   });

@@ -141,6 +141,27 @@ export async function initDatabase() {
     await client.query('ALTER TABLE users ADD COLUMN IF NOT EXISTS recovery_created_at TIMESTAMPTZ');
     // Coarse market (ISO country) detected at signup — analytics now, default locale/price later.
     await client.query('ALTER TABLE users ADD COLUMN IF NOT EXISTS region VARCHAR(2)');
+    // Age gate + parental consent. Existing accounts default to 'needs_age' and are
+    // asked once; new accounts get their status at signup. Birth *month* only.
+    await client.query(`
+      ALTER TABLE users ADD COLUMN IF NOT EXISTS birth_month DATE;
+      ALTER TABLE users ADD COLUMN IF NOT EXISTS consent_status VARCHAR(12) NOT NULL DEFAULT 'needs_age';
+      ALTER TABLE users ADD COLUMN IF NOT EXISTS parent_email TEXT;
+      ALTER TABLE users ADD COLUMN IF NOT EXISTS parent_token_hash TEXT;
+      ALTER TABLE users ADD COLUMN IF NOT EXISTS parent_requested_at TIMESTAMPTZ;
+      ALTER TABLE users ADD COLUMN IF NOT EXISTS parent_consented_at TIMESTAMPTZ;
+      CREATE INDEX IF NOT EXISTS idx_users_parent_token ON users(parent_token_hash) WHERE parent_token_hash IS NOT NULL;
+      -- Append-only evidence of what each hunter accepted (terms, privacy, parental consent).
+      CREATE TABLE IF NOT EXISTS consents (
+        id BIGSERIAL PRIMARY KEY,
+        user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+        kind VARCHAR(30) NOT NULL,
+        version VARCHAR(20) NOT NULL,
+        granted BOOLEAN NOT NULL DEFAULT true,
+        created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+      );
+      CREATE INDEX IF NOT EXISTS idx_consents_user ON consents(user_id);
+    `);
     // Streak freezes are server-owned (bought with real XP, spent on missed days).
     await client.query('ALTER TABLE users ADD COLUMN IF NOT EXISTS freeze_count INTEGER NOT NULL DEFAULT 0');
 

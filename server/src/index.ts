@@ -25,7 +25,10 @@ import publicRoutes from './routes/public.js';
 import pushRoutes from './routes/push.js';
 import eventRoutes from './routes/events.js';
 import adminRoutes from './routes/admin.js';
+import consentRoutes from './routes/consent.js';
+import { consentGate } from './middleware/consentGate.js';
 import { purgeOldEvents } from './analytics.js';
+import { purgeExpiredConsentRequests } from './consent.js';
 import { startPushScheduler } from './push.js';
 import { initDatabase } from './db.js';
 import { isAllowedOrigin, originGuard } from './middleware/security.js';
@@ -52,6 +55,9 @@ app.use(originGuard);
 app.use(cookieParser());
 app.use(express.json());
 
+// Hunters who have not stated their age, or whose parent has not consented, can only reach auth + consent.
+app.use(consentGate);
+
 // API Routes
 app.use('/api/auth', authRoutes);
 app.use('/api/quests', questRoutes);
@@ -73,6 +79,7 @@ app.use('/api/public', publicRoutes);
 app.use('/api/push', pushRoutes);
 app.use('/api/events', eventRoutes);
 app.use('/api/admin', adminRoutes);
+app.use('/api/consent', consentRoutes);
 app.get('/api/health', (req, res) => res.json({ status: 'ok', timestamp: new Date().toISOString() }));
 
 // Serve frontend static files in production
@@ -116,6 +123,9 @@ async function main() {
     console.log('Database connected successfully');
     startPushScheduler();
     purgeOldEvents().catch(e => console.error('Event purge failed:', e));
+    const purgeConsent = () => purgeExpiredConsentRequests().catch(e => console.error('Consent purge failed:', e));
+    purgeConsent();
+    setInterval(purgeConsent, 24 * 60 * 60_000).unref();
     app.listen(PORT, () => {
       console.log(`Server running on http://localhost:${PORT}`);
       console.log(`Auth endpoints: POST /api/auth/login, POST /api/auth/register, GET /api/auth/me`);

@@ -5,6 +5,7 @@ import type { SoundPackId } from "../data/soundPacks";
 import { sfx } from "../utils/sounds";
 import AppSettingsPanel from '../components/AppSettingsPanel';
 import AccountPanel from '../components/AccountPanel';
+import LegalLinks from '../components/LegalLinks';
 
 type ThemeId = keyof typeof THEMES;
 
@@ -51,6 +52,7 @@ export default function Settings() {
 
       <AppSettingsPanel />
       <AccountPanel />
+      <LegalLinks className="px-1" />
 
       {/* Appearance Section */}
       <motion.div

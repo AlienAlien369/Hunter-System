@@ -170,6 +170,17 @@ export interface User {
   created_at: string;
   updated_at: string;
   isAdmin?: boolean;
+  consentStatus?: ConsentStatus;
+  parentEmailMasked?: string | null;
+}
+
+export type ConsentStatus = 'needs_age' | 'not_required' | 'pending' | 'granted';
+
+export interface RegisterInput {
+  birthMonth: string;
+  acceptTerms: boolean;
+  parentEmail?: string;
+  invite?: string;
 }
 
 export interface FunnelRow {
@@ -480,11 +491,21 @@ export const api = {
       body: JSON.stringify({ username, password }),
     }),
 
-  register: (username: string, password: string, invite?: string) =>
+  register: (username: string, password: string, input: RegisterInput) =>
     request<AuthResponse>('/auth/register', {
       method: 'POST',
-      body: JSON.stringify({ username, password, invite }),
+      body: JSON.stringify({ username, password, ...input }),
     }),
+
+  // Age gate + parental consent
+  submitAge: (birthMonth: string, parentEmail?: string) =>
+    request<{ consentStatus: ConsentStatus; parentMailSent?: boolean }>('/auth/age', { method: 'POST', body: JSON.stringify({ birthMonth, parentEmail }) }),
+  resendParentEmail: (parentEmail?: string) =>
+    request<{ parentMailSent: boolean; parentEmailMasked: string }>('/auth/parent-email', { method: 'POST', body: JSON.stringify({ parentEmail }) }),
+  getParentConsent: (token: string) =>
+    request<{ username: string; status: ConsentStatus }>(`/consent/parent?token=${encodeURIComponent(token)}`),
+  decideParentConsent: (token: string, decision: 'grant' | 'decline') =>
+    request<{ status: 'granted' | 'deleted' }>('/consent/parent', { method: 'POST', body: JSON.stringify({ token, decision }) }),
 
   logout: () =>
     request<{ message: string }>('/auth/logout', {

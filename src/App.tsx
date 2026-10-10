@@ -18,7 +18,7 @@ import Login from './pages/Login';
  * expects (404 on the old hash), reload once to pick up the new build.
  * Rate-limited via sessionStorage so a genuinely broken chunk can't loop.
  */
-function lazyPage<T extends React.ComponentType>(load: () => Promise<{ default: T }>) {
+function lazyPage<T extends React.ComponentType<any>>(load: () => Promise<{ default: T }>) {
   return lazy(() => load().catch(err => {
     const KEY = 'hunter.chunkReloadAt';
     const last = Number(sessionStorage.getItem(KEY) || 0);
@@ -51,6 +51,9 @@ const Settings = lazyPage(() => import('./pages/Settings'));
 const Modules = lazyPage(() => import('./pages/Modules'));
 const ModulePage = lazyPage(() => import('./pages/ModulePage'));
 const Admin = lazyPage(() => import('./pages/Admin'));
+const Legal = lazyPage(() => import('./pages/Legal'));
+const ParentConsent = lazyPage(() => import('./pages/ParentConsent'));
+import ConsentGate from './components/ConsentGate';
 import XpConfirmHost from './components/hunter/XpConfirmHost';
 import PerfectDayBanner from './components/PerfectDayBanner';
 import ErrorBoundary from './components/ErrorBoundary';
@@ -253,14 +256,25 @@ function AppContent() {
   );
 }
 
+/** Hunters who have not stated their age, or whose parent has not yet consented, see only the consent screen. */
+function AccessGate({ children }: { children: React.ReactNode }) {
+  const user = useAuthStore(s => s.user);
+  if (user && (user.consentStatus === 'needs_age' || user.consentStatus === 'pending')) return <ConsentGate />;
+  return <>{children}</>;
+}
+
 function App() {
   useScreenOpenAudio();
   return (
     <AuthProvider>
       <Routes>
         <Route path="/login" element={<Login />} />
+        <Route path="/terms" element={<Suspense fallback={null}><Legal kind="terms" /></Suspense>} />
+        <Route path="/privacy" element={<Suspense fallback={null}><Legal kind="privacy" /></Suspense>} />
+        <Route path="/refund" element={<Suspense fallback={null}><Legal kind="refund" /></Suspense>} />
+        <Route path="/parent-consent" element={<Suspense fallback={null}><ParentConsent /></Suspense>} />
         <Route path="/h/:name" element={<Suspense fallback={null}><PublicProfile /></Suspense>} />
-        <Route path="*" element={<AppContent />} />
+        <Route path="*" element={<AccessGate><AppContent /></AccessGate>} />
       </Routes>
     </AuthProvider>
   );
