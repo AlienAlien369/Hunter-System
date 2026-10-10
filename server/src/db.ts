@@ -226,6 +226,27 @@ export async function initDatabase() {
         PRIMARY KEY (inviter_id, batch)
       );
     `);
+    // Classes: a teacher creates one, students join with a code. Teachers see
+    // consistency only (see classes.ts); joining is the student's explicit act.
+    await client.query(`
+      CREATE TABLE IF NOT EXISTS classes (
+        id SERIAL PRIMARY KEY,
+        owner_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+        name VARCHAR(60) NOT NULL,
+        code VARCHAR(8) NOT NULL UNIQUE,
+        archived BOOLEAN NOT NULL DEFAULT false,
+        created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+      );
+      CREATE INDEX IF NOT EXISTS idx_classes_owner ON classes(owner_id);
+      CREATE TABLE IF NOT EXISTS class_members (
+        id SERIAL PRIMARY KEY,
+        class_id INTEGER NOT NULL REFERENCES classes(id) ON DELETE CASCADE,
+        user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+        joined_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+        UNIQUE (class_id, user_id)
+      );
+      CREATE INDEX IF NOT EXISTS idx_class_members_user ON class_members(user_id);
+    `);
     // Streak freezes are server-owned (bought with real XP, spent on missed days).
     await client.query('ALTER TABLE users ADD COLUMN IF NOT EXISTS freeze_count INTEGER NOT NULL DEFAULT 0');
 

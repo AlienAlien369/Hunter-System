@@ -184,6 +184,25 @@ export interface PlansResponse {
   mode: 'test' | 'live' | 'off';
   plans: { id: 'free' | 'pro'; limits: { aiPerDay: number; premiumCosmetics: boolean }; prices?: { month: PlanPrice; year: PlanPrice }; yearlySavingsPct?: number }[];
 }
+export interface ClassSummary { id: number; name: string; code: string; archived: boolean; members: number; pilot: boolean }
+export interface ClassesResponse {
+  capacity: number;
+  canCreate: boolean;
+  teaching: ClassSummary[];
+  joined: { id: number; name: string; teacher: string; joinedAt: string }[];
+}
+export interface ClassLookup { name: string; teacher: string; members: number; capacity: number; teacherSees: string[] }
+export interface ClassMemberRow {
+  memberId: number; name: string; level: number; rank: string; streak: number;
+  activeDaysThisWeek: number; consistencyPct: number; lastActive: string | null; joinedAt: string;
+}
+export interface ClassDashboard {
+  class: { id: number; name: string; code: string; archived: boolean; capacity: number; pilot: boolean };
+  windowDays: number;
+  summary: { members: number; activeThisWeek: number; avgConsistencyPct: number };
+  members: ClassMemberRow[];
+}
+
 export interface ReferralStatus {
   qualified: number;
   pending: number;
@@ -533,6 +552,17 @@ export const api = {
     }),
 
   getReferrals: () => request<ReferralStatus>('/referrals/me'),
+
+  // Classes
+  getClasses: () => request<ClassesResponse>('/classes'),
+  createClass: (name: string) => request<ClassSummary & { capacity: number }>('/classes', { method: 'POST', body: JSON.stringify({ name }) }),
+  lookupClass: (code: string) => request<ClassLookup>(`/classes/lookup?code=${encodeURIComponent(code)}`),
+  joinClass: (code: string) => request<{ id: number; name: string; joined: boolean }>('/classes/join', { method: 'POST', body: JSON.stringify({ code }) }),
+  leaveClass: (id: number) => request<{ left: boolean }>(`/classes/${id}/membership`, { method: 'DELETE' }),
+  getClassDashboard: (id: number) => request<ClassDashboard>(`/classes/${id}/dashboard`),
+  rotateClassCode: (id: number) => request<{ code: string }>(`/classes/${id}/rotate-code`, { method: 'POST', body: '{}' }),
+  archiveClass: (id: number) => request<{ archived: boolean }>(`/classes/${id}`, { method: 'PATCH', body: JSON.stringify({ archived: true }) }),
+  removeClassMember: (id: number, memberId: number) => request<{ removed: boolean }>(`/classes/${id}/members/${memberId}`, { method: 'DELETE' }),
 
   // Billing (plans are public; the rest needs a session)
   getPlans: (region?: string) => request<PlansResponse>(`/billing/plans${region ? `?region=${encodeURIComponent(region)}` : ''}`),

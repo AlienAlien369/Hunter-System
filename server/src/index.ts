@@ -29,6 +29,7 @@ import consentRoutes from './routes/consent.js';
 import billingRoutes from './routes/billing.js';
 import webhookRoutes from './routes/webhooks.js';
 import referralRoutes from './routes/referrals.js';
+import classRoutes from './routes/classes.js';
 import { consentGate } from './middleware/consentGate.js';
 import { purgeOldEvents } from './analytics.js';
 import { purgeExpiredConsentRequests } from './consent.js';
@@ -87,6 +88,7 @@ app.use('/api/consent', consentRoutes);
 app.use('/api/billing', billingRoutes);
 app.use('/api/webhooks', webhookRoutes);
 app.use('/api/referrals', referralRoutes);
+app.use('/api/classes', classRoutes);
 app.get('/api/health', (req, res) => res.json({ status: 'ok', timestamp: new Date().toISOString() }));
 
 // Serve frontend static files in production

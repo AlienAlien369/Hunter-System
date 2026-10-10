@@ -51,6 +51,7 @@ const Settings = lazyPage(() => import('./pages/Settings'));
 const Modules = lazyPage(() => import('./pages/Modules'));
 const ModulePage = lazyPage(() => import('./pages/ModulePage'));
 const Admin = lazyPage(() => import('./pages/Admin'));
+const Classes = lazyPage(() => import('./pages/Classes'));
 const Legal = lazyPage(() => import('./pages/Legal'));
 const ParentConsent = lazyPage(() => import('./pages/ParentConsent'));
 const Pricing = lazyPage(() => import('./pages/Pricing'));
@@ -88,6 +89,7 @@ const CORE_NAV: { path: string; label: MessageKey; icon: string }[] = [
   { path: '/inventory', label: 'nav.inventory', icon: '🎒' },
   { path: '/achievements', label: 'nav.achievements', icon: '🏆' },
   { path: '/weekly', label: 'nav.weekly', icon: '📊' },
+  { path: '/classes', label: 'nav.classes', icon: '🎓' },
 ];
 const SETTINGS_NAV = { path: '/settings', label: 'nav.settings' as MessageKey, icon: '⚙' };
 
@@ -225,6 +227,7 @@ function AppContent() {
                   <Route path="/inventory" element={<ProtectedRoute><Inventory /></ProtectedRoute>} />
                   <Route path="/achievements" element={<ProtectedRoute><AchievementPanel /></ProtectedRoute>} />
                   <Route path="/weekly" element={<ProtectedRoute><WeeklyReport /></ProtectedRoute>} />
+                  <Route path="/classes" element={<ProtectedRoute><Classes /></ProtectedRoute>} />
                   <Route path="/admin" element={<ProtectedRoute><Admin /></ProtectedRoute>} />
                   <Route path="/settings" element={<ProtectedRoute><Settings /></ProtectedRoute>} />
                   <Route path="*" element={<Navigate to="/" replace />} />

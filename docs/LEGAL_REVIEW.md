@@ -65,6 +65,15 @@ get approved. This blocks all 13-17 signups, so set them before promoting.
     obligations as the user base grows, and whether a Data Protection Officer or
     EU/UK representative is required once we target those markets.
 
+12. **Classes and minors.** A teacher (any adult) can create a class; 13-17 year
+    olds with parental consent can join with a code and the teacher then sees
+    their Hunter name, level/rank, streak and activity counts. Is the student's
+    own act of entering the code sufficient, or should joining a class by a
+    minor need the parent's consent (DPDP, COPPA-style school consent, GDPR-K)?
+    Is the teacher (or institute) a separate data fiduciary/controller, and do
+    we need an institute agreement for the paid Teams plan? Teachers are
+    self-declared adults; do they need verification?
+
 ## Known gaps in the implementation (engineering, not legal)
 
 - Age is self-declared. A determined minor can lie; there is no verification.
@@ -75,3 +84,8 @@ get approved. This blocks all 13-17 signups, so set them before promoting.
   they are blocked from the product until they answer.
 - There is no email address for adults, so no password-reset by email and no
   receipts yet; that arrives with paid plans (step 4).
+- Class teachers are not verified: any adult can create one free pilot class.
+  Students must choose a Hunter name before joining so a login username is never
+  shown, but a Hunter name can still be a real name the student chose.
+- The Teams plan (more classes, bigger classes, institute billing) is priced in
+  the catalogue but not purchasable yet.
