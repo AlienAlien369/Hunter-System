@@ -469,6 +469,14 @@ export const en = {
   'share.shared': "Shared! 🔥",
   'share.close': "CLOSE",
   'share.share': "SHARE",
+  'rank.name': "{rank}-Rank",
+  'rank.page.sub': "Your journey to becoming an S-Rank Hunter — 25,000 XP, no shortcuts",
+  'rank.max': "MAX",
+  'rank.path': "RANK PROGRESSION PATH",
+  'rank.current': "CURRENT",
+  'rank.unlocked': "UNLOCKED",
+  'rank.toNext': "{n} XP to next rank",
+  'rank.toGo': "{n} to go",
 } as const;
 
 export type MessageKey = keyof typeof en;

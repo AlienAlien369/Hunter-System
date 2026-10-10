@@ -458,4 +458,12 @@ export const hi: Messages = {
   'share.shared': "शेयर हो गया! 🔥",
   'share.close': "बंद करें",
   'share.share': "शेयर करें",
+  'rank.name': "{rank}-रैंक",
+  'rank.page.sub': "S-रैंक हंटर बनने का आपका सफ़र — 25,000 XP, कोई शॉर्टकट नहीं",
+  'rank.max': "अधिकतम",
+  'rank.path': "रैंक प्रगति का रास्ता",
+  'rank.current': "मौजूदा",
+  'rank.unlocked': "अनलॉक",
+  'rank.toNext': "अगले रैंक तक {n} XP",
+  'rank.toGo': "{n} बाकी",
 };

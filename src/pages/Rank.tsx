@@ -1,6 +1,7 @@
 import { motion } from 'framer-motion';
 import { useGameStore } from '../store/gameStore';
 import { RANK_THRESHOLDS } from '../utils/xp';
+import { useT, useLocaleStore, formatNumber } from '../i18n';
 import LeaderboardPanel from '../components/LeaderboardPanel';
 
 const RANK_STYLES: Record<string, { name: string; color: string; glow: string }> = {
@@ -15,6 +16,9 @@ const RANK_STYLES: Record<string, { name: string; color: string; glow: string }>
 const RANKS = RANK_THRESHOLDS.map(t => ({ rank: t.rank, minXP: t.minXP, ...RANK_STYLES[t.rank] }));
 
 export default function Rank() {
+  const t = useT();
+  const locale = useLocaleStore(s => s.locale);
+  const nf = (n: number) => formatNumber(locale, n);
   const { profile } = useGameStore();
   const currentRankIndex = RANKS.findIndex(r => profile.xp >= r.minXP && profile.xp < (RANKS[RANKS.indexOf(r) + 1]?.minXP || Infinity));
   const currentRank = RANKS[currentRankIndex] || RANKS[0];
@@ -32,10 +36,10 @@ export default function Rank() {
         animate={{ opacity: 1, y: 0 }}
       >
         <h1 className="text-3xl font-display text-white font-bold tracking-wider">
-          RANK PROGRESSION
+          {t('rank.title')}
         </h1>
         <p className="text-gray-400 mt-1 font-mono text-sm">
-          Your journey to becoming an S-Rank Hunter — 25,000 XP, no shortcuts
+          {t('rank.page.sub')}
         </p>
       </motion.div>
 
@@ -73,7 +77,7 @@ export default function Rank() {
 
           {/* Rank Name */}
           <div className="absolute bottom-8 text-center">
-            <p className="text-xs font-mono text-gray-400">{currentRank.name}</p>
+            <p className="text-xs font-mono text-gray-400">{t('rank.name', { rank: currentRank.rank })}</p>
           </div>
         </div>
       </motion.div>
@@ -82,10 +86,10 @@ export default function Rank() {
       <div className="max-w-md mx-auto space-y-2">
         <div className="flex justify-between text-sm">
           <span className="text-gray-400 font-mono">
-            {profile.xp.toLocaleString()} XP
+            {nf(profile.xp)} XP
           </span>
           <span className="text-gray-500 font-mono">
-            {nextRank ? `→ ${nextRank.minXP.toLocaleString()} XP` : 'MAX'}
+            {nextRank ? `→ ${nf(nextRank.minXP)} XP` : t('rank.max')}
           </span>
         </div>
         <div className="h-3 bg-gray-800 rounded-full overflow-hidden">
@@ -98,7 +102,7 @@ export default function Rank() {
         </div>
         {nextRank && (
           <p className="text-center text-xs text-gray-500 font-mono">
-            {(nextRank.minXP - profile.xp).toLocaleString()} XP to next rank
+            {t('rank.toNext', { n: nf(nextRank.minXP - profile.xp) })}
           </p>
         )}
       </div>
@@ -106,7 +110,7 @@ export default function Rank() {
       {/* Rank Progression Chart */}
       <div className="max-w-4xl mx-auto">
         <div className="bg-[#0d1117]/80 backdrop-blur-sm rounded-xl border border-purple-500/20 p-6">
-          <h2 className="font-display text-white font-bold mb-6 tracking-wider">RANK PROGRESSION PATH</h2>
+          <h2 className="font-display text-white font-bold mb-6 tracking-wider">{t('rank.path')}</h2>
           <div className="space-y-4">
             {RANKS.map((rank, index) => {
               const isCurrent = index === currentRankIndex;
@@ -144,16 +148,16 @@ export default function Rank() {
                   <div className="flex-1">
                     <div className="flex items-center space-x-3">
                       <span className={`font-display font-bold ${isCurrent ? 'text-white' : isUnlocked ? 'text-gray-300' : 'text-gray-600'}`}>
-                        {rank.name}
+                        {t('rank.name', { rank: rank.rank })}
                       </span>
                       {isCurrent && (
                         <span className="px-2 py-0.5 text-xs font-mono bg-purple-500/20 text-purple-400 rounded">
-                          CURRENT
+                          {t('rank.current')}
                         </span>
                       )}
                       {isUnlocked && !isCurrent && (
                         <span className="px-2 py-0.5 text-xs font-mono bg-green-500/20 text-green-400 rounded">
-                          UNLOCKED
+                          {t('rank.unlocked')}
                         </span>
                       )}
                     </div>
@@ -170,10 +174,10 @@ export default function Rank() {
                     </div>
                   </div>
                   <div className="text-right">
-                    <p className="text-sm font-mono text-gray-400">{rank.minXP.toLocaleString()} XP</p>
+                    <p className="text-sm font-mono text-gray-400">{nf(rank.minXP)} XP</p>
                     {isNext && (
                       <p className="text-xs font-mono text-purple-400 mt-1">
-                        {(rank.minXP - profile.xp).toLocaleString()} to go
+                        {t('rank.toGo', { n: nf(rank.minXP - profile.xp) })}
                       </p>
                     )}
                   </div>

@@ -457,4 +457,12 @@ export const hinglish: Messages = {
   'share.shared': "Share ho gaya! 🔥",
   'share.close': "BAND KAREIN",
   'share.share': "SHARE KAREIN",
+  'rank.name': "{rank}-Rank",
+  'rank.page.sub': "S-Rank Hunter banne ka tumhara safar — 25,000 XP, koi shortcut nahi",
+  'rank.max': "MAX",
+  'rank.path': "RANK PROGRESSION PATH",
+  'rank.current': "CURRENT",
+  'rank.unlocked': "UNLOCKED",
+  'rank.toNext': "Agle rank tak {n} XP",
+  'rank.toGo': "{n} baaki",
 };
