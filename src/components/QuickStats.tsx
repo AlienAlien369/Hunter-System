@@ -2,10 +2,12 @@ import { motion } from 'framer-motion';
 import { useGameStore } from '../store/gameStore';
 import { getStreak } from '../utils/xp';
 import { dailyHistoryQuests, todaysBoard } from '../utils/dailyBoard';
+import { useT } from '../i18n';
 import { localDateKey } from '../utils/date';
 
 export default function QuickStats() {
   const { dailyQuests, freezeDates } = useGameStore();
+  const t = useT();
   const today = localDateKey();
 
   // Only daily quests count as "today" — permanent tracks (LC/SS/AR) have their own progress
@@ -21,10 +23,10 @@ export default function QuickStats() {
   const streak = getStreak(allCompletedDates, freezeDates);
 
   const stats = [
-    { label: 'Quests Today', value: `${completedToday}/${totalToday}`, icon: '✅', color: 'from-green-500 to-emerald-500' },
-    { label: 'Daily Streak', value: `${streak} days`, icon: '🔥', color: 'from-orange-500 to-red-500' },
-    { label: 'XP Earned', value: todayQuests.filter(q => q.completedToday).reduce((s, q) => s + q.xpReward, 0), icon: '⚡', color: 'from-purple-500 to-blue-500' },
-    { label: 'Completion Rate', value: totalToday > 0 ? `${Math.round((completedToday / totalToday) * 100)}%` : '0%', icon: '📊', color: 'from-blue-500 to-cyan-500' },
+    { label: t('stats.questsToday'), value: `${completedToday}/${totalToday}`, icon: '✅', color: 'from-green-500 to-emerald-500' },
+    { label: t('stats.streak'), value: t('stats.streakDays', { n: streak }), icon: '🔥', color: 'from-orange-500 to-red-500' },
+    { label: t('stats.xp'), value: todayQuests.filter(q => q.completedToday).reduce((s, q) => s + q.xpReward, 0), icon: '⚡', color: 'from-purple-500 to-blue-500' },
+    { label: t('stats.rate'), value: totalToday > 0 ? `${Math.round((completedToday / totalToday) * 100)}%` : '0%', icon: '📊', color: 'from-blue-500 to-cyan-500' },
   ];
 
   return (
@@ -34,7 +36,7 @@ export default function QuickStats() {
       className="bg-[#0d1117]/90 backdrop-blur-xl rounded-xl border border-purple-500/30 p-6"
     >
       <h3 className="font-display text-white font-bold tracking-[0.3em] text-sm mb-4">
-        QUICK STATS
+        {t('stats.title')}
       </h3>
 
       <div className="grid grid-cols-2 gap-4">

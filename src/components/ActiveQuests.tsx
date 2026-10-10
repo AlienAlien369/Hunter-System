@@ -3,10 +3,12 @@ import { useGameStore } from '../store/gameStore';
 import QuestCard from './QuestCard';
 import BuildYourDay from './BuildYourDay';
 import { todaysBoard } from '../utils/dailyBoard';
+import { useT } from '../i18n';
 import { localDateKey } from '../utils/date';
 
 export default function ActiveQuests() {
   const { dailyQuests, completeQuest } = useGameStore();
+  const t = useT();
   const today = localDateKey();
 
   // Today's board follows the hunter's timetable (permanent tracks LC/SS/AR are not daily quests)
@@ -31,12 +33,12 @@ export default function ActiveQuests() {
       <div className="bg-gradient-to-r from-purple-900/30 to-blue-900/30 px-6 py-4 border-b border-purple-500/20">
         <div className="flex items-center justify-between">
           <h2 className="font-display text-white font-bold tracking-[0.3em] text-sm">
-            ACTIVE QUESTS
+            {t('quests.title')}
           </h2>
           <div className="flex items-center space-x-4 text-xs font-mono">
             <span className="text-green-400">{completedCount} ✓</span>
             <span className="text-gray-500">|</span>
-            <span className="text-yellow-400">{pendingCount} pending</span>
+            <span className="text-yellow-400">{t('quests.pending', { n: pendingCount })}</span>
             <span className="text-gray-500">|</span>
             <span className="text-purple-400">{earnedXP}/{totalXP} XP</span>
           </div>
@@ -65,8 +67,8 @@ export default function ActiveQuests() {
       {/* Footer */}
       <div className="px-6 py-4 border-t border-purple-500/10">
         <div className="flex items-center justify-between text-xs font-mono text-gray-500">
-          <span>Daily Quest Board</span>
-          <span>{todaysQuests.length ? Math.round((completedCount / todaysQuests.length) * 100) : 0}% Complete</span>
+          <span>{t('quests.board')}</span>
+          <span>{t('quests.complete', { pct: todaysQuests.length ? Math.round((completedCount / todaysQuests.length) * 100) : 0 })}</span>
         </div>
         <div className="mt-2 h-1 bg-gray-800 rounded-full overflow-hidden">
           <motion.div

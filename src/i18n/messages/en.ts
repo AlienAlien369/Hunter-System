@@ -346,6 +346,21 @@ export const en = {
   'pay.cancel.failed': 'We could not cancel right now. Please try again shortly.',
   'pay.done': 'Thank you! Payment received. Pro switches on for your child as soon as it is confirmed, usually within a minute.',
   'pay.cancelled': 'Payment cancelled. Nothing was charged.',
+  'dash.title': 'DASHBOARD',
+  'dash.welcome': 'Welcome back, {name}',
+  'dash.status': 'SYSTEM STATUS: ONLINE',
+  'dash.missions': 'MODULE MISSIONS',
+  'dash.missionsDone': '{done}/{total} done',
+  'quests.title': 'ACTIVE QUESTS',
+  'quests.pending': '{n} pending',
+  'quests.board': 'Daily Quest Board',
+  'quests.complete': '{pct}% Complete',
+  'stats.title': 'QUICK STATS',
+  'stats.questsToday': 'Quests Today',
+  'stats.streak': 'Daily Streak',
+  'stats.streakDays': '{n} days',
+  'stats.xp': 'XP Earned',
+  'stats.rate': 'Completion Rate',
 } as const;
 
 export type MessageKey = keyof typeof en;
