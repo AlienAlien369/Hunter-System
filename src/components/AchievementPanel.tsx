@@ -2,6 +2,8 @@ import { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useGameStore } from '../store/gameStore';
 import { ACHIEVEMENTS, CATEGORY_CONFIG, type AchievementCategory } from '../data/achievements';
+import { useT } from '../i18n';
+import type { MessageKey } from '../i18n/messages/en';
 import { sfx } from '../utils/sounds';
 
 const CATEGORIES: AchievementCategory[] = [
@@ -14,6 +16,7 @@ function AchievementCard({ achievement, unlocked, isNew }: {
   unlocked: boolean;
   isNew: boolean;
 }) {
+  const t = useT();
   const isSecret = achievement.hidden && !unlocked;
 
   return (
@@ -66,7 +69,7 @@ function AchievementCard({ achievement, unlocked, isNew }: {
           <p className={`text-[10px] font-mono mt-0.5 leading-snug ${
             unlocked ? 'text-gray-400' : isSecret ? 'text-gray-700' : 'text-gray-600'
           }`}>
-            {isSecret ? 'Hidden achievement' : achievement.description}
+            {isSecret ? t('ach.hiddenDesc') : achievement.description}
           </p>
         </div>
 
@@ -99,6 +102,7 @@ function AchievementCard({ achievement, unlocked, isNew }: {
 }
 
 export default function AchievementPanel() {
+  const t = useT();
   const { unlockedAchievements, newAchievements, dismissNewAchievements } = useGameStore();
   const [activeCategory, setActiveCategory] = useState<AchievementCategory | 'all'>('all');
 
@@ -123,16 +127,16 @@ export default function AchievementPanel() {
       >
         <div className="min-w-0">
           <h1 className="text-2xl sm:text-3xl font-display text-white font-bold tracking-wider">
-            ACHIEVEMENTS
+            {t('ach.title')}
           </h1>
           <p className="text-gray-400 mt-1 font-mono text-sm">
-            {totalUnlocked} / {totalAchievements} unlocked
+            {t('ach.count', { n: totalUnlocked, total: totalAchievements })}
           </p>
         </div>
         <div className="flex items-center gap-3">
           <div className="text-right">
             <p className="text-lg font-display font-bold text-yellow-400">{totalUnlocked}</p>
-            <p className="text-[10px] font-mono text-gray-500">UNLOCKED</p>
+            <p className="text-[10px] font-mono text-gray-500">{t('ach.unlocked')}</p>
           </div>
         </div>
       </motion.div>
@@ -140,7 +144,7 @@ export default function AchievementPanel() {
       {/* Progress bar */}
       <div className="bg-[#0d1117]/80 backdrop-blur-sm rounded-xl border border-purple-500/20 p-4">
         <div className="flex items-center justify-between mb-2">
-          <span className="text-xs font-mono text-gray-500">COLLECTION PROGRESS</span>
+          <span className="text-xs font-mono text-gray-500">{t('ach.collection')}</span>
           <span className="text-xs font-mono text-purple-400">{progress.toFixed(0)}%</span>
         </div>
         <div className="h-2.5 bg-gray-800 rounded-full overflow-hidden">
@@ -174,7 +178,7 @@ export default function AchievementPanel() {
               : 'text-gray-500 hover:text-gray-300 border border-transparent'
           }`}
         >
-          All ({ACHIEVEMENTS.length})
+          {t('ach.all', { n: ACHIEVEMENTS.length })}
         </button>
         {CATEGORIES.map(cat => {
           const count = ACHIEVEMENTS.filter(a => a.category === cat).length;
@@ -190,7 +194,7 @@ export default function AchievementPanel() {
                   : 'text-gray-500 hover:text-gray-300 border border-transparent'
               }`}
             >
-              {CATEGORY_CONFIG[cat].icon} {CATEGORY_CONFIG[cat].label} ({unlockedCount}/{count})
+              {CATEGORY_CONFIG[cat].icon} {t(`ach.cat.${cat}` as MessageKey)} ({unlockedCount}/{count})
             </button>
           );
         })}
@@ -229,7 +233,7 @@ export default function AchievementPanel() {
                 🏆
               </motion.span>
               <div>
-                <p className="text-[10px] font-mono text-yellow-400/60 tracking-wider">ACHIEVEMENT UNLOCKED</p>
+                <p className="text-[10px] font-mono text-yellow-400/60 tracking-wider">{t('ach.newUnlocked')}</p>
                 {newAchievements.map(id => {
                   const ach = ACHIEVEMENTS.find(a => a.id === id);
                   if (!ach) return null;
