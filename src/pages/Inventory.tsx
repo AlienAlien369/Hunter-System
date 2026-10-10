@@ -7,8 +7,12 @@ import {
   type Rarity,
   type InventoryItem,
 } from "../data/items";
+import { useT, useLocaleStore, translatePlural } from "../i18n";
+import type { MessageKey } from "../i18n/messages/en";
 
 const RARITY_ORDER: Rarity[] = ["legendary", "epic", "rare", "common"];
+
+const rLabel = (t: (k: MessageKey) => string, r: Rarity) => t(`inv.rarity.${r}` as MessageKey);
 
 function ItemCard({
   invItem,
@@ -17,6 +21,7 @@ function ItemCard({
   invItem: InventoryItem;
   onUse: (instanceId: string) => void;
 }) {
+  const t = useT();
   const def = ITEMS[invItem.itemId];
   if (!def) return null;
   const rarity = RARITY_CONFIG[def.rarity as Rarity];
@@ -61,7 +66,7 @@ function ItemCard({
       <span
         className={`inline-block mt-1 px-1.5 py-0.5 rounded text-[9px] font-mono ${rarity.color} ${rarity.bg} border ${rarity.borderColor}`}
       >
-        {rarity.label}
+        {rLabel(t, def.rarity as Rarity)}
       </span>
 
       {/* Effect */}
@@ -70,7 +75,7 @@ function ItemCard({
       </p>
 
       {/* Use hint */}
-      <p className="text-[9px] font-mono text-purple-400/60 mt-2">TAP TO USE</p>
+      <p className="text-[9px] font-mono text-purple-400/60 mt-2">{t('inv.tapToUse')}</p>
     </motion.button>
   );
 }
@@ -86,6 +91,7 @@ function TitleCard({
   onEquip: () => void;
   onUnequip: () => void;
 }) {
+  const t = useT();
   return (
     <motion.div
       whileHover={{ scale: 1.02 }}
@@ -107,7 +113,7 @@ function TitleCard({
             {title}
           </p>
           {isActive && (
-            <p className="text-[10px] font-mono text-purple-400/60">EQUIPPED</p>
+            <p className="text-[10px] font-mono text-purple-400/60">{t('inv.equipped')}</p>
           )}
         </div>
       </div>
@@ -119,13 +125,15 @@ function TitleCard({
             : "bg-purple-500/10 text-purple-400 border-purple-500/30 hover:bg-purple-500/20"
         }`}
       >
-        {isActive ? "UNEQUIP" : "EQUIP"}
+        {isActive ? t('inv.unequip') : t('inv.equip')}
       </button>
     </motion.div>
   );
 }
 
 export default function Inventory() {
+  const t = useT();
+  const locale = useLocaleStore((s) => s.locale);
   const {
     inventory,
     equipped,
@@ -204,10 +212,10 @@ export default function Inventory() {
       >
         <div className="min-w-0">
           <h1 className="text-2xl sm:text-3xl font-display text-white font-bold tracking-wider">
-            INVENTORY
+            {t('inv.title')}
           </h1>
           <p className="text-gray-400 mt-1 font-mono text-sm">
-            {inventory.length} item{inventory.length !== 1 ? "s" : ""} collected
+            {translatePlural(locale, 'inv.count', inventory.length)}
           </p>
         </div>
 
@@ -224,13 +232,12 @@ export default function Inventory() {
               : equipped.xpBoost > 1.5
                 ? "+100%"
                 : "+50%"}{" "}
-            XP • {equipped.xpBoostQuestsLeft} quest
-            {equipped.xpBoostQuestsLeft !== 1 ? "s" : ""} left
+            {t('inv.boostLine', { n: equipped.xpBoostQuestsLeft })}
             <button
               onClick={deactivateXpBoost}
               className="ml-2 text-xs text-gray-500 hover:text-white transition-colors"
             >
-              [deactivate]
+              {t('inv.deactivate')}
             </button>
           </motion.div>
         )}
@@ -239,9 +246,9 @@ export default function Inventory() {
       {/* Tabs */}
       <div className="flex gap-1 bg-gray-900/60 rounded-lg p-1 w-fit">
         {[
-          { id: "items" as const, label: "ITEMS", icon: "🎒" },
-          { id: "titles" as const, label: "TITLES", icon: "🏷️" },
-          { id: "boost" as const, label: "EQUIPPED", icon: "⚡" },
+          { id: "items" as const, label: t('inv.tab.items'), icon: "🎒" },
+          { id: "titles" as const, label: t('inv.tab.titles'), icon: "🏷️" },
+          { id: "boost" as const, label: t('inv.tab.boost'), icon: "⚡" },
         ].map((tab) => (
           <button
             key={tab.id}
@@ -274,7 +281,7 @@ export default function Inventory() {
                   : "text-gray-500 hover:text-gray-300"
               }`}
             >
-              All ({inventory.length})
+              {t('inv.all', { n: inventory.length })}
             </button>
             {RARITY_ORDER.map((r) => {
               const count = inventory.filter(
@@ -291,7 +298,7 @@ export default function Inventory() {
                       : "text-gray-500 hover:text-gray-300"
                   }`}
                 >
-                  {RARITY_CONFIG[r].label} ({count})
+                  {rLabel(t, r)} ({count})
                 </button>
               );
             })}
@@ -303,8 +310,8 @@ export default function Inventory() {
               <span className="text-4xl block mb-3">🎒</span>
               <p className="text-gray-400 font-mono text-sm">
                 {inventory.length === 0
-                  ? "No items yet — complete quests to find loot!"
-                  : "No items match this filter."}
+                  ? t('inv.noItems')
+                  : t('inv.noMatch')}
               </p>
             </div>
           ) : (
@@ -335,7 +342,7 @@ export default function Inventory() {
             <div className="text-center py-16">
               <span className="text-4xl block mb-3">🏷️</span>
               <p className="text-gray-400 font-mono text-sm">
-                No titles unlocked — find title scrolls in loot drops!
+                {t('inv.noTitles')}
               </p>
             </div>
           ) : (
@@ -370,14 +377,14 @@ export default function Inventory() {
         >
           <div className="bg-[#0d1117]/80 backdrop-blur-sm rounded-xl border border-purple-500/20 p-6">
             <h3 className="font-display text-white font-bold tracking-wider text-sm mb-4">
-              ACTIVE LOADOUT
+              {t('inv.loadout')}
             </h3>
 
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               {/* Title slot */}
               <div className="p-4 rounded-xl border border-gray-700/30 bg-gray-800/20">
                 <p className="text-[10px] font-mono text-gray-500 tracking-wider mb-2">
-                  TITLE
+                  {t('inv.slotTitle')}
                 </p>
                 {equipped.title ? (
                   <div className="flex items-center justify-between">
@@ -391,12 +398,12 @@ export default function Inventory() {
                       onClick={unequipTitle}
                       className="text-xs font-mono text-gray-500 hover:text-white transition-colors"
                     >
-                      UNEQUIP
+                      {t('inv.unequip')}
                     </button>
                   </div>
                 ) : (
                   <p className="text-xs text-gray-600 font-mono">
-                    No title equipped
+                    {t('inv.noTitle')}
                   </p>
                 )}
               </div>
@@ -404,7 +411,7 @@ export default function Inventory() {
               {/* XP Boost slot */}
               <div className="p-4 rounded-xl border border-gray-700/30 bg-gray-800/20">
                 <p className="text-[10px] font-mono text-gray-500 tracking-wider mb-2">
-                  XP BOOST
+                  {t('inv.slotBoost')}
                 </p>
                 {equipped.xpBoost > 1 && equipped.xpBoostQuestsLeft > 0 ? (
                   <div className="flex items-center justify-between">
@@ -415,9 +422,7 @@ export default function Inventory() {
                           +{Math.round((equipped.xpBoost - 1) * 100)}% XP
                         </p>
                         <p className="text-[10px] font-mono text-gray-500">
-                          {equipped.xpBoostQuestsLeft} quest
-                          {equipped.xpBoostQuestsLeft !== 1 ? "s" : ""}{" "}
-                          remaining
+                          {translatePlural(locale, 'inv.boostLeft', equipped.xpBoostQuestsLeft)}
                         </p>
                       </div>
                     </div>
@@ -425,12 +430,12 @@ export default function Inventory() {
                       onClick={deactivateXpBoost}
                       className="text-xs font-mono text-gray-500 hover:text-white transition-colors"
                     >
-                      DEACTIVATE
+                      {t('inv.deactivateCaps')}
                     </button>
                   </div>
                 ) : (
                   <p className="text-xs text-gray-600 font-mono">
-                    No boost active
+                    {t('inv.noBoost')}
                   </p>
                 )}
               </div>
@@ -468,7 +473,7 @@ export default function Inventory() {
                         <p
                           className={`text-[10px] font-mono tracking-widest ${rarity.color} mb-1`}
                         >
-                          {rarity.label.toUpperCase()}
+                          {rLabel(t, def.rarity as Rarity).toUpperCase()}
                         </p>
                         <h3 className="text-lg font-display text-white font-bold mb-2">
                           {def.name}
@@ -477,7 +482,7 @@ export default function Inventory() {
                           {def.description}
                         </p>
                         <p className="text-xs text-purple-400 font-mono mb-4">
-                          Effect: {def.effect}
+                          {t('inv.effect', { text: def.effect })}
                         </p>
                       </>
                     );
@@ -487,13 +492,13 @@ export default function Inventory() {
                       onClick={() => setConfirmUse(null)}
                       className="flex-1 px-4 py-2 rounded-lg border border-gray-700 text-gray-400 font-display text-sm hover:bg-gray-800 transition-colors"
                     >
-                      CANCEL
+                      {t('inv.cancel')}
                     </button>
                     <button
                       onClick={confirmUseItem}
                       className="flex-1 px-4 py-2 rounded-lg bg-purple-500/20 border border-purple-500/30 text-purple-400 font-display text-sm font-bold hover:bg-purple-500/30 transition-colors"
                     >
-                      USE ITEM
+                      {t('inv.use')}
                     </button>
                   </div>
                 </div>
