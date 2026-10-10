@@ -1,5 +1,6 @@
 import { motion } from 'framer-motion';
 import { useGameStore } from '../store/gameStore';
+import { useT } from '../i18n';
 import { getLevelInfo, getActiveBuffs } from '../utils/xp';
 
 const RANK_COLORS: Record<string, string> = {
@@ -13,6 +14,7 @@ const RANK_COLORS: Record<string, string> = {
 
 export default function StatusWindow() {
   const { profile } = useGameStore();
+  const t = useT();
   const { level, xp, rank, name, stats, hp, mp } = profile;
   const { currentLevelXP, nextLevelXP, intoLevel } = getLevelInfo(xp);
   const progressToNext = ((intoLevel) / (nextLevelXP - currentLevelXP)) * 100;
@@ -27,11 +29,11 @@ export default function StatusWindow() {
       <div className="bg-gradient-to-r from-purple-900/50 to-blue-900/50 px-6 py-4 border-b border-purple-500/20">
         <div className="flex items-center justify-between">
           <h2 className="font-display text-white font-bold tracking-[0.3em] text-sm">
-            STATUS
+            {t('status.title')}
           </h2>
           <div className="flex items-center space-x-2">
             <span className="w-2 h-2 bg-green-500 rounded-full animate-pulse" />
-            <span className="text-xs text-green-400 font-mono">ONLINE</span>
+            <span className="text-xs text-green-400 font-mono">{t('status.online')}</span>
           </div>
         </div>
       </div>
@@ -67,7 +69,7 @@ export default function StatusWindow() {
 
           <div className="flex-1">
             <h3 className="font-display text-white font-bold text-lg">{name}</h3>
-            <p className="text-gray-400 font-mono text-sm">Level {level} Hunter</p>
+            <p className="text-gray-400 font-mono text-sm">{t('status.level', { n: level })}</p>
             <div className="mt-2">
               <div className="flex justify-between text-xs font-mono mb-1">
                 <span className="text-gray-500">XP</span>
@@ -118,7 +120,7 @@ export default function StatusWindow() {
         {/* Stats Panel */}
         <div className="space-y-2">
           <h4 className="font-mono text-xs text-gray-500 uppercase tracking-wider mb-3">
-            Attributes
+            {t('status.attributes')}
           </h4>
           {([
             { label: 'STR', value: stats.str, color: 'text-red-400' },
@@ -150,7 +152,7 @@ export default function StatusWindow() {
           return (
             <div className="mt-4 pt-4 border-t border-white/5">
               <h4 className="font-mono text-xs text-gray-500 uppercase tracking-wider mb-2">
-                Active Passives
+                {t('status.passives')}
               </h4>
               <div className="space-y-1.5">
                 {buffs.map(({ stat, threshold }) => (

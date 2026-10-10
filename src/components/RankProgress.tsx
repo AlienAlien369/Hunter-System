@@ -1,6 +1,8 @@
 import { motion } from 'framer-motion';
 import { useGameStore } from '../store/gameStore';
 import { calculateRank, RANK_THRESHOLDS } from '../utils/xp';
+import { useT } from '../i18n';
+import type { MessageKey } from '../i18n/messages/en';
 
 const RANK_COLORS: Record<string, string> = {
   E: '#8A92B2',
@@ -11,23 +13,14 @@ const RANK_COLORS: Record<string, string> = {
   S: '#F1C40F',
 };
 
-const RANK_LABELS: Record<string, string> = {
-  E: 'Novice',
-  D: 'Apprentice',
-  C: 'Journeyman',
-  B: 'Expert',
-  A: 'Master',
-  S: 'Legend',
-};
-
 const RANKS = RANK_THRESHOLDS.map(t => ({
   rank: t.rank,
   minXP: t.minXP,
   color: RANK_COLORS[t.rank],
-  label: RANK_LABELS[t.rank],
 }));
 
 export default function RankProgress() {
+  const t = useT();
   const { profile } = useGameStore();
   const currentRank = calculateRank(profile.xp);
   const currentRankIndex = RANKS.findIndex(r => r.rank === currentRank);
@@ -46,7 +39,7 @@ export default function RankProgress() {
       className="bg-[#0d1117]/90 backdrop-blur-xl rounded-xl border border-purple-500/30 p-6"
     >
       <h3 className="font-display text-white font-bold tracking-[0.3em] text-sm mb-4">
-        RANK PROGRESSION
+        {t('rank.title')}
       </h3>
 
       {/* Current Rank Display */}
@@ -66,9 +59,9 @@ export default function RankProgress() {
           </span>
         </div>
         <div>
-          <p className="text-white font-display font-bold">{currentRankData.label}</p>
+          <p className="text-white font-display font-bold">{t(`rank.${currentRankData.rank}` as MessageKey)}</p>
           <p className="text-gray-500 font-mono text-xs">
-            {profile.xp} XP • Level {profile.level}
+            {t('rank.levelLine', { xp: profile.xp, level: profile.level })}
           </p>
         </div>
       </div>
@@ -77,8 +70,8 @@ export default function RankProgress() {
       {nextRankData && (
         <div className="space-y-2">
           <div className="flex justify-between text-xs font-mono">
-            <span className="text-gray-500">Progress to {nextRankData.rank}</span>
-            <span className="text-gray-400">{(nextRankData.minXP - profile.xp).toLocaleString()} XP needed</span>
+            <span className="text-gray-500">{t('rank.progressTo', { rank: nextRankData.rank })}</span>
+            <span className="text-gray-400">{t('rank.xpNeeded', { n: (nextRankData.minXP - profile.xp).toLocaleString() })}</span>
           </div>
           <div className="h-2 bg-gray-800 rounded-full overflow-hidden">
             <motion.div

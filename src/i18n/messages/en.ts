@@ -361,6 +361,21 @@ export const en = {
   'stats.streakDays': '{n} days',
   'stats.xp': 'XP Earned',
   'stats.rate': 'Completion Rate',
+  'status.title': "STATUS",
+  'status.online': "ONLINE",
+  'status.level': "Level {n} Hunter",
+  'status.attributes': "Attributes",
+  'status.passives': "Active Passives",
+  'rank.title': "RANK PROGRESSION",
+  'rank.levelLine': "{xp} XP • Level {level}",
+  'rank.progressTo': "Progress to {rank}",
+  'rank.xpNeeded': "{n} XP needed",
+  'rank.E': "Novice",
+  'rank.D': "Apprentice",
+  'rank.C': "Journeyman",
+  'rank.B': "Expert",
+  'rank.A': "Master",
+  'rank.S': "Legend",
 } as const;
 
 export type MessageKey = keyof typeof en;
