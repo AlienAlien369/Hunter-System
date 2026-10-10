@@ -481,4 +481,11 @@ export const hinglish: Messages = {
   'name.setting': "NAAM SET HO RAHA HAI...",
   'name.submit': "SYSTEM MEIN ENTER KAREIN",
   'name.footer': "Yeh naam Hunter System mein tumhari pehchaan hoga",
+  'top.home': "Home",
+  'top.openMenu': "Menu kholo",
+  'top.soundSettings': "SOUND SETTINGS",
+  'top.soundSettingsTitle': "Sound settings",
+  'top.allSounds': "Saari awaazein",
+  'top.systemOnline': "SYSTEM ONLINE",
+  'top.systemOnlineTitle': "System online",
 };

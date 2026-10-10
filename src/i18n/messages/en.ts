@@ -493,6 +493,13 @@ export const en = {
   'name.setting': "SETTING NAME...",
   'name.submit': "ENTER THE SYSTEM",
   'name.footer': "This name will be your identity in the Hunter System",
+  'top.home': "Home",
+  'top.openMenu': "Open menu",
+  'top.soundSettings': "SOUND SETTINGS",
+  'top.soundSettingsTitle': "Sound settings",
+  'top.allSounds': "All sounds",
+  'top.systemOnline': "SYSTEM ONLINE",
+  'top.systemOnlineTitle': "System online",
 } as const;
 
 export type MessageKey = keyof typeof en;

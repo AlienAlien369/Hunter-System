@@ -482,4 +482,11 @@ export const hi: Messages = {
   'name.setting': "नाम सेट हो रहा है...",
   'name.submit': "सिस्टम में प्रवेश करें",
   'name.footer': "यह नाम Hunter System में आपकी पहचान होगा",
+  'top.home': "होम",
+  'top.openMenu': "मेन्यू खोलें",
+  'top.soundSettings': "साउंड सेटिंग्स",
+  'top.soundSettingsTitle': "साउंड सेटिंग्स",
+  'top.allSounds': "सारी आवाज़ें",
+  'top.systemOnline': "सिस्टम ऑनलाइन",
+  'top.systemOnlineTitle': "सिस्टम ऑनलाइन",
 };

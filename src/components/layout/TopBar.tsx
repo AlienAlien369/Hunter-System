@@ -6,6 +6,8 @@ import { useSoundStore } from "../../store/soundStore";
 import { useThemeStore } from "../../store/themeStore";
 import { sfx } from "../../utils/sounds";
 import { SOUND_PACK_LIST } from "../../data/soundPacks";
+import { useT } from "../../i18n";
+import type { MessageKey } from "../../i18n/messages/en";
 import NotificationBell from "../NotificationBell";
 import { useNavigate } from "react-router-dom";
 
@@ -25,7 +27,14 @@ function Switch({ on }: { on: boolean }) {
   );
 }
 
+const SLUG_KEYS: Record<string, MessageKey> = {
+  '': 'nav.dashboard', quests: 'nav.quests', stats: 'nav.stats', rank: 'nav.rank', progress: 'nav.progress',
+  time: 'nav.timetable', timetable: 'nav.timetable', inventory: 'nav.inventory', achievements: 'nav.achievements',
+  weekly: 'nav.weekly', classes: 'nav.classes', modules: 'nav.modules', settings: 'nav.settings', admin: 'nav.admin',
+};
+
 export default function TopBar({ onMenuToggle }: TopBarProps) {
+  const t = useT();
   const location = useLocation();
   const navigate = useNavigate();
   const currentTheme = useThemeStore((s) => s.theme);
@@ -40,7 +49,8 @@ export default function TopBar({ onMenuToggle }: TopBarProps) {
   const [soundMenuOpen, setSoundMenuOpen] = useState(false);
   const [soundPosition, setSoundPosition] = useState({ top: 0, right: 8 });
   const soundBtnRef = useRef<HTMLButtonElement>(null);
-  const pageTitle = location.pathname.replace("/", "") || "Dashboard";
+  const slug = location.pathname.replace("/", "");
+  const pageTitle = SLUG_KEYS[slug] ? t(SLUG_KEYS[slug]) : slug;
 
   const toggleSoundMenu = () => {
     const soundRect = soundBtnRef.current?.getBoundingClientRect();
@@ -64,7 +74,7 @@ export default function TopBar({ onMenuToggle }: TopBarProps) {
         <button
           onClick={onMenuToggle}
           className="md:hidden p-2 -ml-2 text-gray-400 hover:text-white transition-colors"
-          aria-label="Open menu"
+          aria-label={t('top.openMenu')}
         >
           <svg
             className="w-6 h-6"
@@ -84,7 +94,7 @@ export default function TopBar({ onMenuToggle }: TopBarProps) {
         {/* Breadcrumb (desktop) / Page title (mobile) */}
         <nav className="flex items-center min-w-0 flex-1">
           {" "}
-          <span className="hidden md:inline text-gray-500">Home</span>
+          <span className="hidden md:inline text-gray-500">{t('top.home')}</span>
           <span className="hidden md:inline text-gray-600 mx-2">/</span>
           <span className="text-accent-text font-mono uppercase tracking-wider text-sm truncate">
             {pageTitle}
@@ -103,8 +113,8 @@ export default function TopBar({ onMenuToggle }: TopBarProps) {
               }}
               whileTap={{ scale: 0.8 }}
               className="relative p-2 text-gray-400 hover:text-white transition-colors"
-              title="Sound settings"
-              aria-label="Sound settings"
+              title={t('top.soundSettingsTitle')}
+              aria-label={t('top.soundSettingsTitle')}
             >
               <motion.span
                 key={muted ? "muted" : "on"}
@@ -142,7 +152,7 @@ export default function TopBar({ onMenuToggle }: TopBarProps) {
                     }}
                   >
                     <p className="text-[10px] text-gray-500 font-mono tracking-widest mb-2">
-                      SOUND SETTINGS
+                      {t('top.soundSettings')}
                     </p>
 
                     {/* Master sound */}
@@ -156,7 +166,7 @@ export default function TopBar({ onMenuToggle }: TopBarProps) {
                       <span className="flex items-center space-x-2.5">
                         <span className="text-base">{muted ? "🔇" : "🔊"}</span>
                         <span className="text-sm font-mono text-gray-300">
-                          All sounds
+                          {t('top.allSounds')}
                         </span>
                       </span>
                       <Switch on={!muted} />
@@ -180,10 +190,10 @@ export default function TopBar({ onMenuToggle }: TopBarProps) {
                         <span className="text-base">🎺</span>
                         <span className="text-left">
                           <span className="text-sm font-mono text-gray-300 block">
-                            Milestone chime
+                            {t('set.chime')}
                           </span>
                           <span className="text-[10px] font-mono text-gray-500 block">
-                            Level-up / rank-up fanfare
+                            {t('set.chimeHint')}
                           </span>
                         </span>
                       </span>
@@ -212,10 +222,10 @@ export default function TopBar({ onMenuToggle }: TopBarProps) {
                         <span className="text-base">🎵</span>
                         <span className="text-left">
                           <span className="text-sm font-mono text-gray-300 block">
-                            Theme music
+                            {t('set.themeMusic')}
                           </span>
                           <span className="text-[10px] font-mono text-gray-500 block">
-                            Background soundtrack
+                            {t('set.themeMusicHint')}
                           </span>
                         </span>
                       </span>
@@ -229,7 +239,7 @@ export default function TopBar({ onMenuToggle }: TopBarProps) {
                       <div className="flex items-center space-x-2.5 mb-2">
                         <span className="text-base">🎶</span>
                         <span className="text-sm font-mono text-gray-300">
-                          Sound Pack
+                          {t('set.soundPack')}
                         </span>
                       </div>
                       <div className="grid grid-cols-2 gap-1.5">
@@ -273,14 +283,14 @@ export default function TopBar({ onMenuToggle }: TopBarProps) {
           <div className="hidden sm:flex items-center space-x-2 px-3 py-1.5 bg-green-500/10 rounded-full border border-green-500/20">
             <span className="w-2 h-2 bg-green-500 rounded-full animate-pulse" />
             <span className="text-xs text-green-400 font-mono">
-              SYSTEM ONLINE
+              {t('top.systemOnline')}
             </span>
           </div>
 
           {/* Mobile-only status dot */}
           <div
             className="sm:hidden flex items-center justify-center w-8 h-8 rounded-full bg-green-500/10 border border-green-500/20"
-            title="System online"
+            title={t('top.systemOnlineTitle')}
           >
             <span className="w-2 h-2 bg-green-500 rounded-full animate-pulse" />
           </div>
@@ -295,8 +305,8 @@ export default function TopBar({ onMenuToggle }: TopBarProps) {
               navigate("/settings");
             }}
             className="relative p-2 text-gray-400 hover:text-white transition-colors"
-            title="Settings"
-            aria-label="Settings"
+            title={t('nav.settings')}
+            aria-label={t('nav.settings')}
           >
             <motion.span
               key={currentTheme}
