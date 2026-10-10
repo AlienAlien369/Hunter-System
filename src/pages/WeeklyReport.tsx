@@ -4,6 +4,8 @@ import { useGameStore } from "../store/gameStore";
 import { api } from "../lib/api";
 import type { StatHistory } from "../lib/api";
 import { getStreak, MAX_DAILY_COMPLETIONS } from "../utils/xp";
+import { useT, useLocaleStore, formatDate, formatNumber, translatePlural, type LocaleCode } from "../i18n";
+import type { MessageKey } from "../i18n/messages/en";
 import { sfx } from "../utils/sounds";
 import { dailyHistoryQuests } from "../utils/dailyBoard";
 import CoachPanel from "../components/CoachPanel";
@@ -23,6 +25,7 @@ function computeGrade(
   xpEarned: number,
   activeDays: number,
   questsCompleted: number,
+  t: (key: MessageKey) => string,
 ): WeekGrade {
   // Score: XP (40%) + active days (30%) + quest count (30%)
   const xpScore = Math.min(xpEarned / 300, 1); // 300 XP = full marks
@@ -33,50 +36,50 @@ function computeGrade(
   if (total >= 0.9)
     return {
       grade: "S",
-      label: "S-Rank Output",
+      label: t('wr.grade.S.label'),
       color: "text-yellow-400",
       bg: "from-yellow-500/20 to-amber-500/20",
       message:
-        "The System is impressed. Legendary performance this week, Hunter.",
+        t('wr.grade.S.msg'),
     };
   if (total >= 0.75)
     return {
       grade: "A",
-      label: "A-Rank Output",
+      label: t('wr.grade.A.label'),
       color: "text-gold",
       bg: "from-yellow-600/15 to-yellow-500/15",
-      message: "Outstanding discipline. You are among the elite hunters.",
+      message: t('wr.grade.A.msg'),
     };
   if (total >= 0.55)
     return {
       grade: "B",
-      label: "B-Rank Output",
+      label: t('wr.grade.B.label'),
       color: "text-purple-400",
       bg: "from-purple-500/15 to-blue-500/15",
-      message: "Solid performance. The System acknowledges your effort.",
+      message: t('wr.grade.B.msg'),
     };
   if (total >= 0.35)
     return {
       grade: "C",
-      label: "C-Rank Output",
+      label: t('wr.grade.C.label'),
       color: "text-blue-400",
       bg: "from-blue-500/15 to-cyan-500/15",
-      message: "Room for improvement. Push harder next week, Hunter.",
+      message: t('wr.grade.C.msg'),
     };
   if (total >= 0.15)
     return {
       grade: "D",
-      label: "D-Rank Output",
+      label: t('wr.grade.D.label'),
       color: "text-gray-400",
       bg: "from-gray-500/10 to-gray-600/10",
-      message: "Below expectations. The System expects more from you.",
+      message: t('wr.grade.D.msg'),
     };
   return {
     grade: "E",
-    label: "E-Rank Output",
+    label: t('wr.grade.E.label'),
     color: "text-red-400",
     bg: "from-red-500/10 to-red-600/10",
-    message: "Critical: minimal activity detected. Re-engage immediately.",
+    message: t('wr.grade.E.msg'),
   };
 }
 
@@ -98,19 +101,22 @@ function getWeekDates(offsetWeeks = 0): string[] {
   return dates;
 }
 
-function getWeekLabel(dates: string[]): string {
+function getWeekLabel(dates: string[], locale: LocaleCode): string {
   const start = new Date(dates[0] + "T00:00:00");
   const end = new Date(dates[6] + "T00:00:00");
-  const fmt = (d: Date) =>
-    d.toLocaleDateString("en-US", { month: "short", day: "numeric" });
+  const fmt = (d: Date) => formatDate(locale, d, { month: "short", day: "numeric" });
   return `${fmt(start)} – ${fmt(end)}`;
 }
 
-const DAY_NAMES = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"];
 
 // ─── Component ──────────────────────────────────────────────────────────────
 
 export default function WeeklyReport() {
+  const t = useT();
+  const locale = useLocaleStore((s) => s.locale);
+  const nf = (n: number) => formatNumber(locale, n);
+  const dayNameOf = (i: number) => formatDate(locale, new Date(2023, 0, 2 + i), { weekday: "short" }); // 2 Jan 2023 is a Monday
+  const nQuests = (n: number) => translatePlural(locale, "wr.nQuests", n);
   const { profile, dailyQuests, freezeDates, loadDashboard } = useGameStore();
   const reportRef = useRef<HTMLDivElement>(null);
   const [loading, setLoading] = useState(true);
@@ -143,7 +149,7 @@ export default function WeeklyReport() {
     const intensity = questsCompleted / MAX_DAILY_COMPLETIONS;
     return {
       date,
-      dayName: DAY_NAMES[i],
+      dayName: dayNameOf(i),
       questsCompleted,
       xpEarned,
       intensity,
@@ -155,7 +161,7 @@ export default function WeeklyReport() {
     const questsCompleted = dailyHistoryQuests(dailyQuests)
       .filter((q) => q.completedDates.includes(date)).length;
     const xpEarned = dayHistory?.xp_gained ?? 0;
-    return { date, dayName: DAY_NAMES[i], questsCompleted, xpEarned };
+    return { date, dayName: dayNameOf(i), questsCompleted, xpEarned };
   });
 
   const thisWeekTotalXp = thisWeekStats.reduce((s, d) => s + d.xpEarned, 0);
@@ -185,6 +191,7 @@ export default function WeeklyReport() {
     thisWeekTotalXp,
     thisWeekActiveDays,
     thisWeekTotalQuests,
+    t,
   );
 
   // Week-over-week deltas
@@ -213,36 +220,36 @@ export default function WeeklyReport() {
 
   function generateTextReport(): string {
     const lines = [
-      `⚔️ WEEKLY HUNTER REPORT`,
-      `${getWeekLabel(thisWeekDates)}`,
+      t('wr.text.title'),
+      `${getWeekLabel(thisWeekDates, locale)}`,
       ``,
-      `📊 SUMMARY`,
-      `  XP Earned: ${thisWeekTotalXp}`,
-      `  Quests Completed: ${thisWeekTotalQuests}`,
-      `  Active Days: ${thisWeekActiveDays}/7`,
-      `  Current Streak: ${streak} days`,
+      t('wr.text.summary'),
+      `  ${t('wr.xpEarned')}: ${thisWeekTotalXp}`,
+      `  ${t('wr.questsDone')}: ${thisWeekTotalQuests}`,
+      `  ${t('wr.activeDays')}: ${thisWeekActiveDays}/7`,
+      `  ${t('wr.streak')}: ${t('stats.streakDays', { n: streak })}`,
       ``,
-      `📈 SYSTEM GRADE: ${grade.grade} — ${grade.label}`,
+      t('wr.text.grade', { grade: grade.grade, label: grade.label }),
       `  "${grade.message}"`,
       ``,
-      `📅 DAY BREAKDOWN`,
+      t('wr.text.breakdown'),
       ...thisWeekStats.map(
-        (d) => `  ${d.dayName}: ${d.questsCompleted} quests · ${d.xpEarned} XP`,
+        (d) => `  ${d.dayName}: ${nQuests(d.questsCompleted)} · ${d.xpEarned} XP`,
       ),
       ``,
       bestDay
-        ? `  🏆 Best Day: ${bestDay.dayName} (${bestDay.xpEarned} XP)`
+        ? `  ${t('wr.text.bestDay', { day: bestDay.dayName, xp: bestDay.xpEarned })}`
         : "",
       worstDay
-        ? `  📉 Worst Day: ${worstDay.dayName} (${worstDay.xpEarned} XP)`
+        ? `  ${t('wr.text.worstDay', { day: worstDay.dayName, xp: worstDay.xpEarned })}`
         : "",
       ``,
-      `🔄 VS LAST WEEK`,
-      `  XP: ${xpDelta >= 0 ? "+" : ""}${xpDelta} (${lastWeekTotalXp} → ${thisWeekTotalXp})`,
-      `  Quests: ${questDelta >= 0 ? "+" : ""}${questDelta}`,
-      `  Active Days: ${dayDelta >= 0 ? "+" : ""}${dayDelta}`,
+      t('wr.text.vs'),
+      `  ${t('wr.text.xp')}: ${xpDelta >= 0 ? "+" : ""}${xpDelta} (${lastWeekTotalXp} → ${thisWeekTotalXp})`,
+      `  ${t('wr.text.quests')}: ${questDelta >= 0 ? "+" : ""}${questDelta}`,
+      `  ${t('wr.activeDays')}: ${dayDelta >= 0 ? "+" : ""}${dayDelta}`,
       ``,
-      `Generated by Hunter System ⚔️`,
+      t('wr.text.footer'),
     ];
     return lines.filter(Boolean).join("\n");
   }
@@ -259,7 +266,7 @@ export default function WeeklyReport() {
             ⚔️
           </motion.span>
           <p className="text-gray-400 font-mono text-sm">
-            Generating report...
+            {t('wr.generating')}
           </p>
         </div>
       </div>
@@ -276,10 +283,10 @@ export default function WeeklyReport() {
       >
         <div className="min-w-0">
           <h1 className="text-2xl sm:text-3xl font-display text-white font-bold tracking-wider">
-            WEEKLY REPORT
+            {t('wr.title')}
           </h1>
           <p className="text-gray-400 mt-1 font-mono text-sm">
-            {getWeekLabel(thisWeekDates)}
+            {getWeekLabel(thisWeekDates, locale)}
           </p>
         </div>
         <button
@@ -287,7 +294,7 @@ export default function WeeklyReport() {
           disabled={sharing}
           className="px-4 py-2 rounded-xl bg-purple-500/10 border border-purple-500/30 text-purple-400 font-display text-sm font-bold hover:bg-purple-500/20 transition-all disabled:opacity-50"
         >
-          {sharing ? "📋 COPYING..." : "📋 COPY REPORT"}
+          {sharing ? t('wr.copying') : t('wr.copy')}
         </button>
       </motion.div>
 
@@ -303,7 +310,7 @@ export default function WeeklyReport() {
           className={`bg-gradient-to-br ${grade.bg} backdrop-blur-xl rounded-2xl border border-purple-500/20 p-8 text-center mb-6`}
         >
           <p className="text-[10px] font-mono text-gray-500 tracking-[0.3em] mb-2">
-            THE SYSTEM GRADES YOUR PERFORMANCE
+            {t('wr.grades')}
           </p>
           <motion.div
             initial={{ scale: 0, rotate: -180 }}
@@ -339,38 +346,38 @@ export default function WeeklyReport() {
         <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
           {[
             {
-              label: "XP EARNED",
-              value: thisWeekTotalXp.toLocaleString(),
+              label: t('wr.xpEarned'),
+              value: nf(thisWeekTotalXp),
               icon: "⚡",
               color: "text-yellow-400",
               sub:
                 xpDelta !== 0
-                  ? `${xpDelta >= 0 ? "+" : ""}${xpDelta} vs last week`
+                  ? t('wr.vsLast', { delta: `${xpDelta >= 0 ? "+" : ""}${xpDelta}` })
                   : undefined,
             },
             {
-              label: "QUESTS DONE",
+              label: t('wr.questsDone'),
               value: thisWeekTotalQuests,
               icon: "✅",
               color: "text-green-400",
               sub:
                 questDelta !== 0
-                  ? `${questDelta >= 0 ? "+" : ""}${questDelta} vs last week`
+                  ? t('wr.vsLast', { delta: `${questDelta >= 0 ? "+" : ""}${questDelta}` })
                   : undefined,
             },
             {
-              label: "ACTIVE DAYS",
+              label: t('wr.activeDays'),
               value: `${thisWeekActiveDays}/7`,
               icon: "📅",
               color: "text-blue-400",
               sub:
                 dayDelta !== 0
-                  ? `${dayDelta >= 0 ? "+" : ""}${dayDelta} vs last week`
+                  ? t('wr.vsLast', { delta: `${dayDelta >= 0 ? "+" : ""}${dayDelta}` })
                   : undefined,
             },
             {
-              label: "STREAK",
-              value: `${streak} days`,
+              label: t('wr.streak'),
+              value: t('stats.streakDays', { n: streak }),
               icon: "🔥",
               color: "text-orange-400",
             },
@@ -408,7 +415,7 @@ export default function WeeklyReport() {
           className="bg-[#0d1117]/80 backdrop-blur-sm rounded-xl border border-purple-500/20 p-6 mb-6"
         >
           <h3 className="font-display text-white font-bold tracking-wider text-sm mb-4">
-            DAY-BY-DAY BREAKDOWN
+            {t('wr.dayByDay')}
           </h3>
           <div className="space-y-2">
             {thisWeekStats.map((day, i) => {
@@ -453,18 +460,18 @@ export default function WeeklyReport() {
                     />
                     <span className="absolute inset-y-0 left-2 flex items-center text-[10px] font-mono text-gray-300">
                       {day.questsCompleted > 0
-                        ? `${day.questsCompleted} quests · ${day.xpEarned} XP`
+                        ? `${nQuests(day.questsCompleted)} · ${day.xpEarned} XP`
                         : "—"}
                     </span>
                   </div>
                   {isBest && (
                     <span className="text-[10px] font-mono text-yellow-400">
-                      🏆 BEST
+                      {t('wr.best')}
                     </span>
                   )}
                   {isWorst && (
                     <span className="text-[10px] font-mono text-red-400">
-                      📉 LOW
+                      {t('wr.low')}
                     </span>
                   )}
                 </motion.div>
@@ -477,37 +484,37 @@ export default function WeeklyReport() {
             {bestDay && (
               <div className="flex-1 text-center">
                 <p className="text-[10px] font-mono text-gray-500 tracking-wider">
-                  BEST DAY
+                  {t('wr.bestDay')}
                 </p>
                 <p className="text-sm font-display text-yellow-400 font-bold">
                   {bestDay.dayName}
                 </p>
                 <p className="text-xs font-mono text-gray-400">
-                  {bestDay.xpEarned} XP · {bestDay.questsCompleted} quests
+                  {bestDay.xpEarned} XP · {nQuests(bestDay.questsCompleted)}
                 </p>
               </div>
             )}
             {worstDay && (
               <div className="flex-1 text-center">
                 <p className="text-[10px] font-mono text-gray-500 tracking-wider">
-                  WORST DAY
+                  {t('wr.worstDay')}
                 </p>
                 <p className="text-sm font-display text-red-400 font-bold">
                   {worstDay.dayName}
                 </p>
                 <p className="text-xs font-mono text-gray-400">
-                  {worstDay.xpEarned} XP · {worstDay.questsCompleted} quests
+                  {worstDay.xpEarned} XP · {nQuests(worstDay.questsCompleted)}
                 </p>
               </div>
             )}
             <div className="flex-1 text-center">
               <p className="text-[10px] font-mono text-gray-500 tracking-wider">
-                AVERAGE / DAY
+                {t('wr.avg')}
               </p>
               <p className="text-sm font-display text-purple-400 font-bold">
                 {Math.round(thisWeekTotalXp / 7)}
               </p>
-              <p className="text-xs font-mono text-gray-400">XP per day</p>
+              <p className="text-xs font-mono text-gray-400">{t('wr.xpPerDay')}</p>
             </div>
           </div>
         </motion.div>
@@ -520,22 +527,22 @@ export default function WeeklyReport() {
           className="bg-[#0d1117]/80 backdrop-blur-sm rounded-xl border border-purple-500/20 p-6 mb-6"
         >
           <h3 className="font-display text-white font-bold tracking-wider text-sm mb-4">
-            VS LAST WEEK
+            {t('wr.vsLastTitle')}
           </h3>
           <div className="grid grid-cols-3 gap-6">
             {[
               {
-                label: "XP",
+                label: t('wr.text.xp'),
                 thisWeek: thisWeekTotalXp,
                 lastWeek: lastWeekTotalXp,
               },
               {
-                label: "QUESTS",
+                label: t('wr.text.quests').toUpperCase(),
                 thisWeek: thisWeekTotalQuests,
                 lastWeek: lastWeekTotalQuests,
               },
               {
-                label: "ACTIVE DAYS",
+                label: t('wr.activeDays'),
                 thisWeek: thisWeekActiveDays,
                 lastWeek: lastWeekActiveDays,
               },
@@ -570,7 +577,7 @@ export default function WeeklyReport() {
                     className={`text-xs font-mono mt-1 ${improved ? "text-green-400" : same ? "text-gray-500" : "text-red-400"}`}
                   >
                     {same
-                      ? "— same"
+                      ? t('wr.same')
                       : `${improved ? "↑" : "↓"} ${Math.abs(Math.round(pct))}%`}
                   </p>
                 </div>
@@ -597,12 +604,12 @@ export default function WeeklyReport() {
                 {profile.name}
               </p>
               <p className="text-[10px] font-mono text-gray-500">
-                Level {profile.level} · {profile.xp.toLocaleString()} XP
+                {t('wr.levelXp', { level: profile.level, xp: nf(profile.xp) })}
               </p>
             </div>
           </div>
           <div className="text-right">
-            <p className="text-[10px] font-mono text-gray-600">Generated by</p>
+            <p className="text-[10px] font-mono text-gray-600">{t('wr.generatedBy')}</p>
             <p className="text-xs font-display text-purple-400 font-bold">
               HUNTER SYSTEM ⚔️
             </p>
