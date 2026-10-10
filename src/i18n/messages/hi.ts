@@ -413,4 +413,13 @@ export const hi: Messages = {
   'set.muted': "म्यूट",
   'set.enabled': "चालू",
   'set.tagline': "Hunter System • क्वेस्ट ट्रैकर",
+  'ql.title': "क्वेस्ट लॉग",
+  'ql.timetable': "आज का टाइमटेबल",
+  'ql.challenges': "रोज़ की चुनौतियाँ",
+  'ql.done': "पूरे",
+  'ql.xpEarned': "कमाए XP",
+  'ql.left': "बाकी",
+  'ql.daily': "डेली क्वेस्ट",
+  'ql.resets': "हर दिन रीसेट • {date}",
+  'ql.todayXp': "⚡ आज के XP",
 };

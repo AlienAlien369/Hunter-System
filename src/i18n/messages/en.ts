@@ -424,6 +424,15 @@ export const en = {
   'set.muted': "Muted",
   'set.enabled': "Enabled",
   'set.tagline': "Hunter System • Quest Tracker",
+  'ql.title': "QUEST LOG",
+  'ql.timetable': "Today's timetable",
+  'ql.challenges': "Daily challenges",
+  'ql.done': "DONE",
+  'ql.xpEarned': "XP EARNED",
+  'ql.left': "LEFT",
+  'ql.daily': "DAILY QUESTS",
+  'ql.resets': "RESETS EVERY DAY • {date}",
+  'ql.todayXp': "⚡ TODAY'S XP",
 } as const;
 
 export type MessageKey = keyof typeof en;

@@ -412,4 +412,13 @@ export const hinglish: Messages = {
   'set.muted': "Muted",
   'set.enabled': "Chalu",
   'set.tagline': "Hunter System • Quest Tracker",
+  'ql.title': "QUEST LOG",
+  'ql.timetable': "Aaj ka timetable",
+  'ql.challenges': "Daily challenges",
+  'ql.done': "DONE",
+  'ql.xpEarned': "KAMAAYE XP",
+  'ql.left': "BAAKI",
+  'ql.daily': "DAILY QUESTS",
+  'ql.resets': "HAR DIN RESET • {date}",
+  'ql.todayXp': "⚡ AAJ KE XP",
 };

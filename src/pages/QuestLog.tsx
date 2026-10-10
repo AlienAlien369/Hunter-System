@@ -1,3 +1,4 @@
+import { useT, useLocaleStore, formatDate } from '../i18n';
 import { motion } from 'framer-motion';
 import { useGameStore } from '../store/gameStore';
 import QuestCard from '../components/QuestCard';
@@ -61,6 +62,7 @@ function TrackSection({
   onToggle: (id: string) => void;
   onRedo: () => void;
 }) {
+  const t = useT();
   const completed = quests.filter(q => q.completedDates.length > 0).length;
   const progress = quests.length > 0 ? (completed / quests.length) * 100 : 0;
   const allDone = quests.length > 0 && completed === quests.length;
@@ -81,7 +83,7 @@ function TrackSection({
         <div className="flex items-center space-x-4">
           <div className="text-right">
             <p className={`text-xl font-display ${track.textClass}`}>{completed}/{quests.length}</p>
-            <p className="text-xs text-gray-500 font-mono">DONE</p>
+            <p className="text-xs text-gray-500 font-mono">{t('ql.done')}</p>
           </div>
           {allDone && (
             <button
@@ -136,6 +138,8 @@ function TrackSection({
 }
 
 export default function QuestLog() {
+  const t = useT();
+  const locale = useLocaleStore((s) => s.locale);
   const { dailyQuests, completeQuest, redoTrack, profile } = useGameStore();
   const moduleKinds = new Set(useModuleStore(s => s.modules).filter(m => m.status === 'active').map(m => m.kind as string));
   const today = localDateKey();
@@ -176,10 +180,10 @@ export default function QuestLog() {
       >
         <div className="min-w-0">
           <h1 className="text-2xl sm:text-3xl font-display text-white font-bold tracking-wider">
-            QUEST LOG
+            {t('ql.title')}
           </h1>
           <p className="text-gray-400 mt-1 font-mono text-sm">
-            {usesTimetable ? "Today's timetable" : 'Daily challenges'} • {new Date().toLocaleDateString()}
+            {usesTimetable ? t('ql.timetable') : t('ql.challenges')} • {formatDate(locale, new Date())}
           </p>
         </div>
 
@@ -187,17 +191,17 @@ export default function QuestLog() {
         <div className="flex items-center space-x-3 sm:space-x-4 bg-[#0d1117]/80 backdrop-blur-sm rounded-lg px-3 sm:px-4 py-3 sm:py-4 border border-purple-500/20">
           <div className="text-center min-w-[3rem]">
             <p className="text-xl sm:text-2xl font-display text-gold">{todaysCompleted}</p>
-            <p className="text-[10px] sm:text-xs text-gray-500 font-mono">DONE</p>
+            <p className="text-[10px] sm:text-xs text-gray-500 font-mono">{t('ql.done')}</p>
           </div>
           <div className="w-px h-8 bg-purple-500/20" />
           <div className="text-center min-w-[3rem]">
             <p className="text-xl sm:text-2xl font-display text-purple-400">{todaysXP}</p>
-            <p className="text-[10px] sm:text-xs text-gray-500 font-mono">XP EARNED</p>
+            <p className="text-[10px] sm:text-xs text-gray-500 font-mono">{t('ql.xpEarned')}</p>
           </div>
           <div className="w-px h-8 bg-purple-500/20" />
           <div className="text-center min-w-[3rem]">
             <p className="text-xl sm:text-2xl font-display text-blue-400">{dailyQuestsList.length - todaysCompleted}</p>
-            <p className="text-[10px] sm:text-xs text-gray-500 font-mono">LEFT</p>
+            <p className="text-[10px] sm:text-xs text-gray-500 font-mono">{t('ql.left')}</p>
           </div>
         </div>
       </motion.div>
@@ -210,9 +214,9 @@ export default function QuestLog() {
       >
         <div className="flex items-center justify-between">
           <h2 className="text-lg font-display text-purple-400 font-bold tracking-wider">
-            DAILY QUESTS
+            {t('ql.daily')}
           </h2>
-          <span className="text-xs text-gray-500 font-mono">RESETS EVERY DAY • {today}</span>
+          <span className="text-xs text-gray-500 font-mono">{t('ql.resets', { date: today })}</span>
         </div>
 
         {dailyQuestsList.length === 0 ? <BuildYourDay /> : (<>
@@ -220,7 +224,7 @@ export default function QuestLog() {
         <TrackReward
           quests={dailyQuestsList.map(q => ({ xpReward: q.xpReward, done: q.completedToday }))}
           currentXp={profile.xp}
-          label="⚡ TODAY'S XP"
+          label={t('ql.todayXp')}
           accentClass="text-purple-400"
           chipClass="border-purple-500/10 bg-[#0d1117]/60"
         />
