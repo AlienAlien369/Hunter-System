@@ -137,6 +137,32 @@ describe('Measurement', () => {
     });
   });
 
+  describe('admin business report', () => {
+    it('is admin-only', async () => {
+      assert.strictEqual((await fetch(`${BASE_URL}/api/admin/business`)).status, 401);
+      assert.strictEqual((await fetch(`${BASE_URL}/api/admin/business`, { headers: { Cookie: u2.cookie } })).status, 403);
+    });
+    it('reports revenue, referral and class aggregates without naming anyone', async () => {
+      const before = await (await fetch(`${BASE_URL}/api/admin/business?days=30`, { headers: { Cookie: admin.cookie } })).json();
+      // One monthly (USD 3.99) and one yearly (INR 599) active subscription, one of them cancelling.
+      await db.query(`INSERT INTO subscriptions (user_id, provider, provider_subscription_id, plan, interval, status, currency, amount_minor, current_period_end, cancel_at_period_end)
+                      VALUES ($1, 'stripe', $3, 'pro', 'month', 'active', 'USD', 399, NOW() + INTERVAL '10 days', false),
+                             ($2, 'razorpay', $4, 'pro', 'year', 'active', 'INR', 59900, NOW() + INTERVAL '100 days', true)`,
+        [u2.id, u3.id, `sub_biz_a_${suffix}`, `sub_biz_b_${suffix}`]);
+      const r = await (await fetch(`${BASE_URL}/api/admin/business?days=30`, { headers: { Cookie: admin.cookie } })).json();
+      assert.strictEqual(r.subscriptions.active - before.subscriptions.active, 2);
+      assert.strictEqual(r.subscriptions.cancelling - before.subscriptions.cancelling, 1);
+      assert.strictEqual((r.subscriptions.mrrMinorByCurrency.USD ?? 0) - (before.subscriptions.mrrMinorByCurrency.USD ?? 0), 399);
+      assert.strictEqual((r.subscriptions.mrrMinorByCurrency.INR ?? 0) - (before.subscriptions.mrrMinorByCurrency.INR ?? 0), Math.round(59900 / 12), 'yearly is spread over 12 months');
+      assert.ok(r.subscriptions.activeByRegion.some((x: any) => x.region === REGION && x.count === 2));
+      for (const key of ['invites', 'qualified', 'rewardMonthsGranted', 'hunterOnReferralPro']) assert.strictEqual(typeof r.referrals[key], 'number');
+      for (const key of ['active', 'students', 'avgSize']) assert.strictEqual(typeof r.classes[key], 'number');
+      assert.strictEqual(typeof r.aiLimitHitters7d, 'number');
+      const text = JSON.stringify(r);
+      for (const secret of ['an1_', 'an2_', 'an3_', 'password', 'sub_biz']) assert.ok(!text.includes(secret), `leaked ${secret}`);
+    });
+  });
+
   describe('data rights', () => {
     it('includes events in the export', async () => {
       const exp = await (await fetch(`${BASE_URL}/api/auth/export`, { headers: { Cookie: u1.cookie } })).json();

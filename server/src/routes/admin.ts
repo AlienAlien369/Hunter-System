@@ -1,6 +1,6 @@
 import { Router, Request, Response, NextFunction } from 'express';
 import { authenticateToken } from '../middleware/auth.js';
-import { computeFunnel } from '../analytics.js';
+import { computeBusiness, computeFunnel } from '../analytics.js';
 
 // Admin = a username listed in ADMIN_USERNAMES (comma-separated env var).
 // With the variable unset nobody is an admin, so a fresh deploy exposes nothing.
@@ -31,6 +31,17 @@ router.get('/funnel', async (req: Request, res: Response) => {
   } catch (error) {
     console.error('Funnel error:', error);
     res.status(500).json({ error: 'Failed to compute funnel' });
+  }
+});
+
+// GET /api/admin/business?days=30 — revenue, referral and class aggregates
+router.get('/business', async (req: Request, res: Response) => {
+  try {
+    const days = Math.min(365, Math.max(1, Math.floor(Number(req.query.days)) || 30));
+    res.json(await computeBusiness(days));
+  } catch (error) {
+    console.error('Business report error:', error);
+    res.status(500).json({ error: 'Failed to compute business report' });
   }
 });
 

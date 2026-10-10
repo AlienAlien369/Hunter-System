@@ -175,6 +175,14 @@ export interface User {
   parentEmailMasked?: string | null;
 }
 
+export interface BusinessReport {
+  days: number;
+  subscriptions: { active: number; pastDue: number; cancelling: number; refundedOrEnded: number; mrrMinorByCurrency: Record<string, number>; activeByRegion: { region: string; count: number }[] };
+  referrals: { invites: number; qualified: number; rewardMonthsGranted: number; hunterOnReferralPro: number };
+  classes: { active: number; students: number; avgSize: number };
+  aiLimitHitters7d: number;
+}
+
 export interface PlanPrice { currency: string; amountMinor: number }
 export interface PlansResponse {
   region: string;
@@ -546,6 +554,7 @@ export const api = {
       credentials: 'include',
       keepalive: true,
     }),
+  getBusiness: (days = 30) => request<BusinessReport>(`/admin/business?days=${days}`),
   getFunnel: (days = 30, region?: string) =>
     request<FunnelReport>(`/admin/funnel?days=${days}${region ? `&region=${encodeURIComponent(region)}` : ''}`),
 
