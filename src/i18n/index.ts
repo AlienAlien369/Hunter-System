@@ -1,7 +1,5 @@
 import { create } from 'zustand';
 import { en, type MessageKey } from './messages/en';
-import { hi } from './messages/hi';
-import { hinglish } from './messages/hinglish';
 
 // A small i18n layer: one source-of-truth English file, typed translations,
 // ICU-style plurals via Intl.PluralRules, locale-aware formatting through
@@ -21,14 +19,32 @@ export interface LocaleInfo {
   /** Tag handed to Intl for numbers/dates/plurals. Hinglish has no CLDR data, so it borrows Indian English. */
   intl: string;
   dir: 'ltr' | 'rtl';
+  /** English until the language is loaded (see loadLocale), so a gap never blanks the UI. */
   messages: Record<MessageKey, string>;
+  /** Fetches this language's messages on demand, keeping other languages out of the first download. */
+  load?: () => Promise<Record<MessageKey, string>>;
 }
 
 export const LOCALES: LocaleInfo[] = [
   { code: 'en', label: 'English', lang: 'en', intl: 'en', dir: 'ltr', messages: en },
-  { code: 'hi', label: 'हिन्दी', lang: 'hi', intl: 'hi', dir: 'ltr', messages: hi },
-  { code: 'hi-Latn', label: 'Hinglish', lang: 'hi-Latn', intl: 'en-IN', dir: 'ltr', messages: hinglish },
+  { code: 'hi', label: 'हिन्दी', lang: 'hi', intl: 'hi', dir: 'ltr', messages: en, load: () => import('./messages/hi').then(m => m.hi) },
+  { code: 'hi-Latn', label: 'Hinglish', lang: 'hi-Latn', intl: 'en-IN', dir: 'ltr', messages: en, load: () => import('./messages/hinglish').then(m => m.hinglish) },
 ];
+
+const pending = new Map<LocaleCode, Promise<void>>();
+
+/** Load a language's messages once. Safe to call repeatedly; resolves immediately for English. */
+export function loadLocale(code: LocaleCode): Promise<void> {
+  const info = LOCALES.find(l => l.code === code);
+  if (!info?.load) return Promise.resolve();
+  let p = pending.get(code);
+  if (!p) {
+    p = info.load().then(m => { info.messages = m; info.load = undefined; });
+    p.catch(() => pending.delete(code)); // a failed download can be retried
+    pending.set(code, p);
+  }
+  return p;
+}
 
 const STORAGE_KEY = 'hunter.locale';
 const byCode = (code: string | null | undefined) => LOCALES.find(l => l.code === code);
@@ -66,14 +82,15 @@ export const useLocaleStore = create<LocaleState>(set => ({
   setLocale: code => {
     if (!byCode(code)) return;
     try { localStorage.setItem(STORAGE_KEY, code); } catch { /* storage unavailable */ }
-    set({ locale: code });
+    // Switch once the language has arrived; if the download fails, still switch (English fills the gaps).
+    void loadLocale(code).catch(() => undefined).then(() => set({ locale: code }));
   },
 }));
 
 /** Offer a locale to a visitor who has never chosen one, without remembering it as their choice. */
 export function suggestLocale(code: LocaleCode) {
   try { if (localStorage.getItem(STORAGE_KEY)) return; } catch { /* storage unavailable */ }
-  useLocaleStore.setState({ locale: code });
+  void loadLocale(code).catch(() => undefined).then(() => useLocaleStore.setState({ locale: code }));
 }
 
 export const localeInfo = (code: LocaleCode): LocaleInfo => byCode(code) ?? LOCALES[0];

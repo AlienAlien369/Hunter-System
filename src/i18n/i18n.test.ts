@@ -1,8 +1,10 @@
-import { describe, it, expect, beforeEach } from 'vitest';
+import { describe, it, expect, beforeAll, beforeEach, vi } from 'vitest';
 import {
-  LOCALES, applyLocaleToDocument, detectLocale, firstDayOfWeek, formatCurrency, formatDate, formatNumber, translate, translatePlural, useLocaleStore,
+  LOCALES, loadLocale, applyLocaleToDocument, detectLocale, firstDayOfWeek, formatCurrency, formatDate, formatNumber, translate, translatePlural, useLocaleStore,
 } from './index';
 import { en } from './messages/en';
+
+beforeAll(async () => { await Promise.all(LOCALES.map(l => loadLocale(l.code))); }); // languages load on demand in the app
 
 const placeholders = (s: string) => [...s.matchAll(/\{(\w+)\}/g)].map(m => m[1]).sort();
 
@@ -116,12 +118,20 @@ describe('document language and direction', () => {
 });
 
 describe('locale store', () => {
-  it('persists the choice and ignores unknown codes', () => {
+  it('persists the choice and ignores unknown codes', async () => {
     useLocaleStore.getState().setLocale('hi');
-    expect(useLocaleStore.getState().locale).toBe('hi');
-    expect(localStorage.getItem('hunter.locale')).toBe('hi');
+    expect(localStorage.getItem('hunter.locale')).toBe('hi'); // saved straight away
+    await vi.waitFor(() => expect(useLocaleStore.getState().locale).toBe('hi')); // applied once the language has loaded
     useLocaleStore.getState().setLocale('xx' as never);
     expect(useLocaleStore.getState().locale).toBe('hi');
     useLocaleStore.getState().setLocale('en');
+    await vi.waitFor(() => expect(useLocaleStore.getState().locale).toBe('en'));
+  });
+
+  it('loads a language on demand and falls back to English until it has', async () => {
+    const hiInfo = LOCALES.find(l => l.code === 'hi')!;
+    await loadLocale('hi');
+    expect(hiInfo.messages).not.toBe(en);
+    expect(translate('hi', 'nav.settings')).toBe(hiInfo.messages['nav.settings']);
   });
 });
