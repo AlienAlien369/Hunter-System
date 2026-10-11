@@ -108,7 +108,7 @@ export const PRIVACY: LegalDoc = {
         'What you create: your timetable, quests, modules, completions, XP history, notes and task names, content-channel and nutrition entries, items, friends you follow, and AI coach reviews.',
         'Region: a rough country guess from your browser language or timezone (not from your IP address), used to show the right language and prices and to understand where the app is used.',
         'Your browser’s timezone (so your day ends at your midnight) and, only if you turn on reminders, a push-notification address from your browser.',
-        'Anonymous usage counts: page views and button clicks like “opened pricing”. They carry no cookie, device ID or IP address. If your browser sends Do Not Track or Global Privacy Control, we do not record them.',
+        'Anonymous usage counts: page views and button clicks like “opened pricing”, with the language the page was shown in (English, Hindi or Hinglish). They carry no cookie, device ID or IP address. If your browser sends Do Not Track or Global Privacy Control, we do not record them.',
         'Technical crash reports (error message and browser type) so we can fix bugs. They contain no account details.',
       ],
     },
