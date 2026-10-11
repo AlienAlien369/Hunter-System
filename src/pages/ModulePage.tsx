@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import { Link, Navigate, useNavigate, useParams } from 'react-router-dom';
 import { motion } from 'framer-motion';
+import { useT } from '../i18n';
 import { api, type ModuleSummary } from '../lib/api';
 import { useGameStore } from '../store/gameStore';
 import { useModuleStore } from '../store/moduleStore';
@@ -14,6 +15,7 @@ import { graceLabel, removeModule, toTaskSpec, toggleModulePause } from '../comp
 
 /** One page for every dynamic module — no hard-coded page per module. */
 export default function ModulePage() {
+  const t = useT();
   const { slug } = useParams();
   const navigate = useNavigate();
   const { modules, loaded, load } = useModuleStore();
@@ -31,12 +33,12 @@ export default function ModulePage() {
   useEffect(() => { if (!loaded) load(); refresh(); }, [loaded, load]);
   useEffect(() => { if (slug) api.getModuleSummary(slug).then(setSummary).catch(() => {}); }, [slug, xp, tasks.length]);
 
-  if (!loaded) return <p className="text-gray-500 font-mono text-sm">Loading module…</p>;
+  if (!loaded) return <p className="text-gray-500 font-mono text-sm">{t('mp.loading')}</p>;
   if (!module) {
     return (
       <div className="space-y-3 font-mono text-sm text-gray-400">
-        <p>This module doesn't exist (it may have been removed).</p>
-        <Link to="/modules" className="text-purple-300 hover:text-white">← Back to modules</Link>
+        <p>{t('mp.missing')}</p>
+        <Link to="/modules" className="text-purple-300 hover:text-white">{t('mp.back')}</Link>
       </div>
     );
   }
@@ -53,7 +55,7 @@ export default function ModulePage() {
         <div className="min-w-0">
           <h1 className="text-2xl sm:text-3xl font-display text-white font-bold tracking-wider">{module.icon} {module.name.toUpperCase()}</h1>
           <p className={`mt-1 font-mono text-xs ${module.status === 'paused' ? 'text-gray-500' : module.established ? 'text-purple-300' : 'text-yellow-300'}`}>
-            {module.status === 'paused' ? 'PAUSED' : graceLabel(module).toUpperCase()}
+            {module.status === 'paused' ? t('mp.paused') : graceLabel(module).toUpperCase()}
           </p>
           {module.goals.length > 0 && (
             <div className="flex flex-wrap gap-1.5 mt-2">
@@ -62,23 +64,23 @@ export default function ModulePage() {
           )}
         </div>
         <div className="flex flex-wrap gap-2">
-          <Btn onClick={() => setBuilder('edit')}>EDIT MODULE</Btn>
-          <Btn variant="ghost" onClick={() => act(() => toggleModulePause(module))}>{module.status === 'paused' ? 'RESUME' : 'PAUSE'}</Btn>
-          <Btn variant="ghost" onClick={() => setBuilder('replace')}>REPLACE</Btn>
-          <Btn variant="danger" onClick={() => act(() => removeModule(module), () => navigate('/modules'))}>REMOVE</Btn>
+          <Btn onClick={() => setBuilder('edit')}>{t('mp.edit')}</Btn>
+          <Btn variant="ghost" onClick={() => act(() => toggleModulePause(module))}>{module.status === 'paused' ? t('mod.resume') : t('mod.pause')}</Btn>
+          <Btn variant="ghost" onClick={() => setBuilder('replace')}>{t('mod.replace')}</Btn>
+          <Btn variant="danger" onClick={() => act(() => removeModule(module), () => navigate('/modules'))}>{t('mod.remove')}</Btn>
         </div>
       </motion.div>
       {error && <p className="text-sm text-red-400 font-mono">{error}</p>}
 
       <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-        <Stat label="Today" value={`${today.filter(isDoneToday).length}/${today.length}`} />
-        <Stat label="Streak" value={`${summary?.streak ?? 0} 🔥`} />
-        <Stat label="This week" value={summary?.completedThisWeek ?? 0} />
-        <Stat label="XP earned" value={summary?.xpEarned ?? 0} />
+        <Stat label={t('mp.today')} value={`${today.filter(isDoneToday).length}/${today.length}`} />
+        <Stat label={t('mp.streak')} value={`${summary?.streak ?? 0} 🔥`} />
+        <Stat label={t('mp.week')} value={summary?.completedThisWeek ?? 0} />
+        <Stat label={t('mp.xp')} value={summary?.xpEarned ?? 0} />
       </div>
 
       {module.status === 'paused' ? (
-        <p className="text-sm text-gray-400 font-mono">This module is paused — its tasks won't appear in your missions until you resume it.</p>
+        <p className="text-sm text-gray-400 font-mono">{t('mp.pausedNote')}</p>
       ) : module.kind === 'content' ? (
         <ContentModuleView module={module} tasks={tasks} />
       ) : (

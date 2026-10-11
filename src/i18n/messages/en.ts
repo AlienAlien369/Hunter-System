@@ -1041,6 +1041,22 @@ export const en = {
   'nt.dismiss': "Dismiss",
   'nt.dismissAria': "Dismiss notification",
   'nt.dismissed': "Notification dismissed",
+  'mp.loading': "Loading module…",
+  'mp.missing': "This module doesn't exist (it may have been removed).",
+  'mp.back': "← Back to modules",
+  'mp.paused': "PAUSED",
+  'mp.edit': "EDIT MODULE",
+  'mp.today': "Today",
+  'mp.streak': "Streak",
+  'mp.week': "This week",
+  'mp.xp': "XP earned",
+  'mp.pausedNote': "This module is paused — its tasks won't appear in your missions until you resume it.",
+  'tm.morning': "MORNING",
+  'tm.night': "NIGHT",
+  'tm.anytime': "ANYTIME",
+  'tm.tasks': "TASKS",
+  'tm.add': "+ ADD",
+  'tm.none': "No tasks here yet.",
 } as const;
 
 export type MessageKey = keyof typeof en;
