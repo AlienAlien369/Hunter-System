@@ -1045,4 +1045,10 @@ export const hinglish: Messages = {
   'tm.tasks': "TASKS",
   'tm.add': "+ JODO",
   'tm.none': "Yahan abhi koi task nahi.",
+  'qd.notFound': "Quest nahi mili",
+  'qd.back': "Quest Log par wapas",
+  'qd.desc': "XP kamaane aur S-Rank Hunter banne ke raaste par aage badhne ke liye yeh quest poori karo. Consistency hi tumhari poori kshamta kholti hai.",
+  'qd.history': "Completion history (pichhle 30 din)",
+  'qd.completed': "✓ QUEST POORI",
+  'qd.complete': "QUEST POORI KAREIN",
 };

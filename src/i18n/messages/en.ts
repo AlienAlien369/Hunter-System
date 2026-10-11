@@ -1057,6 +1057,12 @@ export const en = {
   'tm.tasks': "TASKS",
   'tm.add': "+ ADD",
   'tm.none': "No tasks here yet.",
+  'qd.notFound': "Quest not found",
+  'qd.back': "Back to Quest Log",
+  'qd.desc': "Complete this quest to earn XP and progress on your path to becoming an S-Rank Hunter. Consistency is key to unlocking your full potential.",
+  'qd.history': "Completion History (Last 30 Days)",
+  'qd.completed': "✓ QUEST COMPLETED",
+  'qd.complete': "COMPLETE QUEST",
 } as const;
 
 export type MessageKey = keyof typeof en;

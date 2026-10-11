@@ -1,9 +1,11 @@
 import { useParams, Link } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { useGameStore } from '../store/gameStore';
+import { useT } from '../i18n';
 import { localDateKey } from '../utils/date';
 
 export default function QuestDetail() {
+  const t = useT();
   const { id } = useParams<{ id: string }>();
   const { dailyQuests, completeQuest } = useGameStore();
   const today = localDateKey();
@@ -13,7 +15,7 @@ export default function QuestDetail() {
   if (!quest) {
     return (
       <div className="flex items-center justify-center h-64">
-        <p className="text-gray-400 font-mono">Quest not found</p>
+        <p className="text-gray-400 font-mono">{t('qd.notFound')}</p>
       </div>
     );
   }
@@ -27,7 +29,7 @@ export default function QuestDetail() {
         <svg className="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
         </svg>
-        Back to Quest Log
+        {t('qd.back')}
       </Link>
 
       {/* Quest Card */}
@@ -76,15 +78,14 @@ export default function QuestDetail() {
         {/* Description */}
         <div className="mb-6">
           <p className="text-gray-400 font-mono text-sm leading-relaxed">
-            Complete this quest to earn XP and progress on your path to becoming an S-Rank Hunter.
-            Consistency is key to unlocking your full potential.
+            {t('qd.desc')}
           </p>
         </div>
 
         {/* Completion History */}
         <div className="mb-6">
           <h3 className="text-sm font-mono text-gray-500 uppercase tracking-wider mb-3">
-            Completion History (Last 30 Days)
+            {t('qd.history')}
           </h3>
           <div className="grid grid-cols-7 gap-2">
             {Array.from({ length: 30 }).map((_, i) => {
@@ -123,7 +124,7 @@ export default function QuestDetail() {
           `}
           disabled={isCompleted}
         >
-          {isCompleted ? '✓ QUEST COMPLETED' : 'COMPLETE QUEST'}
+          {isCompleted ? t('qd.completed') : t('qd.complete')}
         </button>
       </motion.div>
     </div>
