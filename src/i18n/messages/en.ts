@@ -919,6 +919,19 @@ export const en = {
   'rc.commitTitle': "⚠️ HUNTER COMMITMENT CHANGE",
   'rc.commitIntro': "You are changing an established module commitment.",
   'ui.close': "Close",
+  'cel.double': "⚡ DOUBLE UP! ⚡",
+  'cel.level': "⚡ LEVEL UP!",
+  'cel.rank': "🏆 RANK UP! {icon}",
+  'cel.reached': "You reached Level {n}",
+  'cel.unlocked': "{rank}-Rank unlocked — {name}",
+  'cel.dismiss': "TAP TO DISMISS",
+  'cel.continue': "TAP TO CONTINUE",
+  'cel.queued_one': "⏳ {count} MORE CELEBRATION QUEUED • {action}",
+  'cel.queued_other': "⏳ {count} MORE CELEBRATIONS QUEUED • {action}",
+  'loot.dropped': "ITEM DROPPED",
+  'loot.take': "LOOT",
+  'pd.banner': "✦ PERFECT DAY ✦",
+  'pd.bannerBody': "Every timetable quest cleared · +{xp} XP bonus",
 } as const;
 
 export type MessageKey = keyof typeof en;

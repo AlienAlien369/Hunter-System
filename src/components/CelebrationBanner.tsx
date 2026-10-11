@@ -1,18 +1,11 @@
 import { useEffect, useMemo, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
+import { t, translatePlural, useLocaleStore } from '../i18n';
+import { en, type MessageKey } from '../i18n/messages/en';
 import { useGameStore } from '../store/gameStore';
 import type { Celebration } from '../store/gameStore';
 import { useSoundStore } from '../store/soundStore';
 import { sfx } from '../utils/sounds';
-
-const RANK_NAMES: Record<string, string> = {
-  E: 'Novice',
-  D: 'Apprentice',
-  C: 'Journeyman',
-  B: 'Expert',
-  A: 'Master',
-  S: 'Legend',
-};
 
 const RANK_ICONS: Record<string, string> = {
   E: '🛡️',
@@ -90,23 +83,23 @@ function ConfettiBurstMotion({ index, heavy }: { index: number; heavy?: boolean 
 }
 
 function celebrationTitle(celebration: Celebration): string {
-  if (celebration.type === 'both') return '⚡ DOUBLE UP! ⚡';
-  if (celebration.type === 'level') return '⚡ LEVEL UP!';
-  return `🏆 RANK UP! ${RANK_ICONS[celebration.rank] || '🏆'}`;
+  if (celebration.type === 'both') return t('cel.double');
+  if (celebration.type === 'level') return t('cel.level');
+  return t('cel.rank', { icon: RANK_ICONS[celebration.rank] || '🏆' });
 }
 
 function celebrationLines(celebration: Celebration): string[] {
   const lines: string[] = [];
-  if (celebration.type !== 'rank') lines.push(`You reached Level ${celebration.level}`);
+  if (celebration.type !== 'rank') lines.push(t('cel.reached', { n: celebration.level }));
   if (celebration.type !== 'level') {
-    lines.push(`${celebration.rank}-Rank unlocked — ${RANK_NAMES[celebration.rank] || celebration.rank}`);
+    lines.push(t('cel.unlocked', { rank: celebration.rank, name: `rank.${celebration.rank}` in en ? t(`rank.${celebration.rank}` as MessageKey) : celebration.rank }));
   }
   return lines;
 }
 
-function pendingLabel(pending: number, action = 'TAP TO DISMISS'): string {
+function pendingLabel(pending: number, action = t('cel.dismiss')): string {
   return pending > 0
-    ? `⏳ ${pending} MORE CELEBRATION${pending > 1 ? 'S' : ''} QUEUED • ${action}`
+    ? translatePlural(useLocaleStore.getState().locale, 'cel.queued', pending, { action })
     : action;
 }
 
@@ -291,7 +284,7 @@ function BigCelebrationOverlay({ celebration, pending, onDismiss }: { celebratio
         ))}
 
         <p className="mt-6 text-gray-400 text-xs font-mono tracking-widest">
-          {pendingLabel(pending, 'TAP TO CONTINUE')}
+          {pendingLabel(pending, t('cel.continue'))}
         </p>
       </motion.div>
     </motion.div>

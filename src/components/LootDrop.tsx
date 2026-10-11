@@ -1,3 +1,5 @@
+import { useT } from '../i18n';
+import type { MessageKey } from '../i18n/messages/en';
 import { useEffect, useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useGameStore } from '../store/gameStore';
@@ -9,6 +11,7 @@ import { sfx } from '../utils/sounds';
  * then auto-dismisses. Clicking "LOOT" adds it to inventory and dismisses.
  */
 export default function LootDrop() {
+  const t = useT();
   const { lootDrop, setLootDrop } = useGameStore();
   const [visible, setVisible] = useState(false);
 
@@ -80,13 +83,13 @@ export default function LootDrop() {
             {/* Item info */}
             <div className="relative z-10 min-w-0">
               <p className="text-[10px] font-mono tracking-widest text-gray-500 uppercase mb-0.5">
-                ITEM DROPPED
+                {t('loot.dropped')}
               </p>
               <p className={`font-display font-bold text-sm ${rarity.color}`}>
                 {def.name}
               </p>
               <p className="text-[10px] font-mono text-gray-500 mt-0.5">
-                {rarity.label} • {def.effect}
+                {t(`inv.rarity.${def.rarity}` as MessageKey)} • {def.effect}
               </p>
             </div>
 
@@ -99,7 +102,7 @@ export default function LootDrop() {
               }}
               className="relative z-10 px-3 py-1.5 rounded-lg bg-purple-500/15 border border-purple-500/30 text-purple-400 font-display text-xs font-bold hover:bg-purple-500/25 transition-colors"
             >
-              LOOT
+              {t('loot.take')}
             </button>
 
             {/* Auto-dismiss progress bar */}
