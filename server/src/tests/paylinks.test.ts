@@ -130,8 +130,11 @@ describe('Parent pay links', () => {
       const r = await call('/pay-links/lookup', { token });
       assert.strictEqual(r.status, 200);
       assert.deepStrictEqual({ name: r.body.name, a: r.body.amountMinor, c: r.body.currency, i: r.body.interval, expired: r.body.expired, subscribed: r.body.subscribed }, { name: 'Hunter child', a: 399, c: 'USD', i: 'month', expired: false, subscribed: false });
+      // Only these fields may ever come back (an allowlist beats grepping for secrets), and none may carry the child's id.
+      assert.deepStrictEqual(Object.keys(r.body).sort(), ['amountMinor', 'currency', 'expired', 'expiresAt', 'interval', 'name', 'subscribed', 'subscription']);
       const text = JSON.stringify(r.body);
-      for (const secret of [teen.username, 'password', 'consent', 'birth', 'email', String(teen.id)]) assert.ok(!text.includes(secret), `leaked: ${secret}`);
+      for (const secret of [teen.username, 'password', 'consent', 'birth', 'email']) assert.ok(!text.includes(secret), `leaked: ${secret}`);
+      assert.ok(!Object.values(r.body).includes(teen.id), 'leaked the user id');
     });
     it('is not shown a login username when the child never chose a Hunter name', async () => {
       const anon = await makeUser('anon', 'granted', false);
