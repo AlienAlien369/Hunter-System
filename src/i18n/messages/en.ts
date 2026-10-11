@@ -1102,6 +1102,20 @@ export const en = {
   'streak.nextMonth': "Next month",
   'ai.limit': "You've used today's AI suggestions. You can still do this manually, and the allowance resets tomorrow.",
   'ai.seePro': "Pro has a much bigger allowance.",
+  'rr.moduleReplaced': "An established module was replaced",
+  'rr.moduleRemoved': "An established module was removed",
+  'rr.setup': "Setup period — no XP impact",
+  'rr.module48': "Module was added less than 48 hours ago — no XP impact",
+  'rr.expanding': "Expanding your routine",
+  'rr.rewardClaimed': "Module reward already claimed once",
+  'rr.commitRemoved': "An established commitment was removed",
+  'rr.commit48': "Commitment is less than 48 hours old — no XP impact",
+  'rr.newCommit': "New commitment",
+  'rr.task48': "Task is less than 48 hours old — no XP impact",
+  'rr.major': "Major change to an established commitment",
+  'rr.minor': "Minor adjustment",
+  'rr.refund': "Removed within 48 hours — the module reward is returned",
+  'rr.pause': "Pausing an established module is a major change",
 } as const;
 
 export type MessageKey = keyof typeof en;

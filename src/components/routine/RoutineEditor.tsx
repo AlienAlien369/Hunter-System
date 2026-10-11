@@ -1,5 +1,6 @@
 import { DAYS, type Day, type RoutineItem, type RoutinePreview } from '../../lib/api';
 import { useT } from '../../i18n';
+import { reasonText } from './reasonText';
 import { newSlot } from './routineUtils';
 import { Btn, Modal, XpDelta, inputCls } from '../hunter/ui';
 
@@ -80,7 +81,7 @@ export function RoutineChangeDialog({ preview, busy, error, onConfirm, onCancel,
             <p className="text-xs text-purple-300 uppercase tracking-wider">{t('rc.impact')}</p>
             {impact.length ? impact.map((c, n) => (
               <div key={n} className="flex justify-between gap-3 text-xs">
-                <span className="text-gray-400">{c.reason}</span>
+                <span className="text-gray-400">{reasonText(t, c.reason)}</span>
                 <XpDelta xp={c.xp} />
               </div>
             )) : <p className="text-xs text-gray-400">{t('rc.noChange')}</p>}
