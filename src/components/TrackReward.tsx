@@ -1,3 +1,4 @@
+import { useT } from '../i18n';
 import { calculateLevel, calculateRank, getLevelInfo } from '../utils/xp';
 
 interface TrackRewardProps {
@@ -21,6 +22,7 @@ export default function TrackReward({
   chipClass = 'border-gold/20 bg-gold/5',
   label,
 }: TrackRewardProps) {
+  const t = useT();
   if (quests.length === 0) return null;
 
   const totalXp = quests.reduce((sum, q) => sum + q.xpReward, 0);
@@ -30,9 +32,9 @@ export default function TrackReward({
   if (remainingXp <= 0) {
     return (
       <div className={`flex flex-wrap items-center gap-x-2.5 gap-y-1 font-mono text-xs px-3 py-2 rounded-lg border ${chipClass}`}>
-        <span className={`font-bold ${accentClass}`}>{label ?? `⚡ ${totalXp} XP TOTAL`}</span>
+        <span className={`font-bold ${accentClass}`}>{label ?? t('tr.total', { n: totalXp })}</span>
         <span className="text-gray-500">·</span>
-        <span className="text-green-400">ALL XP EARNED ✓</span>
+        <span className="text-green-400">{t('tr.allEarned')}</span>
       </div>
     );
   }
@@ -43,21 +45,21 @@ export default function TrackReward({
   const levelGain = calculateLevel(projectedXp) - calculateLevel(currentXp);
   const levelBand = getLevelInfo(currentXp).nextLevelXP - getLevelInfo(currentXp).currentLevelXP;
   const gainLabel = levelGain > 0
-    ? `+${levelGain} LVL${levelGain > 1 ? 'S' : ''}`
-    : `+${(remainingXp / levelBand).toFixed(1)} LVL`;
+    ? levelGain > 1 ? t('tr.gainLvls', { n: levelGain }) : t('tr.gainLvl', { n: levelGain })
+    : t('tr.gainLvl', { n: (remainingXp / levelBand).toFixed(1) });
 
   return (
     <div className={`flex flex-wrap items-center gap-x-2.5 gap-y-1 font-mono text-xs px-3 py-2 rounded-lg border ${chipClass}`}>
-      <span className={`font-bold ${accentClass}`}>{label ?? `⚡ ${totalXp} XP TOTAL`}</span>
+      <span className={`font-bold ${accentClass}`}>{label ?? t('tr.total', { n: totalXp })}</span>
       <span className="text-gray-500">·</span>
-      <span className="text-gray-400">{remainingXp} XP REMAINING</span>
+      <span className="text-gray-400">{t('tr.remaining', { n: remainingXp })}</span>
       <span className="text-gray-500">·</span>
       <span className="text-gray-400">
-        LEVEL <span className={`font-bold ${accentClass}`}>{projectedLevel}</span>{' '}
+        {t('tr.level')} <span className={`font-bold ${accentClass}`}>{projectedLevel}</span>{' '}
         <span className="text-green-400">{gainLabel}</span>
       </span>
       <span className="text-gray-500">·</span>
-      <span className={`font-bold ${accentClass}`}>{projectedRank}-RANK</span>
+      <span className={`font-bold ${accentClass}`}>{t('tr.rank', { rank: projectedRank })}</span>
     </div>
   );
 }

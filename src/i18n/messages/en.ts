@@ -932,6 +932,21 @@ export const en = {
   'loot.take': "LOOT",
   'pd.banner': "✦ PERFECT DAY ✦",
   'pd.bannerBody': "Every timetable quest cleared · +{xp} XP bonus",
+  'err.title': "SYSTEM GLITCH",
+  'err.body': "Something went wrong on this screen. Your XP and progress are safe — this has been reported.",
+  'err.reload': "RELOAD",
+  'err.home': "GO TO DASHBOARD",
+  'load.waking': "WAKING UP THE SYSTEM…",
+  'load.loading': "LOADING...",
+  'load.slow': "The first load after a quiet spell can take up to a minute.",
+  'side.logout': "LOGOUT",
+  'tr.allEarned': "ALL XP EARNED ✓",
+  'tr.total': "⚡ {n} XP TOTAL",
+  'tr.remaining': "{n} XP REMAINING",
+  'tr.level': "LEVEL",
+  'tr.gainLvls': "+{n} LVLS",
+  'tr.gainLvl': "+{n} LVL",
+  'tr.rank': "{rank}-RANK",
 } as const;
 
 export type MessageKey = keyof typeof en;

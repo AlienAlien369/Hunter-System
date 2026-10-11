@@ -1,4 +1,5 @@
 import { Component, type ErrorInfo, type ReactNode } from 'react';
+import { t } from '../i18n';
 import { reportError } from '../utils/errorReporting';
 
 interface State { error: Error | null }
@@ -21,18 +22,18 @@ export default class ErrorBoundary extends Component<{ children: ReactNode; full
       <div className={`flex items-center justify-center p-6 ${this.props.fullPage ? 'min-h-screen' : 'py-20'}`} role="alert">
         <div className="max-w-md w-full text-center rounded-2xl border border-red-500/30 bg-[#0d1117]/90 p-6 space-y-4">
           <p className="text-4xl">⚠️</p>
-          <p className="font-display text-white tracking-wider">SYSTEM GLITCH</p>
+          <p className="font-display text-white tracking-wider">{t('err.title')}</p>
           <p className="text-sm text-gray-400 font-mono">
-            Something went wrong on this screen. Your XP and progress are safe — this has been reported.
+            {t('err.body')}
           </p>
           <div className="flex justify-center gap-2">
             <button type="button" onClick={() => window.location.reload()}
               className="px-4 py-2 rounded-lg border border-purple-400/50 bg-purple-600/30 hover:bg-purple-600/50 text-purple-100 font-mono text-xs">
-              RELOAD
+              {t('err.reload')}
             </button>
             <button type="button" onClick={() => { this.setState({ error: null }); window.location.assign('/'); }}
               className="px-4 py-2 rounded-lg border border-gray-600 text-gray-300 hover:text-white font-mono text-xs">
-              GO TO DASHBOARD
+              {t('err.home')}
             </button>
           </div>
         </div>
