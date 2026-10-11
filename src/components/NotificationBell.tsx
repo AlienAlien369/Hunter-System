@@ -6,6 +6,7 @@ import type { ActivityEntry } from '../lib/api';
 import { api } from '../lib/api';
 import { useAuthStore } from '../store/authStore';
 import { useGameStore } from '../store/gameStore';
+import { t, useT } from '../i18n';
 import { sfx } from '../utils/sounds';
 import { todayKey } from '../data/hiddenQuests';
 
@@ -20,45 +21,45 @@ interface Notice {
 }
 
 /** Which server activity events become notifications, how to describe them, and where they lead. */
-const NOTICE_META: Record<string, { icon: string; title: string; to: (d: Record<string, unknown> | null, entity: string | null) => string; detail: (d: Record<string, unknown> | null) => string }> = {
+const NOTICE_META: Record<string, { icon: string; title: () => string; to: (d: Record<string, unknown> | null, entity: string | null) => string; detail: (d: Record<string, unknown> | null) => string }> = {
   quest_complete: {
     icon: '✅',
-    title: 'Quest completed',
+    title: () => t('nt.questDone'),
     to: (_d, entity) => entity ? `/quests/${entity}` : '/quests',
-    detail: d => `+${Number(d?.xp ?? 0)} XP · ${String(d?.title ?? 'Quest cleared')}`,
+    detail: d => `+${Number(d?.xp ?? 0)} XP · ${String(d?.title ?? t('nt.questCleared'))}`,
   },
   quest_undo: {
     icon: '↩️',
-    title: 'Quest uncompleted',
+    title: () => t('nt.questUndo'),
     to: (_d, entity) => entity ? `/quests/${entity}` : '/quests',
-    detail: d => `${String(d?.title ?? 'Quest')} reverted`,
+    detail: d => t('nt.reverted', { title: String(d?.title ?? t('nt.quest')) }),
   },
   penalty_applied: {
     icon: '💀',
-    title: 'Penalty applied',
+    title: () => t('nt.penalty'),
     to: () => '/',
-    detail: d => `-${Number(d?.xp_lost ?? 0)} XP, -${Number(d?.hp_lost ?? 0)} HP after ${Number(d?.missed_days ?? 2)} missed days`,
+    detail: d => t('nt.penaltyLine', { xp: Number(d?.xp_lost ?? 0), hp: Number(d?.hp_lost ?? 0), days: Number(d?.missed_days ?? 2) }),
   },
   penalty_recovered: {
     icon: '🎉',
-    title: 'Streak recovered',
+    title: () => t('nt.recovered'),
     to: () => '/',
-    detail: d => `+${Number(d?.bonus_xp ?? 0)} XP bonus · ${Number(d?.streak ?? 0)}-day streak`,
+    detail: d => t('nt.recoveredLine', { xp: Number(d?.bonus_xp ?? 0), n: Number(d?.streak ?? 0) }),
   },
-  dsa_redo: { icon: '🔄', title: 'DSA track reset', to: () => '/dsa-roadmap', detail: () => 'Progress cleared — XP kept' },
-  saas_redo: { icon: '🔄', title: 'SaaS track reset', to: () => '/saas', detail: () => 'Progress cleared — XP kept' },
-  arch_redo: { icon: '🔄', title: 'Architecture track reset', to: () => '/arch', detail: () => 'Progress cleared — XP kept' },
+  dsa_redo: { icon: '🔄', title: () => t('nt.dsa'), to: () => '/dsa-roadmap', detail: () => t('nt.cleared') },
+  saas_redo: { icon: '🔄', title: () => t('nt.saas'), to: () => '/saas', detail: () => t('nt.cleared') },
+  arch_redo: { icon: '🔄', title: () => t('nt.arch'), to: () => '/arch', detail: () => t('nt.cleared') },
   nutrition_update: {
     icon: '🥗',
-    title: 'Nutrition logged',
+    title: () => t('nt.nutrition'),
     to: () => '/diet',
-    detail: d => `${Number(d?.items ?? 0)} item(s) recorded`,
+    detail: d => t('nt.items', { n: Number(d?.items ?? 0) }),
   },
   register: {
     icon: '🆕',
-    title: 'Hunter registered',
+    title: () => t('nt.registered'),
     to: () => '/',
-    detail: () => 'Welcome to the System. Your training begins.',
+    detail: () => t('nt.welcome'),
   },
 };
 
@@ -71,7 +72,7 @@ function toNotice(entry: ActivityEntry): Notice | null {
   return {
     id: `a:${entry.id}`,
     icon: meta.icon,
-    title: meta.title,
+    title: meta.title(),
     detail: meta.detail(entry.details),
     time: entry.created_at,
     to: meta.to(entry.details, entry.entity),
@@ -137,6 +138,7 @@ function saveDismissed(username: string, dismissed: Set<string>) {
  * Read state is tracked per user in localStorage.
  */
 export default function NotificationBell() {
+  const tr = useT();
   const username = useAuthStore(s => s.user?.username);
   const hiddenQuest = useGameStore(s => s.hiddenQuest);
   const questsVersion = useGameStore(s => s.quests);
@@ -174,8 +176,8 @@ export default function NotificationBell() {
           items.unshift({
             id: `hq:${hiddenQuest.date}`,
             icon: '❓',
-            title: 'Hidden quest available',
-            detail: 'The System detected a hidden challenge. Complete it today!',
+            title: t('nt.hq'),
+            detail: t('nt.hqBody'),
             time: new Date().toISOString(),
             to: '/',
           });
@@ -292,8 +294,8 @@ export default function NotificationBell() {
         whileTap={{ scale: 0.8 }}
         className={`relative p-2 text-gray-400 hover:text-white transition-colors${unread > 0 ? ' rounded-full' : ''}`}
         style={unread > 0 ? { animation: 'pulse-glow 2s ease-in-out infinite' } : undefined}
-        title="Notifications"
-        aria-label="Notifications"
+        title={tr('nt.title')}
+        aria-label={tr('nt.title')}
       >
         <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9" />
@@ -326,7 +328,7 @@ export default function NotificationBell() {
               style={{ top: panelTop, right: panelRight }}
             >
               <div className="flex items-center justify-between px-4 pt-3 pb-2">
-                <p className="text-[10px] text-gray-500 font-mono tracking-widest">NOTIFICATIONS</p>
+                <p className="text-[10px] text-gray-500 font-mono tracking-widest">{tr('nt.header')}</p>
                 {unread > 0 && (
                   <button
                     onClick={markAllRead}
@@ -336,7 +338,7 @@ export default function NotificationBell() {
                   </button>
                 )}
                 {unread === 0 && notices.length > 0 && (
-                  <span className="text-[10px] text-gray-600 font-mono">ALL READ</span>
+                  <span className="text-[10px] text-gray-600 font-mono">{tr('nt.allRead')}</span>
                 )}
               </div>
 
@@ -344,8 +346,8 @@ export default function NotificationBell() {
                 {notices.length === 0 ? (
                   <div className="px-4 py-10 text-center">
                     <div className="text-3xl mb-2">🛡️</div>
-                    <p className="text-sm text-gray-400">No notifications yet</p>
-                    <p className="text-xs text-gray-600 mt-1">Complete quests or hit milestones to see them here.</p>
+                    <p className="text-sm text-gray-400">{tr('nt.none')}</p>
+                    <p className="text-xs text-gray-600 mt-1">{tr('nt.noneHint')}</p>
                   </div>
                 ) : (
                   notices.slice(0, 25).map(n => (
@@ -381,8 +383,8 @@ export default function NotificationBell() {
                             dismissId(n.id);
                           }}
                           className="opacity-0 group-hover:opacity-100 text-gray-500 hover:text-red-400 transition-all p-0.5 -mr-1"
-                          title="Dismiss"
-                          aria-label="Dismiss notification"
+                          title={tr('nt.dismiss')}
+                          aria-label={tr('nt.dismissAria')}
                         >
                           <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
@@ -410,7 +412,7 @@ export default function NotificationBell() {
               transition={{ type: 'spring', stiffness: 400, damping: 25 }}
               className="fixed bottom-6 left-1/2 -translate-x-1/2 z-[70] flex items-center gap-3 px-4 py-2.5 bg-[#161b22]/95 backdrop-blur-xl border border-white/10 rounded-xl shadow-2xl shadow-black/40"
             >
-              <span className="text-sm text-gray-300">Notification dismissed</span>
+              <span className="text-sm text-gray-300">{tr('nt.dismissed')}</span>
               <button
                 onClick={undoDismiss}
                 className="text-sm font-medium text-purple-400 hover:text-purple-300 transition-colors"
