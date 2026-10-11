@@ -1,8 +1,9 @@
 import { useState } from 'react';
-import { api, type RoutineItem } from '../../lib/api';
+import { api, isAiLimited, type RoutineItem } from '../../lib/api';
 import { useGameStore } from '../../store/gameStore';
 import { MODULE_TEMPLATES } from '../../data/presets';
 import { useModuleStore } from '../../store/moduleStore';
+import AiLimitNote from '../AiLimitNote';
 import { Btn, Modal, inputCls } from '../hunter/ui';
 import { useT } from '../../i18n';
 import { RoutineEditor } from './RoutineEditor';
@@ -26,16 +27,17 @@ export default function RoutineSetup({ open, onClose, onDone }: { open: boolean;
   const [ack, setAck] = useState(false);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState('');
+  const [aiLimited, setAiLimited] = useState(false);
 
   const suggest = async () => {
-    setBusy(true); setError('');
+    setBusy(true); setError(''); setAiLimited(false);
     try {
       const s = await api.suggestRoutine(description);
       setItems(s.schedule.map(slot => newSlot(slot)));
       setTips(s.suggestions);
       setStep('schedule');
     } catch (e) {
-      setError(`${(e as Error).message}`);
+      if (isAiLimited(e)) setAiLimited(true); else setError(`${(e as Error).message}`);
     } finally {
       setBusy(false);
     }
@@ -76,6 +78,7 @@ export default function RoutineSetup({ open, onClose, onDone }: { open: boolean;
           </p>
           <textarea className={`${inputCls} min-h-32`} maxLength={1500} value={description} onChange={e => setDescription(e.target.value)}
             placeholder={t('rs.placeholder')} />
+          {aiLimited && <AiLimitNote />}
           {error && <p className="text-sm text-yellow-300/90 font-mono">{error}</p>}
           <div className="flex flex-wrap justify-between gap-2">
             <Btn variant="ghost" onClick={onClose}>{t('rs.later')}</Btn>

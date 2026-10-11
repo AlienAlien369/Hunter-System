@@ -1,9 +1,10 @@
 import { useState } from 'react';
-import { api, DAYS, type ChannelInput, type Day, type HunterModule, type ModuleKind, type ModuleTaskSpec } from '../../lib/api';
+import { api, isAiLimited, DAYS, type ChannelInput, type Day, type HunterModule, type ModuleKind, type ModuleTaskSpec } from '../../lib/api';
 import { MODULE_TEMPLATES, type ModuleTemplate } from '../../data/presets';
 import { useModuleStore, withXpConfirm } from '../../store/moduleStore';
 import { useGameStore } from '../../store/gameStore';
 import { useT, useLocaleStore, translatePlural } from '../../i18n';
+import AiLimitNote from '../AiLimitNote';
 import { Btn, Modal, inputCls } from '../hunter/ui';
 
 type Step = 'source' | 'edit' | 'confirm';
@@ -42,6 +43,7 @@ export default function ModuleBuilder({ open, onClose, module, currentTasks, rep
   const [ack, setAck] = useState(false);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState('');
+  const [aiLimited, setAiLimited] = useState(false);
   const [openKey, setOpenKey] = useState<string | null>(null);
 
   const key = open ? `${module?.id ?? 'new'}-${replacing?.id ?? ''}` : null;
@@ -55,8 +57,8 @@ export default function ModuleBuilder({ open, onClose, module, currentTasks, rep
   }
 
   const run = async (fn: () => Promise<void>) => {
-    setBusy(true); setError('');
-    try { await fn(); } catch (e) { setError((e as Error).message); } finally { setBusy(false); }
+    setBusy(true); setError(''); setAiLimited(false);
+    try { await fn(); } catch (e) { if (isAiLimited(e)) setAiLimited(true); else setError((e as Error).message); } finally { setBusy(false); }
   };
 
   const fromTemplate = (tpl: ModuleTemplate) => {
@@ -120,6 +122,7 @@ export default function ModuleBuilder({ open, onClose, module, currentTasks, rep
               <Btn variant="ghost" onClick={() => { setTasks([blankTask()]); setStep('edit'); }}>{tr('mb.blank')}</Btn>
               <Btn onClick={draft} disabled={busy || prompt.trim().length < 5}>{busy ? tr('mb.drafting') : tr('mb.draft')}</Btn>
             </div>
+            {aiLimited && <AiLimitNote />}
             {error && <p className="text-sm text-yellow-300/90 font-mono">{error}</p>}
           </div>
           <div>

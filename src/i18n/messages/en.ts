@@ -1100,6 +1100,8 @@ export const en = {
   'ce.archived': "Archived",
   'streak.prevMonth': "Previous month",
   'streak.nextMonth': "Next month",
+  'ai.limit': "You've used today's AI suggestions. You can still do this manually, and the allowance resets tomorrow.",
+  'ai.seePro': "Pro has a much bigger allowance.",
 } as const;
 
 export type MessageKey = keyof typeof en;

@@ -1089,4 +1089,6 @@ export const hi: Messages = {
   'ce.archived': "आर्काइव",
   'streak.prevMonth': "पिछला महीना",
   'streak.nextMonth': "अगला महीना",
+  'ai.limit': "आज की AI सलाहें पूरी हो गईं। तुम इसे हाथ से अब भी कर सकते हो, और कल सीमा फिर से मिल जाएगी।",
+  'ai.seePro': "Pro में बहुत बड़ी सीमा मिलती है।",
 };

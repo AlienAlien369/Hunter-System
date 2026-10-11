@@ -125,6 +125,9 @@ export interface RoutineSuggestion {
 }
 
 export type UnplannedDifficulty = 'easy' | 'medium' | 'hard' | 'extreme';
+/** True when an API failure means "today's AI allowance is used up" (the server says so with aiLimited). */
+export const isAiLimited = (e: unknown): boolean => e instanceof ApiError && e.data?.aiLimited === true;
+
 export const UNPLANNED_CATEGORIES = ['work', 'learning', 'fitness', 'health', 'skincare', 'content', 'mindset', 'chores', 'social', 'other'] as const;
 
 export interface UnplannedAnalysis {
@@ -722,7 +725,7 @@ export const api = {
 
   // Unplanned activities ("I did something else")
   analyzeActivity: (description: string) =>
-    request<({ status: 'analyzed' } & UnplannedOffer) | { status: 'manual'; message: string }>('/unplanned/analyze', {
+    request<({ status: 'analyzed' } & UnplannedOffer) | { status: 'manual'; message: string; aiLimited?: boolean }>('/unplanned/analyze', {
       method: 'POST', body: JSON.stringify({ description }),
     }),
 

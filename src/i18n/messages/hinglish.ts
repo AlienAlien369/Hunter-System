@@ -1088,4 +1088,6 @@ export const hinglish: Messages = {
   'ce.archived': "Archived",
   'streak.prevMonth': "Pichhla mahina",
   'streak.nextMonth': "Agla mahina",
+  'ai.limit': "Aaj ki AI suggestions poori ho gayi. Tum ise haath se ab bhi kar sakte ho, aur kal limit phir mil jayegi.",
+  'ai.seePro': "Pro mein bahut badi limit milti hai.",
 };

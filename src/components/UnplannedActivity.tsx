@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { api, UNPLANNED_CATEGORIES, type UnplannedDifficulty, type UnplannedEdits, type UnplannedOffer } from '../lib/api';
 import { useT } from '../i18n';
 import { en, type MessageKey } from '../i18n/messages/en';
+import AiLimitNote from './AiLimitNote';
 import { useGameStore } from '../store/gameStore';
 import { sfx } from '../utils/sounds';
 import { Btn, Modal, inputCls } from './hunter/ui';
@@ -23,6 +24,7 @@ export default function UnplannedActivity() {
   const [offer, setOffer] = useState<UnplannedOffer | null>(null);
   const [edits, setEdits] = useState<Required<UnplannedEdits> | null>(null);
   const [notice, setNotice] = useState('');
+  const [aiLimited, setAiLimited] = useState(false);
   const [error, setError] = useState('');
   const [busy, setBusy] = useState(false);
   const [gained, setGained] = useState(0);
@@ -30,7 +32,7 @@ export default function UnplannedActivity() {
   const edit = (patch: UnplannedEdits) => { setEdits(e => ({ ...e!, ...patch })); setDirty(true); };
 
   const reset = () => {
-    setStep('describe'); setDescription(''); setOffer(null); setEdits(null); setDirty(false); setNotice(''); setError('');
+    setStep('describe'); setDescription(''); setOffer(null); setEdits(null); setDirty(false); setNotice(''); setError(''); setAiLimited(false);
   };
   const close = () => {
     if (offer && step === 'review') api.rejectActivity(offer.id).catch(() => {}); // closing = not accepting
@@ -46,6 +48,7 @@ export default function UnplannedActivity() {
     const r = await api.analyzeActivity(description);
     if (r.status === 'manual') {
       setNotice(r.message);
+      setAiLimited(r.aiLimited === true);
       setManual(m => ({ ...m, title: m.title || description.slice(0, 80) }));
       setStep('manual');
     } else {
@@ -124,7 +127,7 @@ export default function UnplannedActivity() {
 
         {step === 'manual' && (
           <div className="space-y-4">
-            {notice && <p className="text-sm text-yellow-300/90 font-mono">{notice}</p>}
+            {aiLimited ? <AiLimitNote /> : notice && <p className="text-sm text-yellow-300/90 font-mono">{notice}</p>}
             <label className="block text-xs font-mono text-gray-400 space-y-1">
               <span>{t('unp.activity')}</span>
               <input className={inputCls} maxLength={120} value={manual.title} onChange={e => setManual({ ...manual, title: e.target.value })} />
