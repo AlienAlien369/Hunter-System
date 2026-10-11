@@ -96,3 +96,4 @@ get approved. This blocks all 13-17 signups, so set them before promoting.
   shown, but a Hunter name can still be a real name the student chose.
 - The Teams plan (more classes, bigger classes, institute billing) is priced in
   the catalogue but not purchasable yet.
+- Added a page-language tag to anonymous events; privacy wording updated without a version bump (clarification). Lawyer to confirm.
