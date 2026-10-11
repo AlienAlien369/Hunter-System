@@ -1,5 +1,6 @@
 import { browserTimeZone } from '../utils/date';
 import { useLocaleStore } from '../i18n';
+import { serverErrorText } from './serverErrors';
 
 // Auto-detect API URL based on environment
 const getApiUrl = (): string => {
@@ -543,7 +544,7 @@ async function request<T>(endpoint: string, options: RequestInit = {}): Promise<
 
   if (!response.ok) {
     const error = await response.json().catch(() => ({ error: response.statusText }));
-    throw new ApiError(error.error || `API error: ${response.status}`, response.status, error);
+    throw new ApiError(serverErrorText(error.error || `API error: ${response.status}`), response.status, error);
   }
 
   return response.json();
