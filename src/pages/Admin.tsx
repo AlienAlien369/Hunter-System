@@ -71,6 +71,18 @@ export default function Admin() {
           <Stat label="PRICING" value={report.visits.pricing.toLocaleString()} />
           <Stat label="UPGRADE CLICKS" value={report.visits.upgradeClicks.toLocaleString()} />
         </div>
+        {!!report.visitsByLang?.length && (
+          <table className="w-full text-xs font-mono mt-4">
+            <thead><tr className="text-gray-400 text-left"><th className="py-1">LANGUAGE</th><th>LANDING</th><th>LOGIN</th><th>PRICING</th><th>UPGRADE CLICKS</th></tr></thead>
+            <tbody>
+              {report.visitsByLang.map(r => (
+                <tr key={r.lang} className="border-t border-purple-500/10 text-gray-200">
+                  <td className="py-1">{r.lang}</td><td>{r.landing}</td><td>{r.login}</td><td>{r.pricing}</td><td>{r.upgradeClicks}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        )}
         <p className="text-[11px] text-gray-400 font-mono mt-3">Visit → signup: {fmtPct(conv)}. Visitors who send Do Not Track or Global Privacy Control are not counted, so this reads high.</p>
       </Panel>
 

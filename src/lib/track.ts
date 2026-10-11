@@ -1,4 +1,5 @@
 import { api } from './api';
+import { useLocaleStore } from '../i18n';
 
 // Privacy-friendly page events. No cookies, no local storage, no ids: the
 // server stores the event name, a coarse country and the day. Do Not Track
@@ -15,5 +16,6 @@ export function trackingOptedOut(nav: PrivacyNavigator = navigator): boolean {
 
 export function trackEvent(name: TrackEvent, props: { page?: string; ref?: string } = {}): void {
   if (trackingOptedOut()) return;
-  api.sendEvent(name, props).catch(() => { /* measurement must never break the app */ });
+  // The page language (en / hi / hi-Latn) lets us compare conversion by language. It is not an identifier.
+  api.sendEvent(name, { ...props, lang: useLocaleStore.getState().locale }).catch(() => { /* measurement must never break the app */ });
 }

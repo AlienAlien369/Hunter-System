@@ -270,6 +270,7 @@ export interface FunnelReport {
   totals: FunnelRow;
   byRegion: FunnelRow[];
   visits: { landing: number; login: number; pricing: number; upgradeClicks: number };
+  visitsByLang?: { lang: string; landing: number; login: number; pricing: number; upgradeClicks: number }[];
 }
 
 export interface PenaltyInfo {
@@ -547,7 +548,7 @@ async function request<T>(endpoint: string, options: RequestInit = {}): Promise<
 
 export const api = {
   // Measurement: anonymous, allowlisted page events (see server/src/analytics.ts)
-  sendEvent: (name: string, props: { page?: string; ref?: string }) =>
+  sendEvent: (name: string, props: { page?: string; ref?: string; lang?: string }) =>
     fetch(`${API_URL}/events`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json', 'X-Timezone': browserTimeZone() },

@@ -45,6 +45,9 @@ describe('analytics allowlist', () => {
   it('keeps only small, boring props', () => {
     assert.deepStrictEqual(sanitizeProps({ page: '/login', ref: 'twitter', email: 'a@b.c', extra: 1 }), { page: '/login', ref: 'twitter' });
     assert.deepStrictEqual(sanitizeProps({ page: 'https://evil.example/x?token=1', ref: 'a b c' }), {});
+    assert.deepStrictEqual(sanitizeProps({ lang: 'hi-Latn' }), { lang: 'hi-Latn' });
+    assert.deepStrictEqual(sanitizeProps({ lang: 'fr' }), {});
+    assert.deepStrictEqual(sanitizeProps({ lang: '<script>' }), {});
     assert.deepStrictEqual(sanitizeProps('nope'), {});
   });
 });

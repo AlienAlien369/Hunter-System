@@ -28,9 +28,10 @@ export function isClientEvent(name: unknown): name is ClientEvent {
 export function sanitizeProps(raw: unknown): Record<string, string> {
   const out: Record<string, string> = {};
   if (!raw || typeof raw !== 'object') return out;
-  const { page, ref } = raw as Record<string, unknown>;
+  const { page, ref, lang } = raw as Record<string, unknown>;
   if (typeof page === 'string' && /^\/[\w\-./]{0,59}$/.test(page)) out.page = page;
   if (typeof ref === 'string' && /^[\w-]{1,30}$/.test(ref)) out.ref = ref;
+  if (lang === 'en' || lang === 'hi' || lang === 'hi-Latn') out.lang = lang; // the page language, never free text
   return out;
 }
 
@@ -63,6 +64,8 @@ export interface FunnelReport {
   totals: FunnelRow;
   byRegion: FunnelRow[];
   visits: { landing: number; login: number; pricing: number; upgradeClicks: number };
+  /** The same visit counts split by page language (events carry an allowlisted `lang`). */
+  visitsByLang: { lang: string; landing: number; login: number; pricing: number; upgradeClicks: number }[];
 }
 
 const EMPTY: FunnelRow = { region: 'ALL', signups: 0, timetable: 0, firstQuest: 0, d7Eligible: 0, d7Returned: 0, upgraded: 0 };
@@ -117,7 +120,25 @@ export async function computeFunnel(days: number, region: string | null): Promis
     [days, region],
   )).rows;
   const n = (name: string) => v.find((x: any) => x.name === name)?.n ?? 0;
-  return { days, region, totals, byRegion, visits: { landing: n('landing_view'), login: n('login_view'), pricing: n('pricing_view'), upgradeClicks: n('upgrade_click') } };
+  const l = (await pool.query(
+    `SELECT COALESCE(props->>'lang', 'unknown') AS lang, name, COUNT(*)::int AS n FROM events
+     WHERE name IN ('landing_view', 'login_view', 'pricing_view', 'upgrade_click')
+       AND created_at >= NOW() - make_interval(days => $1)
+       AND ($2::text IS NULL OR COALESCE(region, '??') = $2)
+     GROUP BY 1, 2`,
+    [days, region],
+  )).rows;
+  const byLang = new Map<string, { lang: string; landing: number; login: number; pricing: number; upgradeClicks: number }>();
+  for (const x of l as { lang: string; name: string; n: number }[]) {
+    const row = byLang.get(x.lang) ?? { lang: x.lang, landing: 0, login: 0, pricing: 0, upgradeClicks: 0 };
+    if (x.name === 'landing_view') row.landing = x.n;
+    else if (x.name === 'login_view') row.login = x.n;
+    else if (x.name === 'pricing_view') row.pricing = x.n;
+    else if (x.name === 'upgrade_click') row.upgradeClicks = x.n;
+    byLang.set(x.lang, row);
+  }
+  const visitsByLang = [...byLang.values()].sort((a, b) => b.landing + b.login - (a.landing + a.login));
+  return { days, region, totals, byRegion, visits: { landing: n('landing_view'), login: n('login_view'), pricing: n('pricing_view'), upgradeClicks: n('upgrade_click') }, visitsByLang };
 }
 
 export interface BusinessReport {
