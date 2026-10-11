@@ -4,6 +4,7 @@ import { useGameStore } from '../../store/gameStore';
 import { MODULE_TEMPLATES } from '../../data/presets';
 import { useModuleStore } from '../../store/moduleStore';
 import { Btn, Modal, inputCls } from '../hunter/ui';
+import { useT } from '../../i18n';
 import { RoutineEditor } from './RoutineEditor';
 import { fmtTime, newSlot, slotsValid } from './routineUtils';
 
@@ -15,6 +16,7 @@ type Step = 'describe' | 'schedule' | 'modules' | 'review';
  * AI output only pre-fills the editor; nothing is saved until the hunter confirms.
  */
 export default function RoutineSetup({ open, onClose, onDone }: { open: boolean; onClose: () => void; onDone: () => void }) {
+  const t = useT();
   const [step, setStep] = useState<Step>('describe');
   const [description, setDescription] = useState('');
   const [items, setItems] = useState<RoutineItem[]>([]);
@@ -66,20 +68,20 @@ export default function RoutineSetup({ open, onClose, onDone }: { open: boolean;
   const modules = [...new Set(items.map(i => i.module))];
 
   return (
-    <Modal open={open} onClose={onClose} title="YOUR HUNTER ROUTINE" wide>
+    <Modal open={open} onClose={onClose} title={t('rs.title')} wide>
       {step === 'describe' && (
         <div className="space-y-4">
           <p className="text-sm text-gray-400 font-mono">
-            Tell Hunter about your day and goals — when you wake, work, train, learn, care for your skin, create content. Hunter can turn it into a schedule you can edit, or you can build it yourself.
+            {t('rs.intro')}
           </p>
           <textarea className={`${inputCls} min-h-32`} maxLength={1500} value={description} onChange={e => setDescription(e.target.value)}
-            placeholder="I wake up at 6, work 9 to 6, want to exercise, learn coding, maintain skincare and create badminton content." />
+            placeholder={t('rs.placeholder')} />
           {error && <p className="text-sm text-yellow-300/90 font-mono">{error}</p>}
           <div className="flex flex-wrap justify-between gap-2">
-            <Btn variant="ghost" onClick={onClose}>SET UP LATER</Btn>
+            <Btn variant="ghost" onClick={onClose}>{t('rs.later')}</Btn>
             <div className="flex gap-2">
-              <Btn variant="ghost" onClick={manual}>BUILD MANUALLY</Btn>
-              <Btn onClick={suggest} disabled={busy || description.trim().length < 10}>{busy ? 'THINKING…' : 'SUGGEST MY ROUTINE'}</Btn>
+              <Btn variant="ghost" onClick={manual}>{t('rs.manual')}</Btn>
+              <Btn onClick={suggest} disabled={busy || description.trim().length < 10}>{busy ? t('rs.thinking') : t('rs.suggest')}</Btn>
             </div>
           </div>
         </div>
@@ -87,32 +89,32 @@ export default function RoutineSetup({ open, onClose, onDone }: { open: boolean;
 
       {step === 'schedule' && (
         <div className="space-y-4">
-          <p className="text-sm text-gray-400 font-mono">Everything here is editable. Each slot belongs to a module (e.g. Skincare, Workout, Content Creation).</p>
+          <p className="text-sm text-gray-400 font-mono">{t('rs.editable')}</p>
           {tips.length > 0 && (
-            <ul className="text-xs font-mono text-purple-200/80 list-disc pl-5 space-y-0.5">{tips.map(t => <li key={t}>{t}</li>)}</ul>
+            <ul className="text-xs font-mono text-purple-200/80 list-disc pl-5 space-y-0.5">{tips.map(tip => <li key={tip}>{tip}</li>)}</ul>
           )}
           <RoutineEditor items={items} onChange={setItems} />
           <div className="flex justify-between gap-2">
-            <Btn variant="ghost" onClick={() => setStep('describe')}>BACK</Btn>
-            <Btn onClick={() => setStep('modules')} disabled={!slotsValid(items)}>NEXT</Btn>
+            <Btn variant="ghost" onClick={() => setStep('describe')}>{t('rs.back')}</Btn>
+            <Btn onClick={() => setStep('modules')} disabled={!slotsValid(items)}>{t('rs.next')}</Btn>
           </div>
         </div>
       )}
 
       {step === 'modules' && (
         <div className="space-y-4 font-mono text-sm">
-          <p className="text-gray-400">Optional starting points — you can edit or delete everything later.</p>
+          <p className="text-gray-400">{t('rs.optional')}</p>
           <label className="flex items-start gap-3 p-3 rounded-lg border border-purple-500/20 cursor-pointer">
             <input type="checkbox" className="mt-1" checked={seedSkincare} onChange={e => setSeedSkincare(e.target.checked)} />
-            <span><span className="text-white">🧴 Skincare module</span><span className="block text-xs text-gray-500">Morning: cleanser, serum, moisturizer, sunscreen · Night: cleanser, treatment, moisturizer</span></span>
+            <span><span className="text-white">{t('rs.skincare')}</span><span className="block text-xs text-gray-500">{t('rs.skincareDesc')}</span></span>
           </label>
           <label className="flex items-start gap-3 p-3 rounded-lg border border-purple-500/20 cursor-pointer">
             <input type="checkbox" className="mt-1" checked={seedChannels} onChange={e => setSeedChannels(e.target.checked)} />
-            <span><span className="text-white">🎬 Content Creation module</span><span className="block text-xs text-gray-500">Badminton: 2 Instagram + 2 YouTube · Business/Tech: 1 Instagram + 1 YouTube</span></span>
+            <span><span className="text-white">{t('rs.content')}</span><span className="block text-xs text-gray-500">{t('rs.contentDesc')}</span></span>
           </label>
           <div className="flex justify-between gap-2">
-            <Btn variant="ghost" onClick={() => setStep('schedule')}>BACK</Btn>
-            <Btn onClick={() => setStep('review')}>REVIEW</Btn>
+            <Btn variant="ghost" onClick={() => setStep('schedule')}>{t('rs.back')}</Btn>
+            <Btn onClick={() => setStep('review')}>{t('rs.review')}</Btn>
           </div>
         </div>
       )}
@@ -124,35 +126,35 @@ export default function RoutineSetup({ open, onClose, onDone }: { open: boolean;
               <div key={i.id} className="flex justify-between gap-3 px-3 py-1.5 text-xs">
                 <span className="text-purple-300 w-20">{fmtTime(i.time)}</span>
                 <span className="flex-1 text-white truncate">{i.title}</span>
-                <span className="text-gray-500">{i.days.length === 7 ? 'Daily' : i.days.join(' ')}</span>
+                <span className="text-gray-500">{i.days.length === 7 ? t('rs.daily') : i.days.join(' ')}</span>
               </div>
             ))}
           </div>
-          <p className="text-xs text-gray-500">Modules: {modules.join(', ')}</p>
+          <p className="text-xs text-gray-500">{t('rs.modules', { list: modules.join(', ') })}</p>
 
           <div className="rounded-xl border border-yellow-500/40 bg-yellow-500/10 p-4 space-y-2">
-            <p className="font-display text-yellow-200 tracking-[0.2em]">⚠️ YOUR HUNTER ROUTINE</p>
-            <p className="text-gray-200">Your first 2 days are your setup period. During this time you can fine-tune your routine freely.</p>
-            <p className="text-gray-200">After the first 2 days:</p>
+            <p className="font-display text-yellow-200 tracking-[0.2em]">{t('rs.warnTitle')}</p>
+            <p className="text-gray-200">{t('rs.warn1')}</p>
+            <p className="text-gray-200">{t('rs.warn2')}</p>
             <ul className="list-disc pl-5 text-gray-300 space-y-0.5">
-              <li>Changing established modules may reduce XP.</li>
-              <li>Major timetable changes may reduce XP.</li>
-              <li>Removing an established commitment may reduce XP.</li>
-              <li>Adding a new module may give a small XP reward.</li>
+              <li>{t('rs.warn3')}</li>
+              <li>{t('rs.warn4')}</li>
+              <li>{t('rs.warn5')}</li>
+              <li>{t('rs.warn6')}</li>
             </ul>
             {(seedSkincare || seedChannels) && (
-              <p className="text-gray-200">⚠️ You have 2 days to customize each new module. After that, major changes or removing the module may reduce your XP.</p>
+              <p className="text-gray-200">{t('rs.warn7')}</p>
             )}
-            <p className="text-gray-200">You'll always see the exact XP impact and confirm before any change is applied. Choose your routine carefully.</p>
+            <p className="text-gray-200">{t('rs.warn8')}</p>
             <label className="flex items-center gap-2 pt-1 cursor-pointer">
               <input type="checkbox" checked={ack} onChange={e => setAck(e.target.checked)} />
-              <span className="text-white">I understand</span>
+              <span className="text-white">{t('rs.understand')}</span>
             </label>
           </div>
           {error && <p className="text-red-400">{error}</p>}
           <div className="flex justify-between gap-2">
-            <Btn variant="ghost" onClick={() => setStep('modules')}>BACK</Btn>
-            <Btn onClick={confirm} disabled={!ack || busy}>{busy ? 'CONFIRMING…' : 'CONFIRM MY HUNTER ROUTINE'}</Btn>
+            <Btn variant="ghost" onClick={() => setStep('modules')}>{t('rs.back')}</Btn>
+            <Btn onClick={confirm} disabled={!ack || busy}>{busy ? t('rs.confirming') : t('rs.confirm')}</Btn>
           </div>
         </div>
       )}
