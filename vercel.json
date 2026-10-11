@@ -12,6 +12,10 @@
       "destination": "/in.html"
     },
     {
+      "source": "/hi",
+      "destination": "/hi.html"
+    },
+    {
       "source": "/((?!api/).*)",
       "destination": "/index.html"
     }

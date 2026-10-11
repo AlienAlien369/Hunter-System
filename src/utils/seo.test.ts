@@ -4,6 +4,7 @@ import { describe, expect, it } from 'vitest';
 import { buildVariantHtml, sitemapXml, SITE, VARIANTS } from '../../scripts/seo.mjs';
 import { en } from '../i18n/messages/en';
 import { hinglish } from '../i18n/messages/hinglish';
+import { hi } from '../i18n/messages/hi';
 
 const index = readFileSync('index.html', 'utf8');
 
@@ -11,6 +12,14 @@ describe('landing SEO', () => {
   it('keeps the static India tags identical to the in-app translations', () => {
     expect(VARIANTS.in.title).toBe(hinglish['landing.meta.title.india']);
     expect(VARIANTS.in.description).toBe(hinglish['landing.meta.description.india']);
+  });
+  it('keeps the static Hindi tags identical to the in-app translations, and builds /hi', () => {
+    expect(VARIANTS.hi.title).toBe(hi['landing.meta.title.global']);
+    expect(VARIANTS.hi.description).toBe(hi['landing.meta.description.global']);
+    const out: string = buildVariantHtml(index, VARIANTS.hi);
+    expect(out).toContain('<html lang="hi">');
+    expect(out).toContain('<link rel="canonical" href="https://hunters-system.vercel.app/hi"');
+    expect(out).toContain(`<title>${VARIANTS.hi.title}</title>`);
   });
   it('home page title and description match the English landing copy', () => {
     // index.html keeps a shorter generic title for the app shell; the description must agree in substance.
@@ -28,7 +37,7 @@ describe('landing SEO', () => {
     expect(out.match(/rel="canonical"/g)).toHaveLength(1);
   });
   it('declares alternates for the language variants and an image big enough for link previews', () => {
-    for (const tag of ['hreflang="x-default"', 'hreflang="en"', 'hreflang="hi"', 'hreflang="en-IN"', 'og:image:width" content="1200"', 'summary_large_image']) expect(index).toContain(tag);
+    for (const tag of ['hreflang="x-default"', 'hreflang="en"', 'hreflang="hi"', 'hreflang="hi-Latn"', 'hreflang="en-IN"', 'og:image:width" content="1200"', 'summary_large_image']) expect(index).toContain(tag);
   });
   it('structured data is valid JSON and claims no ratings or reviews', () => {
     const m = /<script type="application\/ld\+json">\s*([\s\S]*?)\s*<\/script>/.exec(index)!;
@@ -48,7 +57,7 @@ describe('landing SEO', () => {
   });
   it('the shipped sitemap and robots.txt cover the public pages and keep the API and consent links out', () => {
     const sm = readFileSync('public/sitemap.xml', 'utf8');
-    for (const p of ['/', '/in', '/pricing', '/terms', '/privacy', '/refund']) expect(sm).toContain(`<loc>${SITE}${p}</loc>`);
+    for (const p of ['/', '/in', '/hi', '/pricing', '/terms', '/privacy', '/refund']) expect(sm).toContain(`<loc>${SITE}${p}</loc>`);
     const robots = readFileSync('public/robots.txt', 'utf8');
     expect(robots).toContain('Disallow: /api/');
     expect(robots).toContain('Disallow: /parent-consent');

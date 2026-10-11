@@ -9,6 +9,13 @@ export const SITE = 'https://hunters-system.vercel.app';
 
 // Mirrors landing.meta.* in src/i18n/messages (a test enforces it).
 export const VARIANTS = {
+  hi: {
+    path: '/hi',
+    lang: 'hi',
+    title: 'Hunter System — अपने टाइमटेबल को ऐसा गेम बनाओ जिसे तुम खेलते रहो',
+    description: 'मुफ़्त हैबिट और स्टडी ट्रैकर। अपना दिन बताओ, क्वेस्ट और XP पाओ, E से S तक रैंक चढ़ो, दोस्तों से रेस करो। कोई विज्ञापन नहीं, डेटा की बिक्री नहीं।',
+    summary: 'Hunter System: मुफ़्त हैबिट और स्टडी ट्रैकर। अपना दिन बताइए, क्वेस्ट और XP पाइए, E से S तक रैंक चढ़िए, दोस्तों से रेस कीजिए। कोई विज्ञापन नहीं, डेटा की बिक्री नहीं। 13 साल या उससे ऊपर के लिए; 18 से कम उम्र में माता-पिता की मंज़ूरी चाहिए।',
+  },
   in: {
     path: '/in',
     lang: 'hi-Latn',

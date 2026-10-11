@@ -292,6 +292,13 @@ function IndiaRoute() {
   return <Suspense fallback={<PageLoading />}><Landing variant="india" /></Suspense>;
 }
 
+/** "/hi": the same landing page in Hindi (Devanagari), so Hindi searchers and shared links land on Hindi. */
+function HindiRoute() {
+  const user = useAuthStore(s => s.user);
+  if (user) return <Navigate to="/" replace />;
+  return <Suspense fallback={<PageLoading />}><Landing variant="global" lang="hi" /></Suspense>;
+}
+
 function App() {
   useScreenOpenAudio();
   // Keep <html lang> and <html dir> in step with the chosen language (screen readers, RTL layouts).
@@ -302,6 +309,7 @@ function App() {
       <Routes>
         <Route path="/" element={<HomeRoute />} />
         <Route path="/in" element={<IndiaRoute />} />
+        <Route path="/hi" element={<HindiRoute />} />
         <Route path="/login" element={<Login />} />
         <Route path="/terms" element={<Suspense fallback={null}><Legal kind="terms" /></Suspense>} />
         <Route path="/privacy" element={<Suspense fallback={null}><Legal kind="privacy" /></Suspense>} />

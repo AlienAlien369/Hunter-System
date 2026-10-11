@@ -4,7 +4,7 @@ import { api } from '../lib/api';
 import { trackEvent } from '../lib/track';
 import { useDocumentMeta } from '../lib/meta';
 import { browserLooksIndian } from '../utils/market';
-import { formatCurrency, suggestLocale, useLocaleStore, useT } from '../i18n';
+import { formatCurrency, suggestLocale, useLocaleStore, useT, type LocaleCode } from '../i18n';
 import type { MessageKey } from '../i18n/messages/en';
 import BackgroundFX from '../components/BackgroundFX';
 import LanguagePicker from '../components/LanguagePicker';
@@ -42,17 +42,17 @@ const TRUST: MessageKey[] = ['landing.trust.1', 'landing.trust.2', 'landing.trus
  *  - india  (/in): exam and interview consistency, Hinglish by default
  * Same product, same account system; only the words and examples change.
  */
-export default function Landing({ variant }: { variant: LandingVariant }) {
+export default function Landing({ variant, lang }: { variant: LandingVariant; lang?: LocaleCode }) {
   const t = useT();
   const locale = useLocaleStore(s => s.locale);
-  const path = variant === 'india' ? '/in' : '/';
+  const path = lang === 'hi' ? '/hi' : variant === 'india' ? '/in' : '/';
   const [monthly, setMonthly] = useState<string | null>(null);
   const showIndiaOffer = variant === 'global' && browserLooksIndian();
 
   useDocumentMeta({ title: t(`landing.meta.title.${variant}` as MessageKey), description: t(`landing.meta.description.${variant}` as MessageKey), path });
 
   // /in is written for India: open it in Hinglish unless the visitor already chose a language.
-  useEffect(() => { if (variant === 'india') suggestLocale('hi-Latn'); }, [variant]);
+  useEffect(() => { if (lang) suggestLocale(lang); else if (variant === 'india') suggestLocale('hi-Latn'); }, [variant, lang]);
   useEffect(() => { trackEvent('landing_view', { page: path }); }, [path]);
   useEffect(() => {
     api.getPlans().then(p => {
