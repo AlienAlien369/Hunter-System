@@ -27,6 +27,13 @@ describe('message files', () => {
 });
 
 describe('script hygiene', () => {
+  it('Hindi keeps one friendly register: "tum" in the app, formal "aap" only where parents read', () => {
+    const hi = LOCALES.find(l => l.code === 'hi')!.messages as Record<string, string>;
+    const formalOk = /^(pay\.|parent\.|consent\.parent|legal|pricing\.askParent|landing\.parents)/;
+    const formal = Object.keys(hi).filter(k => !formalOk.test(k) && /(^|[\s(])आप(का|की|के|को|ने|से)?(?![ऀ-ॿ])/.test(hi[k]));
+    expect(formal).toEqual([]);
+  });
+
   const keys = Object.keys(en) as (keyof typeof en)[];
   it('Hinglish contains no Devanagari or Arabic-script letters', () => {
     const hinglish = LOCALES.find(l => l.code === 'hi-Latn')!.messages;
