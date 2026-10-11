@@ -916,6 +916,9 @@ export const en = {
   'rc.cancel': "CANCEL",
   'rc.applying': "APPLYING…",
   'rc.confirm': "CONFIRM CHANGE",
+  'rc.commitTitle': "⚠️ HUNTER COMMITMENT CHANGE",
+  'rc.commitIntro': "You are changing an established module commitment.",
+  'ui.close': "Close",
 } as const;
 
 export type MessageKey = keyof typeof en;

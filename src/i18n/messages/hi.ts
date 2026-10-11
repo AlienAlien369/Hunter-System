@@ -905,4 +905,7 @@ export const hi: Messages = {
   'rc.cancel': "रद्द करें",
   'rc.applying': "लागू हो रहा है…",
   'rc.confirm': "बदलाव पक्का करें",
+  'rc.commitTitle': "⚠️ हंटर प्रतिबद्धता में बदलाव",
+  'rc.commitIntro': "आप एक स्थापित मॉड्यूल प्रतिबद्धता बदल रहे हैं।",
+  'ui.close': "बंद करें",
 };

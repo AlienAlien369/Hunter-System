@@ -1,4 +1,5 @@
 import type { ButtonHTMLAttributes, ReactNode } from 'react';
+import { t } from '../../i18n';
 import { motion, AnimatePresence } from 'framer-motion';
 
 // Shared building blocks for the module pages, matching the existing
@@ -43,7 +44,7 @@ export function Modal({ open, onClose, title, children, wide }: { open: boolean;
           >
             <div className="flex items-center justify-between mb-4">
               <h2 className="font-display text-white font-bold tracking-[0.2em] text-sm sm:text-base">{title}</h2>
-              <button type="button" onClick={onClose} className="text-gray-500 hover:text-white text-xl leading-none" aria-label="Close">×</button>
+              <button type="button" onClick={onClose} className="text-gray-500 hover:text-white text-xl leading-none" aria-label={t('ui.close')}>×</button>
             </div>
             {children}
           </motion.div>

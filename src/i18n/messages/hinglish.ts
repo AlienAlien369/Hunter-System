@@ -904,4 +904,7 @@ export const hinglish: Messages = {
   'rc.cancel': "CANCEL",
   'rc.applying': "LAGU HO RAHA HAI…",
   'rc.confirm': "BADLAV CONFIRM KAREIN",
+  'rc.commitTitle': "⚠️ HUNTER COMMITMENT BADLAV",
+  'rc.commitIntro': "Tum ek established module commitment badal rahe ho.",
+  'ui.close': "Band karo",
 };
