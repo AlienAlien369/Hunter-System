@@ -2,6 +2,10 @@
 
 A gamified habit tracker with a dark, system-window theme with full authentication.
 
+## Languages
+
+English, Hindi and Hinglish — see [docs/I18N.md](docs/I18N.md) for how it works and how to add one.
+
 ## Tech Stack
 
 - **Frontend**: React 19 + TypeScript + Vite + Tailwind CSS v4 + Framer Motion
