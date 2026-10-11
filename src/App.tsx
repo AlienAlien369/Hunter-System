@@ -203,7 +203,7 @@ function AppContent() {
         <div className="flex-1 flex flex-col min-w-0">
           <TopBar onMenuToggle={() => setSidebarOpen(v => !v)} />
 
-          <main className="flex-1 overflow-y-auto custom-scrollbar">
+          <main className="flex-1 overflow-y-auto custom-scrollbar focus:outline-none" tabIndex={0}>
             <AnimatePresence mode="wait">
               <motion.div
                 key={location.pathname}

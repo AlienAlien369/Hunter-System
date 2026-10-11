@@ -170,6 +170,7 @@ export default function StreakCalendar() {
       <div className="px-6 pt-4 flex items-center justify-between">
         <button
           onClick={() => navigateMonth(-1)}
+          aria-label={t('streak.prevMonth')}
           className="p-2 text-gray-500 hover:text-white transition-colors rounded-lg hover:bg-white/5"
         >
           <svg
@@ -191,6 +192,7 @@ export default function StreakCalendar() {
         </h3>
         <button
           onClick={() => navigateMonth(1)}
+          aria-label={t('streak.nextMonth')}
           className="p-2 text-gray-500 hover:text-white transition-colors rounded-lg hover:bg-white/5"
         >
           <svg

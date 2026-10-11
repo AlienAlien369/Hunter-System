@@ -1098,6 +1098,8 @@ export const en = {
   'ce.active': "Active",
   'ce.paused': "Paused",
   'ce.archived': "Archived",
+  'streak.prevMonth': "Previous month",
+  'streak.nextMonth': "Next month",
 } as const;
 
 export type MessageKey = keyof typeof en;

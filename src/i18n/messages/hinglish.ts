@@ -1086,4 +1086,6 @@ export const hinglish: Messages = {
   'ce.active': "Active",
   'ce.paused': "Paused",
   'ce.archived': "Archived",
+  'streak.prevMonth': "Pichhla mahina",
+  'streak.nextMonth': "Agla mahina",
 };

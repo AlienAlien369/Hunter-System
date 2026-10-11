@@ -1087,4 +1087,6 @@ export const hi: Messages = {
   'ce.active': "चालू",
   'ce.paused': "रुका",
   'ce.archived': "आर्काइव",
+  'streak.prevMonth': "पिछला महीना",
+  'streak.nextMonth': "अगला महीना",
 };
