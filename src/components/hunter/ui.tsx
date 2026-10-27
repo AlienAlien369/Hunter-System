@@ -1,4 +1,5 @@
 import type { ButtonHTMLAttributes, ReactNode } from 'react';
+import { createPortal } from 'react-dom';
 import { t } from '../../i18n';
 import { motion, AnimatePresence } from 'framer-motion';
 
@@ -22,7 +23,9 @@ export function Panel({ title, right, children, className = '' }: { title: strin
 }
 
 export function Modal({ open, onClose, title, children, wide }: { open: boolean; onClose: () => void; title: string; children: ReactNode; wide?: boolean }) {
-  return (
+  // Portalled to <body>: a modal opened from inside an animated (transformed)
+  // panel would otherwise be positioned and clipped by that panel.
+  return createPortal(
     <AnimatePresence>
       {open && (
         <motion.div
@@ -50,7 +53,8 @@ export function Modal({ open, onClose, title, children, wide }: { open: boolean;
           </motion.div>
         </motion.div>
       )}
-    </AnimatePresence>
+    </AnimatePresence>,
+    document.body,
   );
 }
 
