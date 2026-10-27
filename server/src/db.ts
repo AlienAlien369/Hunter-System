@@ -247,6 +247,89 @@ export async function initDatabase() {
       );
       CREATE INDEX IF NOT EXISTS idx_class_members_user ON class_members(user_id);
     `);
+    // Organizations (B2B): a school, college or coaching institute. Staff assign
+    // core tasks (the shared timetable) to every member. Institution XP lives on
+    // org_members.xp and its own completion table, so it never mixes with a
+    // member's personal XP (users.xp), which stays theirs alone. A user belongs
+    // to at most one organization.
+    await client.query(`
+      CREATE TABLE IF NOT EXISTS organizations (
+        id SERIAL PRIMARY KEY,
+        name VARCHAR(80) NOT NULL,
+        kind VARCHAR(20) NOT NULL DEFAULT 'school',
+        owner_id INTEGER REFERENCES users(id) ON DELETE SET NULL,
+        student_code VARCHAR(8) NOT NULL UNIQUE,
+        staff_code VARCHAR(8) NOT NULL UNIQUE,
+        seats INTEGER NOT NULL DEFAULT 0,
+        plan_until TIMESTAMPTZ,
+        report_emails TEXT[] NOT NULL DEFAULT '{}',
+        archived BOOLEAN NOT NULL DEFAULT false,
+        created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+      );
+      CREATE TABLE IF NOT EXISTS org_members (
+        org_id INTEGER NOT NULL REFERENCES organizations(id) ON DELETE CASCADE,
+        user_id INTEGER NOT NULL UNIQUE REFERENCES users(id) ON DELETE CASCADE,
+        role VARCHAR(10) NOT NULL DEFAULT 'student',
+        xp INTEGER NOT NULL DEFAULT 0,
+        joined_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+        PRIMARY KEY (org_id, user_id)
+      );
+      CREATE TABLE IF NOT EXISTS org_tasks (
+        id SERIAL PRIMARY KEY,
+        org_id INTEGER NOT NULL REFERENCES organizations(id) ON DELETE CASCADE,
+        title VARCHAR(120) NOT NULL,
+        description VARCHAR(500),
+        difficulty INTEGER NOT NULL DEFAULT 2,
+        xp_reward INTEGER NOT NULL,
+        schedule_time VARCHAR(5),
+        recurrence TEXT[],
+        created_by INTEGER REFERENCES users(id) ON DELETE SET NULL,
+        archived BOOLEAN NOT NULL DEFAULT false,
+        created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+      );
+      CREATE INDEX IF NOT EXISTS idx_org_tasks_org ON org_tasks(org_id) WHERE NOT archived;
+      CREATE TABLE IF NOT EXISTS org_task_completions (
+        id SERIAL PRIMARY KEY,
+        org_id INTEGER NOT NULL REFERENCES organizations(id) ON DELETE CASCADE,
+        task_id INTEGER NOT NULL REFERENCES org_tasks(id) ON DELETE CASCADE,
+        user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+        completion_date DATE NOT NULL,
+        xp_awarded INTEGER NOT NULL,
+        completed_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+        UNIQUE (task_id, user_id, completion_date)
+      );
+      CREATE INDEX IF NOT EXISTS idx_org_completions_user ON org_task_completions(user_id, completion_date);
+      CREATE INDEX IF NOT EXISTS idx_org_completions_org ON org_task_completions(org_id, completion_date);
+      -- Seat purchases are subscriptions of plan 'teams' that name the organization.
+      ALTER TABLE subscriptions ADD COLUMN IF NOT EXISTS org_id INTEGER REFERENCES organizations(id) ON DELETE SET NULL;
+      ALTER TABLE subscriptions ADD COLUMN IF NOT EXISTS seats INTEGER;
+    `);
+    // Weekly progress reports by email. A recipient chooses (or is given) a
+    // scope: the institution part, the personal part, or both. Recipients added
+    // by institution staff are institution-only. Every email carries a one-click
+    // unsubscribe link signed per recipient (see reports.ts), so nothing secret is stored.
+    await client.query(`
+      CREATE TABLE IF NOT EXISTS report_recipients (
+        id SERIAL PRIMARY KEY,
+        user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+        email VARCHAR(254) NOT NULL,
+        relation VARCHAR(12) NOT NULL DEFAULT 'parent',
+        scope VARCHAR(10) NOT NULL DEFAULT 'both',
+        added_by_org INTEGER REFERENCES organizations(id) ON DELETE CASCADE,
+        active BOOLEAN NOT NULL DEFAULT true,
+        last_sent_at TIMESTAMPTZ,
+        created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+        UNIQUE (user_id, email)
+      );
+      CREATE TABLE IF NOT EXISTS report_log (
+        subject_kind VARCHAR(4) NOT NULL,
+        subject_id INTEGER NOT NULL,
+        week_start DATE NOT NULL,
+        sent INTEGER NOT NULL DEFAULT 0,
+        created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+        PRIMARY KEY (subject_kind, subject_id, week_start)
+      );
+    `);
     // Parent pay links: an under-18 hunter cannot buy, so they can share a link a
     // parent opens (no account) to pay for the child's Pro. Only the token's hash
     // is stored. Paying still grants nothing until the verified webhook arrives.

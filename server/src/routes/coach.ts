@@ -1,4 +1,5 @@
 import { languageInstruction } from '../aiLanguage.js';
+import { brandName } from '../platform.js';
 import { Router, Request, Response } from 'express';
 import { pool } from '../db.js';
 import { authenticateToken } from '../middleware/auth.js';
@@ -156,7 +157,7 @@ router.post('/weekly', async (req: Request, res: Response) => {
     const name = (await pool.query('SELECT name FROM users WHERE id = $1', [userId])).rows[0]?.name ?? 'Hunter';
     const raw = stats.completions + stats.unplanned.length === 0 ? null : await aiCompletion(req, {
       system:
-        'You are the Hunter System coach in a gamified self-improvement app with a dark, system-window style. ' +
+        `You are the ${brandName()} coach in a gamified self-improvement app with a dark, system-window style. ` +
         'Write a short, specific, encouraging-but-honest weekly review from the stats provided. Reference real numbers and days. ' +
         'Never invent activities that are not in the data. Keep each bullet under 25 words. Address the hunter directly.' +
         languageInstruction(req.body?.language),

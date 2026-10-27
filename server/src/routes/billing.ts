@@ -9,6 +9,7 @@ import { aiUsedToday } from '../aiQuota.js';
 import { requestToday } from '../time.js';
 import { PLAN_FEATURES, PRICE_GROUP_CURRENCY, priceFor, priceGroupFor, providerFor, yearlySavingsPct, type Interval } from '../pricing.js';
 import { getProvider, paymentsMode } from '../payments/index.js';
+import { platformSettings } from '../platform.js';
 import { ProviderError } from '../payments/types.js';
 
 const router = Router();
@@ -38,6 +39,8 @@ router.get('/plans', (req: Request, res: Response) => {
         yearlySavingsPct: yearlySavingsPct('pro', group),
       },
     ],
+    // Institutions (B2B): billed per student seat per year.
+    institution: { seatYear: priceFor('teams', 'year', group), trialDays: platformSettings().orgTrialDays, trialSeats: platformSettings().orgTrialSeats },
   });
 });
 

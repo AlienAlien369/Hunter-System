@@ -1,7 +1,8 @@
 import { createHmac, timingSafeEqual } from 'crypto';
 import type { NormalizedEvent, SubStatus } from '../billing.js';
 import type { Interval } from '../pricing.js';
-import { ProviderError, WebhookSignatureError, type CheckoutRequest, type FetchLike, type PaymentProvider } from './types.js';
+import { ProviderError, WebhookSignatureError, productName, type CheckoutRequest, type FetchLike, type PaymentProvider } from './types.js';
+import { brandName } from '../platform.js';
 
 // Stripe over plain HTTPS (no SDK). Checkout Sessions with inline prices, so
 // there is nothing to pre-create in the dashboard apart from the webhook.
@@ -46,6 +47,8 @@ export function normalizeStripeEvent(evt: any): NormalizedEvent {
       subscriptionId: str(obj.id), customerId: str(obj.customer),
       userId: Number(obj.metadata?.userId) || undefined,
       plan: obj.metadata?.plan === 'teams' ? 'teams' : 'pro',
+      orgId: Number(obj.metadata?.orgId) || undefined,
+      seats: Number(obj.metadata?.seats) || undefined,
       interval: (price.recurring?.interval === 'year' ? 'year' : 'month') as Interval,
       status, currency: String(price.currency ?? '').toUpperCase(), amountMinor: num(price.unit_amount) ?? 0,
       periodEnd: periodEndSec ? new Date(periodEndSec * 1000) : null,
@@ -85,10 +88,11 @@ export function createStripeProvider(opts: { secretKey: string; webhookSecret: s
         'line_items[0][price_data][currency]': r.currency.toLowerCase(),
         'line_items[0][price_data][unit_amount]': String(r.amountMinor),
         'line_items[0][price_data][recurring][interval]': r.interval,
-        'line_items[0][price_data][product_data][name]': r.plan === 'teams' ? 'Hunter System Teams' : 'Hunter System Pro',
+        'line_items[0][price_data][product_data][name]': productName(brandName(), r.plan),
         'subscription_data[metadata][userId]': meta.userId,
         'subscription_data[metadata][plan]': meta.plan,
         'metadata[userId]': meta.userId,
+        ...(r.orgId ? { 'subscription_data[metadata][orgId]': String(r.orgId), 'subscription_data[metadata][seats]': String(r.seats ?? 0) } : {}),
         allow_promotion_codes: 'false',
       };
       if (opts.tax) { body['automatic_tax[enabled]'] = 'true'; body.billing_address_collection = 'required'; }

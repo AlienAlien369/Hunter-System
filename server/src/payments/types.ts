@@ -10,7 +10,13 @@ export interface CheckoutRequest {
   amountMinor: number;
   successUrl: string;
   cancelUrl: string;
+  /** Institution seat purchases (plan 'teams'): which institution, how many seats. */
+  orgId?: number;
+  seats?: number;
 }
+
+/** The product name on the provider's checkout page and receipts. */
+export const productName = (brand: string, plan: 'pro' | 'teams') => `${brand} ${plan === 'teams' ? 'Institution seats' : 'Pro'}`;
 
 export interface PaymentProvider {
   name: Provider;

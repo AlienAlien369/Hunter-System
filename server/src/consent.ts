@@ -1,5 +1,6 @@
 import { createHash, randomBytes } from 'crypto';
 import { pool } from './db.js';
+import { brandName } from './platform.js';
 import { appUrl, sendMail } from './mailer.js';
 import { canUseApp } from './age.js';
 
@@ -30,11 +31,11 @@ export async function issueParentConsent(userId: number, username: string, paren
   const link = `${appUrl()}/parent-consent#token=${token}`;
   return sendMail({
     to: parentEmail,
-    subject: 'Your child asked to join Hunter System — parental consent needed',
+    subject: `Your child asked to join ${brandName()} — parental consent needed`,
     text:
 `Hello,
 
-Someone using the name "${username}" says they are your child and signed up for Hunter System, a productivity app that turns a daily timetable into quests, XP and ranks.
+Someone using the name "${username}" says they are your child and signed up for ${brandName()}, a productivity app that turns a daily timetable into quests, XP and ranks.
 
 Because they are under 18, we need your permission before they can use it. Nothing is active until you decide.
 
@@ -45,7 +46,7 @@ You can approve or decline. Declining deletes the account and everything in it. 
 
 If you do not know who this is, ignore this email: nothing will be activated and the request expires on its own.
 
-Hunter System does not show ads and does not sell personal data.`,
+${brandName()} does not show ads and does not sell personal data.`,
   });
 }
 

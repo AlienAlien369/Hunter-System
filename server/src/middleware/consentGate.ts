@@ -1,4 +1,5 @@
 import type { Request, Response, NextFunction } from 'express';
+import { brandName } from '../platform.js';
 import jwt from 'jsonwebtoken';
 import { jwtSecret } from './auth.js';
 import { canUseApp } from '../age.js';
@@ -17,7 +18,7 @@ export async function consentGate(req: Request, res: Response, next: NextFunctio
     const { id } = jwt.verify(token, jwtSecret()) as { id: number };
     const status = await consentStatusOf(id);
     if (status && !canUseApp(status)) {
-      return res.status(403).json({ error: 'Consent required before using Hunter System.', code: 'consent_required', consentStatus: status });
+      return res.status(403).json({ error: `Consent required before using ${brandName()}.`, code: 'consent_required', consentStatus: status });
     }
   } catch {
     // invalid token: the route's own auth answers

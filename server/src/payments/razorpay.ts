@@ -2,7 +2,8 @@ import { createHmac, timingSafeEqual } from 'crypto';
 import { pool } from '../db.js';
 import type { NormalizedEvent, SubStatus } from '../billing.js';
 import type { Interval } from '../pricing.js';
-import { ProviderError, WebhookSignatureError, type CheckoutRequest, type FetchLike, type PaymentProvider } from './types.js';
+import { ProviderError, WebhookSignatureError, productName, type CheckoutRequest, type FetchLike, type PaymentProvider } from './types.js';
+import { brandName } from '../platform.js';
 
 // Razorpay over plain HTTPS (no SDK): UPI, UPI AutoPay, cards and netbanking
 // through its hosted subscription page. Plans are created on demand (one per
@@ -48,6 +49,8 @@ export function normalizeRazorpayEvent(evt: any, eventId: string): NormalizedEve
       paymentId: typeof payment?.id === 'string' ? payment.id : undefined,
       userId: Number(notes.userId) || undefined,
       plan: notes.plan === 'teams' ? 'teams' : 'pro',
+      orgId: Number(notes.orgId) || undefined,
+      seats: Number(notes.seats) || undefined,
       interval, status,
       currency: String(notes.currency ?? 'INR').toUpperCase(),
       amountMinor: Number(notes.amountMinor) || 0,
@@ -73,7 +76,7 @@ export function createRazorpayProvider(opts: { keyId: string; keySecret: string;
     if (cached.rows[0]) return cached.rows[0].value;
     const created = await call('/plans', {
       period: interval === 'year' ? 'yearly' : 'monthly', interval: 1,
-      item: { name: plan === 'teams' ? 'Hunter System Teams' : 'Hunter System Pro', amount: amountMinor, currency },
+      item: { name: productName(brandName(), plan === 'teams' ? 'teams' : 'pro'), amount: amountMinor, currency },
     });
     await pool.query('INSERT INTO app_settings (key, value) VALUES ($1, $2) ON CONFLICT (key) DO NOTHING', [key, String(created.id)]);
     return String(created.id);
@@ -87,7 +90,10 @@ export function createRazorpayProvider(opts: { keyId: string; keySecret: string;
         // Razorpay needs a bounded count; this is 10 years, after which the customer simply renews.
         total_count: r.interval === 'year' ? 10 : 120,
         customer_notify: 1,
-        notes: { userId: String(r.userId), plan: r.plan, interval: r.interval, currency: r.currency, amountMinor: String(r.amountMinor) },
+        notes: {
+          userId: String(r.userId), plan: r.plan, interval: r.interval, currency: r.currency, amountMinor: String(r.amountMinor),
+          ...(r.orgId ? { orgId: String(r.orgId), seats: String(r.seats ?? 0) } : {}),
+        },
       });
       if (typeof sub.short_url !== 'string') throw new ProviderError('Razorpay returned no checkout URL');
       return { url: sub.short_url };

@@ -5,6 +5,8 @@ import { calculateLevel, calculateRank } from '../progression.js';
 import { weekStart } from './leaderboard.js';
 import { activeDays } from './stats.js';
 import { currentStreak, isValidTimeZone, localDate } from '../time.js';
+import { brandName, publicConfig } from '../platform.js';
+import { verifyUnsubscribeToken } from '../reports.js';
 
 // Public hunter profiles (/h/<name>) — the landing page for shared cards and
 // invite links. Same privacy as the leaderboard: only hunters who chose a name
@@ -50,5 +52,34 @@ router.get('/hunters/:name', async (req: Request, res: Response) => {
     res.status(500).json({ error: 'Failed to load profile' });
   }
 });
+
+// GET /api/public/config — the product's name, tagline and prices (set by the super admin).
+// Revalidated on every load (a cheap 304 via ETag) so a rename or price change shows at once.
+router.get('/config', (_req: Request, res: Response) => {
+  res.set('Cache-Control', 'no-cache');
+  res.json(publicConfig());
+});
+
+const page = (title: string, body: string) => `<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>${title}</title></head>
+<body style="margin:0;font-family:-apple-system,Segoe UI,Roboto,Helvetica,Arial,sans-serif;background:#f9fafb;color:#111827"><main style="max-width:480px;margin:15vh auto;padding:24px;text-align:center">${body}</main></body></html>`;
+const escHtml = (s: string) => s.replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]!));
+
+/** One-click unsubscribe from a weekly report (link in every email; also the RFC 8058 POST). */
+async function unsubscribe(req: Request, res: Response) {
+  if (hit(`unsub:${req.ip}`, 60, 60 * 60_000)) return res.status(429).send('Too many requests');
+  const id = verifyUnsubscribeToken(req.query.token ?? req.body?.token);
+  const brand = escHtml(brandName());
+  if (!id) return res.status(400).type('html').send(page('Link not valid', `<h1 style="font-size:20px">This unsubscribe link is not valid.</h1><p style="color:#6b7280">${brand}</p>`));
+  try {
+    const r = await pool.query('UPDATE report_recipients SET active = false WHERE id = $1 RETURNING email', [id]);
+    const email = r.rows[0]?.email ? escHtml(r.rows[0].email) : 'This address';
+    res.type('html').send(page('Unsubscribed', `<h1 style="font-size:20px">Unsubscribed</h1><p style="color:#6b7280">${email} will no longer receive this weekly report from ${brand}.</p>`));
+  } catch (error) {
+    console.error('Unsubscribe error:', error);
+    res.status(500).type('html').send(page('Error', '<h1 style="font-size:20px">Something went wrong. Please try again.</h1>'));
+  }
+}
+router.get('/report-unsubscribe', unsubscribe);
+router.post('/report-unsubscribe', unsubscribe);
 
 export default router;

@@ -7,6 +7,10 @@ export interface Mail {
   to: string;
   subject: string;
   text: string;
+  /** Optional HTML alternative; `text` is always sent too. */
+  html?: string;
+  /** One-click unsubscribe (RFC 8058), for recurring mail such as weekly reports. */
+  unsubscribeUrl?: string;
 }
 
 export function mailConfigured(): boolean {
@@ -22,7 +26,11 @@ export async function sendMail(mail: Mail): Promise<boolean> {
     const res = await fetch('https://api.resend.com/emails', {
       method: 'POST',
       headers: { Authorization: `Bearer ${process.env.RESEND_API_KEY}`, 'Content-Type': 'application/json' },
-      body: JSON.stringify({ from: process.env.MAIL_FROM, to: [mail.to], subject: mail.subject, text: mail.text }),
+      body: JSON.stringify({
+        from: process.env.MAIL_FROM, to: [mail.to], subject: mail.subject, text: mail.text,
+        ...(mail.html ? { html: mail.html } : {}),
+        ...(mail.unsubscribeUrl ? { headers: { 'List-Unsubscribe': `<${mail.unsubscribeUrl}>`, 'List-Unsubscribe-Post': 'List-Unsubscribe=One-Click' } } : {}),
+      }),
       signal: AbortSignal.timeout(10_000),
     });
     if (!res.ok) console.error(`Mail provider rejected message: ${res.status}`);

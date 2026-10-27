@@ -1,6 +1,7 @@
 import { pool } from './db.js';
 import { track } from './analytics.js';
 import { PLAN_LIMITS, type Interval, type PlanId, type Provider } from './pricing.js';
+import { orgPlanStatus } from './orgs.js';
 
 // Entitlements and the effect of payment-provider events. This is the ONLY
 // code that changes a subscription, and it is reached only from verified
@@ -35,11 +36,13 @@ export function subscriptionEntitles(sub: SubscriptionRow, now = new Date()): bo
 export interface EntitlementInput {
   subscriptions: SubscriptionRow[];
   proUntil?: Date | string | null;
+  /** The hunter's institution plan, if they belong to one: an active seat plan includes Pro. */
+  org?: { active: boolean; until: Date | null } | null;
 }
 
 export interface Entitlement {
   plan: PlanId;
-  source: 'subscription' | 'grant' | null;
+  source: 'subscription' | 'grant' | 'org' | null;
   /** When paid access ends (or renews), if known. */
   until: Date | null;
 }
@@ -55,15 +58,29 @@ export function entitlementOf(input: EntitlementInput, now = new Date()): Entitl
   const grantLive = !!grant && grant > now;
   if (live.length && (!grantLive || (subEnd && subEnd >= grant!))) return { plan: 'pro', source: 'subscription', until: subEnd };
   if (grantLive) return { plan: 'pro', source: 'grant', until: grant };
+  if (input.org?.active) return { plan: 'pro', source: 'org', until: input.org.until };
   return { plan: 'free', source: null, until: null };
 }
 
 export async function entitlementForUser(userId: number, now = new Date()): Promise<Entitlement> {
-  const [subs, u] = await Promise.all([
-    pool.query('SELECT status, current_period_end, cancel_at_period_end FROM subscriptions WHERE user_id = $1', [userId]),
+  const [subs, u, org] = await Promise.all([
+    // Seat purchases ('teams') pay for an institution, not for the buyer's own Pro.
+    pool.query(`SELECT status, current_period_end, cancel_at_period_end FROM subscriptions WHERE user_id = $1 AND plan <> 'teams'`, [userId]),
     pool.query('SELECT pro_until FROM users WHERE id = $1', [userId]),
+    pool.query(
+      `SELECT o.id, o.seats, o.plan_until,
+              COALESCE(json_agg(json_build_object('seats', s.seats, 'status', s.status, 'current_period_end', s.current_period_end)) FILTER (WHERE s.id IS NOT NULL), '[]') AS subs
+       FROM org_members m JOIN organizations o ON o.id = m.org_id AND NOT o.archived
+       LEFT JOIN subscriptions s ON s.org_id = o.id AND s.plan = 'teams'
+       WHERE m.user_id = $1 GROUP BY o.id`, [userId]),
   ]);
-  return entitlementOf({ subscriptions: subs.rows, proUntil: u.rows[0]?.pro_until }, now);
+  const o = org.rows[0];
+  const orgPlan = o ? orgPlanStatus(
+    { seats: o.seats, planUntil: o.plan_until },
+    o.subs.map((s: any) => ({ seats: s.seats, currentPeriodEnd: s.current_period_end, live: subscriptionEntitles(s, now) })),
+    now,
+  ) : null;
+  return entitlementOf({ subscriptions: subs.rows, proUntil: u.rows[0]?.pro_until, org: orgPlan }, now);
 }
 
 export const limitsFor = (plan: PlanId) => PLAN_LIMITS[plan];
@@ -93,6 +110,9 @@ export interface NormalizedEvent {
   paymentId?: string;
   userId?: number;
   plan?: 'pro' | 'teams';
+  /** Institution seat purchases. */
+  orgId?: number;
+  seats?: number;
   interval?: Interval;
   status?: SubStatus;
   currency?: string;
@@ -142,8 +162,8 @@ export async function applyProviderEvent(ev: NormalizedEvent, rawPayload: unknow
   if (!ev.status || !ev.interval || !ev.currency || ev.amountMinor === undefined) return 'ignored';
 
   const became = await pool.query(
-    `INSERT INTO subscriptions (user_id, provider, provider_subscription_id, provider_customer_id, plan, interval, status, currency, amount_minor, current_period_end, cancel_at_period_end, last_event_at, last_payment_id)
-     VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13)
+    `INSERT INTO subscriptions (user_id, provider, provider_subscription_id, provider_customer_id, plan, interval, status, currency, amount_minor, current_period_end, cancel_at_period_end, last_event_at, last_payment_id, org_id, seats)
+     VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15)
      ON CONFLICT (provider, provider_subscription_id) DO UPDATE SET
        provider_customer_id = COALESCE(EXCLUDED.provider_customer_id, subscriptions.provider_customer_id),
        status = EXCLUDED.status,
@@ -154,10 +174,13 @@ export async function applyProviderEvent(ev: NormalizedEvent, rawPayload: unknow
        interval = EXCLUDED.interval,
        last_event_at = EXCLUDED.last_event_at,
        last_payment_id = COALESCE(EXCLUDED.last_payment_id, subscriptions.last_payment_id),
+       org_id = COALESCE(EXCLUDED.org_id, subscriptions.org_id),
+       seats = COALESCE(EXCLUDED.seats, subscriptions.seats),
        updated_at = NOW()
      WHERE subscriptions.status <> 'refunded' -- a refund is final: later provider events must not revive it
      RETURNING (xmax = 0) AS inserted`,
-    [userId, ev.provider, ev.subscriptionId, ev.customerId ?? null, ev.plan ?? 'pro', ev.interval, ev.status, ev.currency, ev.amountMinor, ev.periodEnd ?? null, ev.cancelAtPeriodEnd ?? false, ev.createdAt, ev.paymentId ?? null],
+    [userId, ev.provider, ev.subscriptionId, ev.customerId ?? null, ev.plan ?? 'pro', ev.interval, ev.status, ev.currency, ev.amountMinor, ev.periodEnd ?? null, ev.cancelAtPeriodEnd ?? false, ev.createdAt, ev.paymentId ?? null,
+     ev.plan === 'teams' && ev.orgId ? ev.orgId : null, ev.plan === 'teams' && ev.seats ? ev.seats : null],
   );
   // First time this hunter pays: the funnel's "upgrade" step. Only a verified payment gets here.
   if (became.rows[0]?.inserted && ev.status === 'active') await track(userId, 'upgrade_completed', null, { plan: ev.plan ?? 'pro' });

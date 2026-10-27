@@ -3,6 +3,7 @@ import bcrypt from "bcrypt";
 import { randomInt } from "crypto";
 import jwt from "jsonwebtoken";
 import { pool } from "../db.js";
+import { brandName } from "../platform.js";
 import { authenticateToken, jwtSecret, optionalAuth } from "../middleware/auth.js";
 import { logActivity } from "../activity.js";
 import { calculateLevel, calculateRank } from "../progression.js";
@@ -94,7 +95,7 @@ router.post("/register", async (req: Request, res: Response) => {
     const ageClass = classifyAge(ageFromBirthMonth(birth));
     if (ageClass === "blocked") {
       // Nothing is stored for under-13s.
-      return res.status(403).json({ error: "Hunter System is for people aged 13 and over.", code: "under_age" });
+      return res.status(403).json({ error: `${brandName()} is for people aged 13 and over.`, code: "under_age" });
     }
     if (ageClass === "minor") {
       if (!isValidEmail(parentEmail)) {
@@ -479,7 +480,7 @@ router.post("/age", authenticateToken, async (req: Request, res: Response) => {
       // Under 13: remove the account and everything in it, as the policy says.
       await deleteUserData(userId);
       clearSession(req, res);
-      return res.status(403).json({ error: "Hunter System is for people aged 13 and over. Your account has been deleted.", code: "under_age" });
+      return res.status(403).json({ error: `${brandName()} is for people aged 13 and over. Your account has been deleted.`, code: "under_age" });
     }
     const parentEmail = req.body?.parentEmail;
     if (ageClass === "minor") {
@@ -574,6 +575,11 @@ router.get("/export", authenticateToken, async (req: Request, res: Response) => 
       consents: await q(`SELECT kind, version, granted, created_at FROM consents WHERE user_id = $1 ORDER BY id`),
       events: await q(`SELECT name, region, props, created_at FROM events WHERE user_id = $1 ORDER BY id`),
       following: (await q(`SELECT u.name FROM friendships f JOIN users u ON u.id = f.followee_id WHERE f.follower_id = $1 ORDER BY u.name`)).map((r: any) => r.name),
+      institution: (await q(`SELECT o.name, o.kind, m.role, m.xp AS institution_xp, m.joined_at FROM org_members m JOIN organizations o ON o.id = m.org_id WHERE m.user_id = $1`))[0] ?? null,
+      institutionCompletions: await q(
+        `SELECT t.title, c.completion_date, c.xp_awarded, c.completed_at FROM org_task_completions c JOIN org_tasks t ON t.id = c.task_id WHERE c.user_id = $1 ORDER BY c.completed_at`,
+      ),
+      reportRecipients: await q(`SELECT email, relation, scope, active, (added_by_org IS NOT NULL) AS added_by_institution, created_at FROM report_recipients WHERE user_id = $1 ORDER BY id`),
     };
     await logActivity(id, "data_export", user.username);
     res.setHeader("Content-Disposition", `attachment; filename="hunter-export-${user.username}.json"`);

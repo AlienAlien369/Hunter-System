@@ -31,6 +31,10 @@ import webhookRoutes from './routes/webhooks.js';
 import referralRoutes from './routes/referrals.js';
 import classRoutes from './routes/classes.js';
 import payLinkRoutes from './routes/payLinks.js';
+import orgRoutes from './routes/orgs.js';
+import reportRoutes from './routes/reports.js';
+import { loadPlatformSettings } from './platform.js';
+import { startReportScheduler } from './reports.js';
 import { consentGate } from './middleware/consentGate.js';
 import { purgeOldEvents } from './analytics.js';
 import { purgeExpiredConsentRequests } from './consent.js';
@@ -59,6 +63,8 @@ app.use(cors({
 app.use(originGuard);
 app.use(cookieParser());
 // Keep the raw bytes: payment webhooks are signed over them.
+// RFC 8058 one-click unsubscribe posts a form body.
+app.use('/api/public/report-unsubscribe', express.urlencoded({ extended: false }));
 app.use(express.json({ verify: (req, _res, buf) => { (req as express.Request & { rawBody?: Buffer }).rawBody = buf; } }));
 
 // Hunters who have not stated their age, or whose parent has not consented, can only reach auth + consent.
@@ -91,6 +97,8 @@ app.use('/api/webhooks', webhookRoutes);
 app.use('/api/referrals', referralRoutes);
 app.use('/api/classes', classRoutes);
 app.use('/api/pay-links', payLinkRoutes);
+app.use('/api/orgs', orgRoutes);
+app.use('/api/reports', reportRoutes);
 app.get('/api/health', (req, res) => res.json({ status: 'ok', timestamp: new Date().toISOString() }));
 
 // Serve frontend static files in production
@@ -132,7 +140,9 @@ async function main() {
   try {
     await initDatabase();
     console.log('Database connected successfully');
+    await loadPlatformSettings();
     startPushScheduler();
+    startReportScheduler();
     purgeOldEvents().catch(e => console.error('Event purge failed:', e));
     const purgeConsent = () => purgeExpiredConsentRequests().catch(e => console.error('Consent purge failed:', e));
     purgeConsent();

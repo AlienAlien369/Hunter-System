@@ -11,23 +11,26 @@ export type Provider = 'razorpay' | 'stripe';
 export const PRICE_GROUP_CURRENCY: Record<PriceGroup, string> = { IN: 'INR', US: 'USD', EU: 'EUR', GB: 'GBP', AE: 'AED', LOW: 'USD' };
 
 // Amounts are in minor units (paise / cents). Annual is ~2.5 months free.
+// Rupee prices are owned by the platform settings (super admin, see
+// platform.ts) and applied through setInrPriceOverrides; these are the defaults.
 const PRICES: Record<'pro' | 'teams', Record<PriceGroup, Record<Interval, number>>> = {
   pro: {
-    IN: { month: 7900, year: 59900 },
+    IN: { month: 7900, year: 60000 },
     US: { month: 399, year: 3499 },
     EU: { month: 399, year: 3499 },
     GB: { month: 349, year: 2999 },
     AE: { month: 1499, year: 12900 },
     LOW: { month: 199, year: 1799 },
   },
-  // Per class / institute. Not purchasable until the Teams dashboard ships.
+  // Per student seat in an institution (B2B), billed yearly. A seat includes
+  // Pro, so it costs what a yearly Pro plan costs in that market.
   teams: {
-    IN: { month: 49900, year: 499900 },
-    US: { month: 799, year: 6900 },
-    EU: { month: 799, year: 6900 },
-    GB: { month: 699, year: 5900 },
-    AE: { month: 2999, year: 25900 },
-    LOW: { month: 399, year: 3499 },
+    IN: { month: 5000, year: 60000 },
+    US: { month: 292, year: 3499 },
+    EU: { month: 292, year: 3499 },
+    GB: { month: 250, year: 2999 },
+    AE: { month: 1075, year: 12900 },
+    LOW: { month: 150, year: 1799 },
   },
 };
 
@@ -44,6 +47,12 @@ export function priceGroupFor(region: string | null | undefined): PriceGroup {
   if (GULF.has(r)) return 'AE';
   if (LOW.has(r)) return 'LOW';
   return 'US';
+}
+
+/** Apply the super admin's rupee prices (paise). */
+export function setInrPriceOverrides(o: { proYear: number; proMonth: number; orgSeatYear: number }) {
+  PRICES.pro.IN = { month: o.proMonth, year: o.proYear };
+  PRICES.teams.IN = { month: Math.ceil(o.orgSeatYear / 12), year: o.orgSeatYear };
 }
 
 export interface Price {
