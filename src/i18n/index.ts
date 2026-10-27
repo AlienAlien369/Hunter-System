@@ -1,3 +1,4 @@
+import { useCallback } from 'react';
 import { create } from 'zustand';
 import { en, type MessageKey } from './messages/en';
 
@@ -104,6 +105,18 @@ export function applyLocaleToDocument(code: LocaleCode, root: HTMLElement = docu
 
 export type Vars = Record<string, string | number>;
 
+// The product's name is not fixed: the super admin can rename the website at
+// any time (GET /api/public/config). Every message may use {app} ("Hunter
+// System") or {APP} ("HUNTER SYSTEM"); they are filled in automatically.
+export const DEFAULT_APP_NAME: string = (import.meta.env?.VITE_APP_NAME as string | undefined) || 'Hunter System';
+export const useAppName = create<{ name: string }>(() => ({ name: DEFAULT_APP_NAME }));
+export function setAppName(name: string) {
+  const clean = name.trim();
+  if (clean && clean !== useAppName.getState().name) useAppName.setState({ name: clean });
+}
+export const appName = () => useAppName.getState().name;
+const brandVars = (name: string): Vars => ({ app: name, APP: name.toLocaleUpperCase() });
+
 function interpolate(template: string, vars?: Vars): string {
   if (!vars) return template;
   return template.replace(/\{(\w+)\}/g, (whole, name) => (name in vars ? String(vars[name]) : whole));
@@ -113,10 +126,11 @@ function interpolate(template: string, vars?: Vars): string {
 export function translate(code: LocaleCode, key: MessageKey, vars?: Vars): string {
   const info = localeInfo(code);
   const direct = info.messages[key];
-  if (direct !== undefined && direct !== '') return interpolate(direct, vars);
+  const all = { ...brandVars(appName()), ...vars };
+  if (direct !== undefined && direct !== '') return interpolate(direct, all);
   // Empty-string is a legitimate translation (see parent.intro.before); only undefined falls back.
   if (direct === '') return '';
-  return interpolate(en[key] ?? key, vars);
+  return interpolate(en[key] ?? key, all);
 }
 
 /** Plural-aware lookup: picks `${key}_one`, `${key}_few`… by the locale's CLDR rules, `_other` as the fallback. */
@@ -126,14 +140,21 @@ export function translatePlural(code: LocaleCode, key: string, count: number, va
   const table = info.messages as Record<string, string>;
   const english = en as Record<string, string>;
   const template = table[`${key}_${category}`] ?? table[`${key}_other`] ?? english[`${key}_${category}`] ?? english[`${key}_other`] ?? key;
-  return interpolate(template, { count, ...vars });
+  return interpolate(template, { ...brandVars(appName()), count, ...vars });
 }
 
 /** React hook: `const t = useT(); t('auth.username')`. Re-renders on language change. */
 export function useT() {
   const locale = useLocaleStore(s => s.locale);
-  return (key: MessageKey, vars?: Vars) => translate(locale, key, vars);
+  const name = useAppName(s => s.name); // re-render when the super admin renames the product
+  // Stable between renders (until the language or name changes), so effects
+  // that list `t` as a dependency do not re-run — and re-fetch — on every render.
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  return useCallback((key: MessageKey, vars?: Vars) => translate(locale, key, vars), [locale, name]);
 }
+
+/** React hook for the current product name. */
+export const useBrand = () => useAppName(s => s.name);
 
 /** Non-React callers (stores, utilities). */
 export function t(key: MessageKey, vars?: Vars): string {

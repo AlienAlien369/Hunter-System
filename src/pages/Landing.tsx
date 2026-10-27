@@ -46,7 +46,8 @@ export default function Landing({ variant, lang }: { variant: LandingVariant; la
   const t = useT();
   const locale = useLocaleStore(s => s.locale);
   const path = lang === 'hi' ? '/hi' : variant === 'india' ? '/in' : '/';
-  const [monthly, setMonthly] = useState<string | null>(null);
+  const [yearly, setYearly] = useState<string | null>(null);
+  const [seatPrice, setSeatPrice] = useState<string | null>(null);
   const showIndiaOffer = variant === 'global' && browserLooksIndian();
 
   useDocumentMeta({ title: t(`landing.meta.title.${variant}` as MessageKey), description: t(`landing.meta.description.${variant}` as MessageKey), path });
@@ -56,8 +57,10 @@ export default function Landing({ variant, lang }: { variant: LandingVariant; la
   useEffect(() => { trackEvent('landing_view', { page: path }); }, [path]);
   useEffect(() => {
     api.getPlans().then(p => {
-      const price = p.plans.find(x => x.id === 'pro')?.prices?.month;
-      if (price) setMonthly(formatCurrency(locale, price.amountMinor / 100, price.currency));
+      const price = p.plans.find(x => x.id === 'pro')?.prices?.year;
+      if (price) setYearly(formatCurrency(locale, price.amountMinor / 100, price.currency));
+      const seat = p.institution?.seatYear;
+      if (seat) setSeatPrice(formatCurrency(locale, seat.amountMinor / 100, seat.currency));
     }).catch(() => { /* the page reads fine without a price */ });
   }, [locale]);
 
@@ -133,6 +136,24 @@ export default function Landing({ variant, lang }: { variant: LandingVariant; la
             </ul>
           </section>
 
+          <section aria-labelledby="b2b" className="max-w-5xl mx-auto px-4 py-10">
+            <div className="rounded-2xl border border-amber-400/30 bg-amber-400/5 p-6 sm:p-8 grid gap-6 md:grid-cols-[1.4fr_1fr] md:items-center">
+              <div>
+                <h2 id="b2b" className="font-display text-xl sm:text-2xl font-bold text-white">{t('landing.b2b.title')}</h2>
+                <p className="mt-3 text-gray-300 leading-relaxed">{t('landing.b2b.body')}</p>
+                <Link to="/login?mode=register" onClick={() => trackEvent('cta_click', { page: path })} className="mt-5 inline-block bg-gradient-to-r from-amber-500 to-orange-600 hover:from-amber-400 hover:to-orange-500 text-white font-display font-bold px-6 py-3 rounded-lg">
+                  {t('landing.b2b.cta')}
+                </Link>
+              </div>
+              <ul className="space-y-2">
+                {(['landing.b2b.1', 'landing.b2b.2', 'landing.b2b.3'] as const).map(k => (
+                  <li key={k} className="flex gap-2 text-sm font-mono text-gray-200"><span aria-hidden className="text-amber-300">✓</span>{t(k)}</li>
+                ))}
+                {seatPrice && <li className="flex gap-2 text-sm font-mono text-amber-200"><span aria-hidden>✓</span>{t('landing.b2b.4', { price: seatPrice })}</li>}
+              </ul>
+            </div>
+          </section>
+
           <section aria-labelledby="parents" className="max-w-3xl mx-auto px-4 py-10">
             <div className="rounded-2xl border border-green-500/20 bg-green-500/5 p-6">
               <h2 id="parents" className="font-display text-lg text-white">{t('landing.parents.title')}</h2>
@@ -149,7 +170,7 @@ export default function Landing({ variant, lang }: { variant: LandingVariant; la
 
           <section aria-labelledby="pricing" className="max-w-3xl mx-auto px-4 py-10 text-center">
             <h2 id="pricing" className="font-display text-xl sm:text-2xl font-bold">{t('landing.pricing.title')}</h2>
-            <p className="mt-3 text-gray-300 leading-relaxed">{monthly ? t('landing.pricing.body', { price: monthly }) : t('landing.pricing.bodyNoPrice')}</p>
+            <p className="mt-3 text-gray-300 leading-relaxed">{yearly ? t('landing.pricing.body', { price: yearly }) : t('landing.pricing.bodyNoPrice')}</p>
             <Link to="/pricing" className="mt-5 inline-block text-sm font-mono text-purple-300 hover:text-white underline underline-offset-4">{t('landing.cta.pricing')}</Link>
           </section>
 

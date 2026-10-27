@@ -6,6 +6,8 @@ import { useGameStore } from './store/gameStore';
 import { useSoundStore } from './store/soundStore';
 import { useThemeStore, applyTheme, effectiveTheme } from './store/themeStore';
 import { useBillingStore } from './store/billingStore';
+import { useConfigStore } from './store/configStore';
+import { useOrgStore } from './store/orgStore';
 import { sfx } from './utils/sounds';
 import './index.css';
 
@@ -53,6 +55,7 @@ const Modules = lazyPage(() => import('./pages/Modules'));
 const ModulePage = lazyPage(() => import('./pages/ModulePage'));
 const Admin = lazyPage(() => import('./pages/Admin'));
 const Classes = lazyPage(() => import('./pages/Classes'));
+const Institution = lazyPage(() => import('./pages/Institution'));
 const Legal = lazyPage(() => import('./pages/Legal'));
 const ParentConsent = lazyPage(() => import('./pages/ParentConsent'));
 const Pricing = lazyPage(() => import('./pages/Pricing'));
@@ -91,6 +94,7 @@ const CORE_NAV: { path: string; label: MessageKey; icon: string }[] = [
   { path: '/inventory', label: 'nav.inventory', icon: '🎒' },
   { path: '/achievements', label: 'nav.achievements', icon: '🏆' },
   { path: '/weekly', label: 'nav.weekly', icon: '📊' },
+  { path: '/org', label: 'nav.institution', icon: '🏫' },
   { path: '/classes', label: 'nav.classes', icon: '🎓' },
 ];
 const SETTINGS_NAV = { path: '/settings', label: 'nav.settings' as MessageKey, icon: '⚙' };
@@ -135,6 +139,8 @@ function AppContent() {
   const billingLoaded = useBillingStore(s => s.loaded);
   const theme = effectiveTheme(chosenTheme, premiumOk, billingLoaded);
   useEffect(() => { if (user?.id) void useBillingStore.getState().load(); else useBillingStore.getState().reset(); }, [user?.id]);
+  // Institution (B2B) membership: reloaded per account so a switch never shows another hunter's institution.
+  useEffect(() => { if (user?.id) void useOrgStore.getState().load(); else useOrgStore.getState().reset(); }, [user?.id]);
   const [sidebarOpen, setSidebarOpen] = useState(false);
 
   // Apply theme on mount
@@ -234,6 +240,7 @@ function AppContent() {
                   <Route path="/achievements" element={<ProtectedRoute><AchievementPanel /></ProtectedRoute>} />
                   <Route path="/weekly" element={<ProtectedRoute><WeeklyReport /></ProtectedRoute>} />
                   <Route path="/classes" element={<ProtectedRoute><Classes /></ProtectedRoute>} />
+                  <Route path="/org" element={<ProtectedRoute><Institution /></ProtectedRoute>} />
                   <Route path="/admin" element={<ProtectedRoute><Admin /></ProtectedRoute>} />
                   <Route path="/settings" element={<ProtectedRoute><Settings /></ProtectedRoute>} />
                   <Route path="*" element={<Navigate to="/" replace />} />
@@ -301,6 +308,8 @@ function HindiRoute() {
 
 function App() {
   useScreenOpenAudio();
+  // The product's name and prices come from the platform settings (super admin).
+  useEffect(() => { void useConfigStore.getState().load(); }, []);
   // Keep <html lang> and <html dir> in step with the chosen language (screen readers, RTL layouts).
   const locale = useLocaleStore(s => s.locale);
   useEffect(() => { applyLocaleToDocument(locale); }, [locale]);

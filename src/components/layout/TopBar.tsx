@@ -30,7 +30,7 @@ function Switch({ on }: { on: boolean }) {
 const SLUG_KEYS: Record<string, MessageKey> = {
   '': 'nav.dashboard', quests: 'nav.quests', stats: 'nav.stats', rank: 'nav.rank', progress: 'nav.progress',
   time: 'nav.timetable', timetable: 'nav.timetable', inventory: 'nav.inventory', achievements: 'nav.achievements',
-  weekly: 'nav.weekly', classes: 'nav.classes', modules: 'nav.modules', settings: 'nav.settings', admin: 'nav.admin',
+  weekly: 'nav.weekly', classes: 'nav.classes', org: 'nav.institution', modules: 'nav.modules', settings: 'nav.settings', admin: 'nav.admin',
 };
 
 export default function TopBar({ onMenuToggle }: TopBarProps) {

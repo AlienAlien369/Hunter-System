@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 import { Link, useSearchParams } from 'react-router-dom';
 import { api, ApiError, type PayLinkInfo } from '../lib/api';
-import { formatCurrency, formatDate, useLocaleStore, useT } from '../i18n';
+import { appName, formatCurrency, formatDate, useLocaleStore, useT } from '../i18n';
 import BackgroundFX from '../components/BackgroundFX';
 import LanguagePicker from '../components/LanguagePicker';
 import LegalLinks from '../components/LegalLinks';
@@ -25,7 +25,7 @@ export default function Pay() {
   const [note, setNote] = useState('');
 
   const load = () => api.lookupPayLink(token).then(i => { setInfo(i); setState('ready'); }).catch(() => setState('invalid'));
-  useEffect(() => { document.title = `${t('pay.title')} · Hunter System`; }, [t]);
+  useEffect(() => { document.title = `${t('pay.title')} · ${appName()}`; }, [t]);
   useEffect(() => { if (token) void load(); // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [token]);
 
@@ -100,7 +100,7 @@ export default function Pay() {
         )}
         <div className="flex items-center justify-between pt-2">
           <LegalLinks />
-          <Link to="/login" className="text-[11px] font-mono text-gray-400 hover:text-white">Hunter System</Link>
+          <Link to="/login" className="text-[11px] font-mono text-gray-400 hover:text-white">{appName()}</Link>
         </div>
       </div>
     </main>

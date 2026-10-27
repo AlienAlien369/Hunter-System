@@ -1,3 +1,5 @@
+import { appName } from '../i18n';
+
 // Shareable Hunter card: a 1080×1350 image (Instagram portrait / WhatsApp friendly)
 // drawn on a canvas in the browser, shared through the native share sheet.
 
@@ -52,7 +54,7 @@ export async function drawHunterCard(d: CardData): Promise<Blob> {
     ctx.fillText(text, W / 2, y);
   };
 
-  center('HUNTER SYSTEM', 130, '700 44px Orbitron', '#c4b5fd');
+  center(appName().toLocaleUpperCase(), 130, '700 44px Orbitron', '#c4b5fd');
   center('STATUS WINDOW', 185, '500 30px Inter', 'rgba(255,255,255,0.55)');
 
   // Rank emblem

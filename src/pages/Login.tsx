@@ -19,7 +19,9 @@ export default function Login() {
   const { login, user } = useAuthStore();
   // Return to the page that required login (deep links, refreshes); only same-app paths.
   const from = (location.state as { from?: string } | null)?.from;
-  const target = from && from.startsWith('/') && !from.startsWith('//') ? from : '/';
+  // Institution invite links (/login?org=ABC234) continue to the join screen after sign-in.
+  const orgCode = (new URLSearchParams(location.search).get('org') ?? '').replace(/[^A-Za-z0-9]/g, '').slice(0, 8);
+  const target = orgCode ? `/org?code=${orgCode}` : from && from.startsWith('/') && !from.startsWith('//') ? from : '/';
   // Invite links (/login?invite=<Hunter name>) — remembered in case the visitor wanders off first.
   const [invite] = useState(() => {
     const fromUrl = new URLSearchParams(location.search).get('invite')?.trim().slice(0, 30) || '';
@@ -31,7 +33,7 @@ export default function Login() {
   // Newcomers land on "create account"; browsers that have signed in before land on login.
   const [mode, setMode] = useState<'login' | 'register' | 'recover'>(() => {
     const q = new URLSearchParams(location.search);
-    if (q.get('invite') || q.get('mode') === 'register') return 'register';
+    if (q.get('invite') || q.get('org') || q.get('mode') === 'register') return 'register';
     try { return localStorage.getItem('hunter.hasAccount') ? 'login' : 'register'; } catch { return 'login'; }
   });
   const [username, setUsername] = useState('');
@@ -143,7 +145,7 @@ export default function Login() {
               ⚔️
             </motion.div>
             <h1 className="font-display text-3xl font-bold text-white tracking-widest">
-              HUNTER SYSTEM
+              {t('common.appName')}
             </h1>
             <p className="text-purple-400 font-mono text-sm mt-2">
               {t(mode === 'login' ? 'auth.subtitle.login' : mode === 'recover' ? 'auth.subtitle.recover' : 'auth.subtitle.register')}

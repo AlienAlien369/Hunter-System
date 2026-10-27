@@ -4,7 +4,7 @@ import { api } from '../lib/api';
 import BackgroundFX from '../components/BackgroundFX';
 import LegalLinks from '../components/LegalLinks';
 import LanguagePicker from '../components/LanguagePicker';
-import { useT } from '../i18n';
+import { appName, useT } from '../i18n';
 
 type View = 'loading' | 'ready' | 'granted' | 'deleted' | 'invalid';
 
@@ -20,7 +20,7 @@ export default function ParentConsent() {
   const [busy, setBusy] = useState(false);
 
   useEffect(() => {
-    document.title = 'Parental consent · Hunter System';
+    document.title = `Parental consent · ${appName()}`;
     if (!token) return;
     api.getParentConsent(token)
       .then(r => { setUsername(r.username); setStatus(r.status); setView('ready'); })
@@ -54,7 +54,7 @@ export default function ParentConsent() {
           <>
             <p className="text-sm text-gray-300 leading-relaxed">
               {t('parent.intro.before')} <strong className="text-white">{username}</strong> {t('parent.intro.middle')}{' '}
-              <strong className="text-white">Hunter System</strong>{t('parent.intro.after').startsWith(',') ? '' : ' '}{t('parent.intro.after')}
+              <strong className="text-white">{appName()}</strong>{t('parent.intro.after').startsWith(',') ? '' : ' '}{t('parent.intro.after')}
             </p>
             <div className="text-sm text-gray-300 leading-relaxed">
               <p className="text-white font-display tracking-wider text-sm mb-1">{t('parent.collect.title')}</p>
@@ -91,7 +91,7 @@ export default function ParentConsent() {
         <div className="flex items-center justify-between pt-2">
           <LegalLinks />
           <LanguagePicker />
-          <Link to="/login" className="text-[11px] font-mono text-gray-400 hover:text-white">Hunter System</Link>
+          <Link to="/login" className="text-[11px] font-mono text-gray-400 hover:text-white">{appName()}</Link>
         </div>
       </div>
     </main>

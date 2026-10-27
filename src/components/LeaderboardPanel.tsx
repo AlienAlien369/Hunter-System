@@ -5,7 +5,7 @@ import { useAuthStore } from '../store/authStore';
 import { Btn, Panel, inputCls } from './hunter/ui';
 import { trackEvent } from '../lib/track';
 import CountryPicker from './CountryPicker';
-import { localeInfo, useLocaleStore, useT } from '../i18n';
+import { appName, localeInfo, useLocaleStore, useT } from '../i18n';
 import { regionName } from '../utils/regions';
 
 const MEDALS = ['🥇', '🥈', '🥉'];
@@ -142,9 +142,9 @@ function FriendsBoard({ xp }: { xp: number }) {
   const invite = async () => {
     trackEvent('invite_click');
     const url = `${window.location.origin}/login?invite=${encodeURIComponent(me?.name ?? '')}`;
-    const text = `Race me on Hunter System — daily quests, XP and ranks for real life.`;
+    const text = `Race me on ${appName()} — daily quests, XP and ranks for real life.`;
     try {
-      if (navigator.share) await navigator.share({ title: 'Hunter System', text, url });
+      if (navigator.share) await navigator.share({ title: appName(), text, url });
       else { await navigator.clipboard.writeText(`${text} ${url}`); setMsg({ ok: true, text: 'Invite link copied.' }); }
     } catch { /* share sheet dismissed */ }
   };

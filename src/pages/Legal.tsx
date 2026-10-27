@@ -3,6 +3,7 @@ import { Link } from 'react-router-dom';
 import BackgroundFX from '../components/BackgroundFX';
 import { LEGAL_DOCS, type LegalKind } from '../data/legal';
 import { LEGAL, legalConfigured } from '../data/legalConfig';
+import { useBrand } from '../i18n';
 
 const LINKS: { kind: LegalKind; to: string; label: string }[] = [
   { kind: 'terms', to: '/terms', label: 'Terms' },
@@ -13,17 +14,19 @@ const LINKS: { kind: LegalKind; to: string; label: string }[] = [
 /** Public legal pages (/terms, /privacy, /refund) — readable without an account. */
 export default function Legal({ kind }: { kind: LegalKind }) {
   const doc = LEGAL_DOCS[kind];
+  const brand = useBrand();
+  const b = (s: string) => s.split('Hunter System').join(brand);
   useEffect(() => {
-    document.title = `${doc.title} · Hunter System`;
+    document.title = `${doc.title} · ${brand}`;
     window.scrollTo(0, 0);
-  }, [doc.title]);
+  }, [doc.title, brand]);
 
   return (
     <main className="min-h-screen px-4 py-10" style={{ background: 'var(--bg-base)' }}>
       <BackgroundFX />
       <div className="relative max-w-3xl mx-auto">
         <nav className="flex flex-wrap items-center gap-4 text-xs font-mono mb-6" aria-label="Legal pages">
-          <Link to="/login" className="text-purple-300 hover:text-white">← Hunter System</Link>
+          <Link to="/login" className="text-purple-300 hover:text-white">← {brand}</Link>
           {LINKS.map(l => (
             <Link key={l.kind} to={l.to} className={l.kind === kind ? 'text-white underline' : 'text-gray-400 hover:text-white'}>{l.label}</Link>
           ))}
@@ -36,14 +39,14 @@ export default function Legal({ kind }: { kind: LegalKind }) {
               The operator’s name, address and contact details have not been filled in yet. They must be added before this service is launched to the public.
             </p>
           )}
-          <p className="text-sm text-gray-300 mt-5 leading-relaxed">{doc.intro}</p>
+          <p className="text-sm text-gray-300 mt-5 leading-relaxed">{b(doc.intro)}</p>
           {doc.sections.map(s => (
             <section key={s.heading} className="mt-7">
-              <h2 className="font-display text-white tracking-wider text-sm sm:text-base">{s.heading}</h2>
-              {s.paragraphs?.map(p => <p key={p} className="text-sm text-gray-300 mt-2 leading-relaxed">{p}</p>)}
+              <h2 className="font-display text-white tracking-wider text-sm sm:text-base">{b(s.heading)}</h2>
+              {s.paragraphs?.map(p => <p key={p} className="text-sm text-gray-300 mt-2 leading-relaxed">{b(p)}</p>)}
               {s.bullets && (
                 <ul className="mt-2 space-y-2 list-disc pl-5 marker:text-purple-400">
-                  {s.bullets.map(b => <li key={b} className="text-sm text-gray-300 leading-relaxed">{b}</li>)}
+                  {s.bullets.map(x => <li key={x} className="text-sm text-gray-300 leading-relaxed">{b(x)}</li>)}
                 </ul>
               )}
             </section>

@@ -1,8 +1,9 @@
 import { readFileSync } from 'node:fs';
 import { describe, expect, it } from 'vitest';
 // @ts-expect-error — plain JS build helper
-import { buildVariantHtml, sitemapXml, SITE, VARIANTS } from '../../scripts/seo.mjs';
+import { APP_NAME, buildVariantHtml, sitemapXml, SITE, VARIANTS } from '../../scripts/seo.mjs';
 import { en } from '../i18n/messages/en';
+import { translate } from '../i18n';
 import { hinglish } from '../i18n/messages/hinglish';
 import { hi } from '../i18n/messages/hi';
 
@@ -10,11 +11,11 @@ const index = readFileSync('index.html', 'utf8');
 
 describe('landing SEO', () => {
   it('keeps the static India tags identical to the in-app translations', () => {
-    expect(VARIANTS.in.title).toBe(hinglish['landing.meta.title.india']);
+    expect(VARIANTS.in.title).toBe(hinglish['landing.meta.title.india'].replace('{app}', APP_NAME));
     expect(VARIANTS.in.description).toBe(hinglish['landing.meta.description.india']);
   });
   it('keeps the static Hindi tags identical to the in-app translations, and builds /hi', () => {
-    expect(VARIANTS.hi.title).toBe(hi['landing.meta.title.global']);
+    expect(VARIANTS.hi.title).toBe(hi['landing.meta.title.global'].replace('{app}', APP_NAME));
     expect(VARIANTS.hi.description).toBe(hi['landing.meta.description.global']);
     const out: string = buildVariantHtml(index, VARIANTS.hi);
     expect(out).toContain('<html lang="hi">');
@@ -23,7 +24,8 @@ describe('landing SEO', () => {
   });
   it('home page title and description match the English landing copy', () => {
     // index.html keeps a shorter generic title for the app shell; the description must agree in substance.
-    expect(en['landing.meta.title.global']).toContain('Hunter System');
+    expect(translate('en', 'landing.meta.title.global')).toContain('Hunter System');
+    expect(en['landing.meta.title.global']).toContain('{app}');
     expect(index).toContain('rel="canonical" href="https://hunters-system.vercel.app/"');
   });
   it('builds /in with its own title, description, canonical and noscript text', () => {

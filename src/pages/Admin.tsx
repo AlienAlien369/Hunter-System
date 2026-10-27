@@ -2,10 +2,11 @@ import { useEffect, useState } from 'react';
 import { api, type BusinessReport, type FunnelReport } from '../lib/api';
 import { Panel, Stat } from '../components/hunter/ui';
 import { funnelSteps, fmtPct, visitToSignup } from '../utils/funnel';
+import PlatformAdmin from '../components/admin/PlatformAdmin';
 
 const WINDOWS = [7, 30, 90];
 
-/** Founder-only funnel view (/admin). Aggregates only — no individual hunters are ever shown. */
+/** Super admin view (/admin): platform settings, institutions, and the funnel. The funnel shows aggregates only. */
 export default function Admin() {
   const [days, setDays] = useState(30);
   const [region, setRegion] = useState('');
@@ -22,7 +23,7 @@ export default function Admin() {
   useEffect(() => { api.getBusiness(days).then(setBiz).catch(() => setBiz(null)); }, [days]);
 
   if (error) return <Panel title="ADMIN"><p className="text-sm text-yellow-300 font-mono" role="alert">{error}</p></Panel>;
-  if (!report) return <p className="text-gray-400 font-mono text-sm">Loading funnel…</p>;
+  if (!report) return <div className="space-y-4 max-w-4xl"><PlatformAdmin /><p className="text-gray-400 font-mono text-sm">Loading funnel…</p></div>;
 
   const steps = funnelSteps(report.totals);
   const top = Math.max(1, report.totals.signups);
@@ -30,6 +31,7 @@ export default function Admin() {
 
   return (
     <div className="space-y-4 max-w-4xl">
+      <PlatformAdmin />
       <Panel
         title="FUNNEL"
         right={

@@ -3,7 +3,7 @@ import { Link, useNavigate, useSearchParams } from 'react-router-dom';
 import { api, ApiError, type BillingState, type PlansResponse } from '../lib/api';
 import { useAuthStore } from '../store/authStore';
 import { trackEvent } from '../lib/track';
-import { formatCurrency, translate, useLocaleStore, useT } from '../i18n';
+import { appName, formatCurrency, translate, useLocaleStore, useT } from '../i18n';
 import type { MessageKey } from '../i18n/messages/en';
 import BackgroundFX from '../components/BackgroundFX';
 import LanguagePicker from '../components/LanguagePicker';
@@ -30,7 +30,7 @@ export default function Pricing() {
   const viewed = useRef(false);
 
   useEffect(() => {
-    document.title = `${t('pricing.title')} · Hunter System`;
+    document.title = `${t('pricing.title')} · ${appName()}`;
     if (!viewed.current) { viewed.current = true; trackEvent('pricing_view', { page: '/pricing' }); }
   }, [t]);
 
@@ -126,7 +126,7 @@ export default function Pricing() {
       <BackgroundFX />
       <div className="relative max-w-4xl mx-auto">
         <nav className="flex items-center justify-between text-xs font-mono mb-8">
-          <Link to={user ? '/' : '/login'} className="text-purple-300 hover:text-white">← Hunter System</Link>
+          <Link to={user ? '/' : '/login'} className="text-purple-300 hover:text-white">← {appName()}</Link>
           <LanguagePicker />
         </nav>
 
@@ -230,6 +230,27 @@ export default function Pricing() {
             {error && <p role="alert" className="mt-3 text-sm font-mono text-red-400">{error}</p>}
           </section>
         </div>
+
+        {data?.institution && (
+          <section aria-labelledby="plan-org" className="mt-5 rounded-2xl p-6 border border-amber-400/40 bg-[#0d1117]/90 grid gap-6 md:grid-cols-[1fr_auto] md:items-center">
+            <div>
+              <h2 id="plan-org" className="font-display text-white tracking-widest">{t('pricing.org.title')}</h2>
+              <p className="mt-2 text-3xl font-display text-white">{t('pricing.org.price', { price: money(data.institution.seatYear) })}</p>
+              <ul className="mt-4 grid gap-2 sm:grid-cols-2">
+                {feature('pricing.org.f1')}
+                {feature('pricing.org.f2')}
+                {feature('pricing.org.f3')}
+                {feature('pricing.org.f4')}
+              </ul>
+            </div>
+            <div className="text-center">
+              <Link to={user ? '/org' : '/login?mode=register'} onClick={() => trackEvent('cta_click', { page: '/pricing' })} className="inline-block bg-gradient-to-r from-amber-500 to-orange-600 hover:from-amber-400 hover:to-orange-500 text-white font-display font-bold px-6 py-3 rounded-lg">
+                {t('pricing.org.cta')}
+              </Link>
+              <p className="mt-2 text-[11px] font-mono text-gray-400">{t('pricing.org.trial', { days: data.institution.trialDays, seats: data.institution.trialSeats })}</p>
+            </div>
+          </section>
+        )}
 
         <p className="mt-6 text-center text-xs font-mono text-gray-400">{t('pricing.cancelAnytime')}</p>
         <LegalLinks className="mt-6 text-center" />

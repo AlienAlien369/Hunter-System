@@ -1,4 +1,4 @@
-import { useT } from '../../i18n';
+import { useBrand, useT } from '../../i18n';
 import { Link } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useAuthStore } from '../../store/authStore';
@@ -23,6 +23,7 @@ interface SidebarProps {
 function SidebarContent({ items, currentPath, userName, onLogout, layoutIdPrefix = 'desktop' }: Omit<SidebarProps, 'open' | 'onClose'> & { layoutIdPrefix?: string }) {
   const t = useT();
   const { user } = useAuthStore();
+  const brand = useBrand();
 
   return (
     <div className="flex flex-col h-full">
@@ -36,8 +37,8 @@ function SidebarContent({ items, currentPath, userName, onLogout, layoutIdPrefix
             ⚔️
           </div>
           <div>
-            <h1 className="font-display text-lg text-white font-bold tracking-wider">
-              HUNTER
+            <h1 className={`font-display text-white font-bold tracking-wider leading-tight break-words max-w-[10rem] ${brand.length > 10 ? 'text-sm' : 'text-lg'}`} title={brand}>
+              {brand.toLocaleUpperCase()}
             </h1>
             <p className="text-[10px] text-accent-text tracking-[0.3em] uppercase">
               System Online

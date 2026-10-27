@@ -11,6 +11,7 @@ import PenaltyBanner from '../components/PenaltyBanner';
 import UnplannedActivity from '../components/UnplannedActivity';
 import ShareCardButton from '../components/ShareCardButton';
 import InitiationCard from '../components/InitiationCard';
+import OrgProgress from '../components/org/OrgProgress';
 import { useModuleStore } from '../store/moduleStore';
 import { Panel } from '../components/hunter/ui';
 import { TaskRow } from '../components/hunter/tasks';
@@ -61,6 +62,9 @@ export default function Dashboard() {
       </motion.div>
 
       <InitiationCard />
+
+      {/* Institution members (B2B): institution and personal progress, and today's core tasks */}
+      <OrgProgress />
 
       {/* Main Grid */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">

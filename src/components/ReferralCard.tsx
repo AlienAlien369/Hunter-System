@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react';
 import { api, type ReferralStatus } from '../lib/api';
 import { useAuthStore } from '../store/authStore';
 import { trackEvent } from '../lib/track';
-import { useT } from '../i18n';
+import { appName, useT } from '../i18n';
 
 /** Settings → invite friends, see progress toward free Pro months. Pro time only: never XP or rank. */
 export default function ReferralCard() {
@@ -17,7 +17,7 @@ export default function ReferralCard() {
     const url = `${window.location.origin}/login?invite=${encodeURIComponent(me?.name ?? '')}`;
     const text = t('referral.shareText');
     try {
-      if (navigator.share) await navigator.share({ title: 'Hunter System', text, url });
+      if (navigator.share) await navigator.share({ title: appName(), text, url });
       else { await navigator.clipboard.writeText(`${text} ${url}`); setNote(t('referral.copied')); }
     } catch { /* share sheet dismissed */ }
   };

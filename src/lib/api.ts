@@ -196,6 +196,7 @@ export interface PlansResponse {
   checkoutEnabled: boolean;
   mode: 'test' | 'live' | 'off';
   plans: { id: 'free' | 'pro'; limits: { aiPerDay: number; premiumCosmetics: boolean }; prices?: { month: PlanPrice; year: PlanPrice }; yearlySavingsPct?: number }[];
+  institution?: { seatYear: PlanPrice; trialDays: number; trialSeats: number };
 }
 export interface ClassSummary { id: number; name: string; code: string; archived: boolean; members: number; pilot: boolean }
 export interface ClassesResponse {
@@ -214,6 +215,63 @@ export interface ClassDashboard {
   windowDays: number;
   summary: { members: number; activeThisWeek: number; avgConsistencyPct: number };
   members: ClassMemberRow[];
+}
+
+// ── Institutions (B2B), weekly reports, platform settings ──────────────────
+export type OrgRole = 'admin' | 'teacher' | 'student';
+export type OrgKind = 'school' | 'coaching' | 'college' | 'university' | 'company' | 'other';
+export const ORG_KINDS: OrgKind[] = ['school', 'coaching', 'college', 'university', 'company', 'other'];
+export interface OrgPlan { active: boolean; trial: boolean; seats: number; until: string | null }
+export interface OrgInfo {
+  id: number; name: string; kind: OrgKind; role: OrgRole; members: number; students: number;
+  /** Staff only. */
+  studentCode?: string; plan?: OrgPlan;
+  /** Admins only. */
+  staffCode?: string; reportEmails?: string[];
+}
+export interface LedgerProgress { xp: number; level: number; rank: string }
+export interface OrgTask {
+  id: number; title: string; description: string | null; difficulty: number; xpReward: number;
+  scheduleTime: string | null; recurrence: string[] | null; today: boolean; done: boolean;
+}
+export interface OrgMe { org: OrgInfo | null; progress?: LedgerProgress & { weekXp: number; weekDone: number }; tasks?: OrgTask[] }
+export interface OrgLookup { name: string; kind: OrgKind; role: OrgRole; staffSees: string[]; staffNeverSees: string[] }
+export interface OrgMemberRow extends LedgerProgress {
+  userId: number; name: string; role: OrgRole; weekXp: number; activeDays7: number; activeDays28: number;
+  completionPct: number | null; lastActive: string | null; guardians: number; joinedAt: string; you: boolean;
+}
+export interface OrgMembers {
+  windowDays: number;
+  summary: { students: number; staff: number; activeThisWeek: number; avgCompletionPct: number | null; weekXp: number };
+  members: OrgMemberRow[];
+}
+export interface OrgTaskInput { title: string; description?: string; difficulty: number; scheduleTime?: string | null; recurrence?: string[] | null }
+export interface OrgBilling { seatPrice: PlanPrice; plan: OrgPlan; students: number; checkoutEnabled: boolean }
+export type ReportScope = 'both' | 'org' | 'personal';
+export type ReportRelation = 'parent' | 'guardian' | 'teacher' | 'family' | 'friend' | 'mentor' | 'self' | 'other';
+export const REPORT_RELATIONS: ReportRelation[] = ['parent', 'guardian', 'teacher', 'family', 'friend', 'mentor', 'self', 'other'];
+export interface ReportRecipient {
+  id: number; email: string; relation: ReportRelation; scope: ReportScope; active: boolean; lastSentAt: string | null; managedByInstitution: boolean;
+}
+export interface ReportRecipients { recipients: ReportRecipient[]; max: number; mailConfigured: boolean; inInstitution: boolean; schedule: string }
+export interface WeeklyReportData {
+  name: string; from: string; to: string;
+  personal: { xpGained: number; xp: number; level: number; rank: string; tasksDone: number; activeDays: number; streak: number };
+  org: null | { name: string; xpGained: number; xp: number; level: number; rank: string; tasksDone: number; completionPct: number | null; activeDays: number };
+}
+export interface RenderedReport { subject: string; text: string; html: string }
+export interface SendResult { mailConfigured: boolean; recipients: number; sent: number }
+export interface PublicConfig {
+  brand: { name: string; tagline: string; supportEmail: string | null };
+  pricing: { currency: string; individual: { yearMinor: number; monthMinor: number }; organization: { seatYearMinor: number; trialDays: number; trialSeats: number } };
+}
+export interface PlatformSettings {
+  brandName: string; tagline: string; supportEmail: string;
+  proYearInr: number; proMonthInr: number; orgSeatYearInr: number; orgTrialDays: number; orgTrialSeats: number;
+}
+export interface AdminOrgRow {
+  id: number; name: string; kind: OrgKind; admin: string | null; students: number; staff: number; createdAt: string;
+  grantSeats: number; grantUntil: string | null; plan: OrgPlan;
 }
 
 export interface PayLinkInfo {
@@ -239,7 +297,7 @@ export interface ReferralStatus {
 
 export interface BillingState {
   plan: 'free' | 'pro' | 'teams';
-  source: 'subscription' | 'grant' | null;
+  source: 'subscription' | 'grant' | 'org' | null;
   until: string | null;
   limits: { aiPerDay: number; premiumCosmetics: boolean };
   aiUsedToday: number;
@@ -589,6 +647,50 @@ export const api = {
   rotateClassCode: (id: number) => request<{ code: string }>(`/classes/${id}/rotate-code`, { method: 'POST', body: '{}' }),
   archiveClass: (id: number) => request<{ archived: boolean }>(`/classes/${id}`, { method: 'PATCH', body: JSON.stringify({ archived: true }) }),
   removeClassMember: (id: number, memberId: number) => request<{ removed: boolean }>(`/classes/${id}/members/${memberId}`, { method: 'DELETE' }),
+
+  // Institutions (B2B)
+  getMyOrg: () => request<OrgMe>('/orgs/me'),
+  createOrg: (name: string, kind: OrgKind) => request<{ org: OrgInfo }>('/orgs', { method: 'POST', body: JSON.stringify({ name, kind }) }),
+  lookupOrg: (code: string) => request<OrgLookup>(`/orgs/lookup?code=${encodeURIComponent(code)}`),
+  joinOrg: (code: string) => request<{ org: OrgInfo }>('/orgs/join', { method: 'POST', body: JSON.stringify({ code }) }),
+  leaveOrg: () => request<{ left: boolean }>('/orgs/membership', { method: 'DELETE' }),
+  closeOrg: (confirm: string) => request<{ closed: boolean }>('/orgs', { method: 'DELETE', body: JSON.stringify({ confirm }) }),
+  updateOrg: (patch: { name?: string; kind?: OrgKind; reportEmails?: string[] }) => request<{ org: OrgInfo }>('/orgs/settings', { method: 'PATCH', body: JSON.stringify(patch) }),
+  rotateOrgCode: (which: 'student' | 'staff') => request<{ org: OrgInfo }>('/orgs/rotate-codes', { method: 'POST', body: JSON.stringify({ which }) }),
+  getOrgMembers: () => request<OrgMembers>('/orgs/members'),
+  setOrgRole: (userId: number, role: OrgRole) => request<{ userId: number; role: OrgRole }>(`/orgs/members/${userId}`, { method: 'PATCH', body: JSON.stringify({ role }) }),
+  removeOrgMember: (userId: number) => request<{ removed: boolean }>(`/orgs/members/${userId}`, { method: 'DELETE' }),
+  getGuardians: (userId: number) => request<{ guardians: { id: number; email: string; relation: ReportRelation; active: boolean; lastSentAt: string | null }[] }>(`/orgs/members/${userId}/guardians`),
+  addGuardian: (userId: number, email: string, relation: ReportRelation) => request<{ id: number }>(`/orgs/members/${userId}/guardians`, { method: 'POST', body: JSON.stringify({ email, relation }) }),
+  removeGuardian: (userId: number, id: number) => request<{ removed: boolean }>(`/orgs/members/${userId}/guardians/${id}`, { method: 'DELETE' }),
+  getOrgTasks: () => request<{ tasks: OrgTask[] }>('/orgs/tasks'),
+  createOrgTask: (t: OrgTaskInput) => request<{ id: number }>('/orgs/tasks', { method: 'POST', body: JSON.stringify(t) }),
+  updateOrgTask: (id: number, t: Partial<OrgTaskInput>) => request<{ id: number }>(`/orgs/tasks/${id}`, { method: 'PATCH', body: JSON.stringify(t) }),
+  deleteOrgTask: (id: number) => request<{ removed: boolean }>(`/orgs/tasks/${id}`, { method: 'DELETE' }),
+  toggleOrgTask: (id: number) => request<{ action: 'completed' | 'undone'; orgXpGained: number; progress: LedgerProgress }>(`/orgs/tasks/${id}/toggle`, { method: 'POST', body: '{}' }),
+  getOrgBilling: () => request<OrgBilling>('/orgs/billing'),
+  orgCheckout: (seats: number) => request<{ url: string }>('/orgs/checkout', { method: 'POST', body: JSON.stringify({ seats }) }),
+
+  // Weekly email reports
+  getReportRecipients: () => request<ReportRecipients>('/reports/recipients'),
+  addReportRecipient: (email: string, relation: ReportRelation, scope: ReportScope) =>
+    request<ReportRecipient>('/reports/recipients', { method: 'POST', body: JSON.stringify({ email, relation, scope }) }),
+  updateReportRecipient: (id: number, patch: Partial<Pick<ReportRecipient, 'relation' | 'scope' | 'active'>>) =>
+    request<ReportRecipient>(`/reports/recipients/${id}`, { method: 'PATCH', body: JSON.stringify(patch) }),
+  removeReportRecipient: (id: number) => request<{ removed: boolean }>(`/reports/recipients/${id}`, { method: 'DELETE' }),
+  getWeeklyEmail: (scope: ReportScope = 'both') => request<{ data: WeeklyReportData; scope: ReportScope; preview: RenderedReport }>(`/reports/weekly?scope=${scope}`),
+  sendWeeklyEmail: () => request<SendResult>('/reports/weekly/send', { method: 'POST', body: '{}' }),
+  getOrgWeeklyEmail: () => request<{ preview: RenderedReport; reportEmails?: string[] }>('/reports/org/weekly'),
+  sendOrgWeeklyEmail: () => request<SendResult>('/reports/org/weekly/send', { method: 'POST', body: '{}' }),
+
+  // Platform (brand + prices: public read, super admin write)
+  /** `fresh` skips the browser's short cache, e.g. right after the super admin saved new settings. */
+  getPublicConfig: (fresh = false) => request<PublicConfig>('/public/config', fresh ? { cache: 'no-store' } : {}),
+  getPlatformSettings: () => request<{ settings: PlatformSettings }>('/admin/settings'),
+  savePlatformSettings: (patch: Partial<PlatformSettings>) => request<{ settings: PlatformSettings }>('/admin/settings', { method: 'PUT', body: JSON.stringify(patch) }),
+  getAdminOrgs: () => request<{ orgs: AdminOrgRow[] }>('/admin/orgs'),
+  grantOrgSeats: (id: number, seats: number, planUntil: string | null) =>
+    request<{ id: number }>(`/admin/orgs/${id}`, { method: 'PATCH', body: JSON.stringify({ seats, planUntil }) }),
 
   // Parent pay links
   createPayLink: (interval: 'month' | 'year', region?: string) =>

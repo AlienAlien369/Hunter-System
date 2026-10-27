@@ -6,6 +6,7 @@ import type { StatHistory } from "../lib/api";
 import { getStreak, MAX_DAILY_COMPLETIONS } from "../utils/xp";
 import { useT, useLocaleStore, formatDate, formatNumber, translatePlural, type LocaleCode } from "../i18n";
 import type { MessageKey } from "../i18n/messages/en";
+import ReportRecipientsPanel from "../components/ReportRecipientsPanel";
 import { sfx } from "../utils/sounds";
 import { dailyHistoryQuests } from "../utils/dailyBoard";
 import CoachPanel from "../components/CoachPanel";
@@ -297,6 +298,9 @@ export default function WeeklyReport() {
           {sharing ? t('wr.copying') : t('wr.copy')}
         </button>
       </motion.div>
+
+      {/* Email the report to parents, teachers, family or friends */}
+      <ReportRecipientsPanel />
 
       <CoachPanel />
 
@@ -611,7 +615,7 @@ export default function WeeklyReport() {
           <div className="text-right">
             <p className="text-[10px] font-mono text-gray-600">{t('wr.generatedBy')}</p>
             <p className="text-xs font-display text-purple-400 font-bold">
-              HUNTER SYSTEM ⚔️
+              {t('common.appName')} ⚔️
             </p>
           </div>
         </motion.div>
