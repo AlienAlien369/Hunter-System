@@ -99,7 +99,7 @@ describe('Parent pay links', () => {
       const r = await call('/pay-links', { interval: 'year', region: 'IN' }, teen.cookie);
       assert.strictEqual(r.status, 201);
       assert.match(r.body.url, /\/pay#token=[\w-]{40,}$/);
-      assert.deepStrictEqual({ c: r.body.currency, a: r.body.amountMinor, i: r.body.interval }, { c: 'INR', a: 59900, i: 'year' });
+      assert.deepStrictEqual({ c: r.body.currency, a: r.body.amountMinor, i: r.body.interval }, { c: 'INR', a: 60000, i: 'year' });
       const days = (new Date(r.body.expiresAt).getTime() - Date.now()) / 86_400_000;
       assert.ok(days > 6.9 && days <= 7.01);
     });

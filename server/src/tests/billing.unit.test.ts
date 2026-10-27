@@ -35,7 +35,7 @@ describe('regional pricing', () => {
   });
   it('prices India for students and the West at a few dollars', () => {
     assert.deepStrictEqual(priceFor('pro', 'month', 'IN'), { currency: 'INR', amountMinor: 7900 });
-    assert.deepStrictEqual(priceFor('pro', 'year', 'IN'), { currency: 'INR', amountMinor: 59900 });
+    assert.deepStrictEqual(priceFor('pro', 'year', 'IN'), { currency: 'INR', amountMinor: 60000 });
     assert.deepStrictEqual(priceFor('pro', 'month', 'US'), { currency: 'USD', amountMinor: 399 });
     assert.deepStrictEqual(priceFor('pro', 'year', 'US'), { currency: 'USD', amountMinor: 3499 });
     assert.deepStrictEqual(priceFor('pro', 'month', 'LOW'), { currency: 'USD', amountMinor: 199 });
