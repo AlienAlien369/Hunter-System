@@ -2,6 +2,10 @@
 
 A gamified habit tracker with a dark, system-window theme with full authentication.
 
+## Individuals and institutions
+
+One app, two kinds of customer: individuals (B2C) with one personal XP ledger, and schools, colleges and coaching institutes (B2B) whose staff assign a shared core timetable — members earn institution XP for it and keep a separate personal level for their own goals. Weekly progress reports go by email to the parents, teachers, family or friends each hunter chooses. The website name and prices are set at runtime by the super admin. See [docs/INSTITUTIONS.md](docs/INSTITUTIONS.md).
+
 ## Languages
 
 English, Hindi and Hinglish — see [docs/I18N.md](docs/I18N.md) for how it works and how to add one.
@@ -165,13 +169,19 @@ DB_NAME=hunter_system
 # JWT
 JWT_SECRET=your-secret-key-here-change-in-production
 
-# Admin funnel view (/admin): comma-separated usernames. Unset = nobody is admin.
+# Super admin (/admin: platform settings, institutions, funnel): comma-separated usernames. Unset = nobody is admin.
 ADMIN_USERNAMES=your-username
 
-# Parental consent email (Render/backend). Without these no email is sent.
+# Parental consent and weekly report emails (Render/backend). Without these no email is sent.
 RESEND_API_KEY=
 MAIL_FROM="Hunter System <noreply@your-verified-domain>"
 APP_URL=https://hunters-system.vercel.app
+
+# Default website name and support email before the super admin sets them in /admin (optional).
+APP_NAME=
+SUPPORT_EMAIL=
+# Build-time name for link previews and crawlers (frontend, optional).
+VITE_APP_NAME=
 
 # Legal pages (Vercel/frontend) — see docs/LEGAL_REVIEW.md
 VITE_LEGAL_OPERATOR=
